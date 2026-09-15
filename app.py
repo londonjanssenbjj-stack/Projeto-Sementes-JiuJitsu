@@ -13,16 +13,19 @@ st.sidebar.image("logo projeto sementes.jpeg", use_container_width=True)
 
 # --- ESTILIZAÇÃO CSS CUSTOMIZADA (DARK MODE) ---
 st.markdown("""
-</* Esconde o rodapé e o botão do Streamlit */
+<style>
+/* Esconde o rodapé e o botão do Streamlit */
 footer {visibility: hidden;}
-.stAppDeployButton {display:none;}>
+.stAppDeployButton {display:none;}
 
-    /* Fundo Geral da Aplicação e Cor de Texto */
-    .stApp {
-        background-color: #121214;
-        color: #E1E1E6;
-    }
-    
+/* Fundo Geral da Aplicação e Cor de Texto */
+.stApp {
+    background-color: #121214;
+    color: #E1E1E6;
+}
+</style>
+""", unsafe_allow_html=True)
+  
     /* Barra Lateral (Sidebar) */
     [data-testid="stSidebar"] {
         background-color: #1A1A1E;
