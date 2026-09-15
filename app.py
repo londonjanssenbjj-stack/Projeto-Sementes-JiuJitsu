@@ -10,6 +10,13 @@ st.set_page_config(
     layout="wide"
 )
 st.sidebar.image("logo projeto sementes.jpeg", use_container_width=True)
+# --- ÍCONE PERSONALIZADO PARA TELA INICIAL (iOS / ANDROID) ---
+st.markdown("""
+    <head>
+        <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/j-stack/Projeto-Sementes-JiuJitsu/principal/logo%20projeto%20sementes.jpeg">
+        <link rel="icon" type="image/jpeg" href="https://raw.githubusercontent.com/j-stack/Projeto-Sementes-JiuJitsu/principal/logo%20projeto%20sementes.jpeg">
+    </head>
+""", unsafe_allow_html=True)
 
 # --- ESTILIZAÇÃO CSS CUSTOMIZADA (DARK MODE) ---
 st.markdown("""
