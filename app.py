@@ -9,28 +9,21 @@ st.set_page_config(
     page_icon="🥋",
     layout="wide"
 )
-st.sidebar.image("logo projeto sementes.jpeg", use_container_width=True)
 
 # --- ESTILIZAÇÃO CSS CUSTOMIZADA (DARK MODE) ---
 st.markdown("""
 <style>
-/* Esconde o rodapé e o botão do Streamlit */
-footer {visibility: hidden;}
-.stAppDeployButton {display:none;}
-
-/* Fundo Geral da Aplicação e Cor de Texto */
-.stApp {
-    background-color: #121214;
-    color: #E1E1E6;
-}
-
-/* Barra Lateral (Sidebar) */
-[data-testid="stSidebar"] {
-    background-color: #1A1A1E;
-    border-right: 1px solid #29292E;
-}
-</style>
-""", unsafe_allow_html=True)
+    /* Fundo Geral da Aplicação e Cor de Texto */
+    .stApp {
+        background-color: #121214;
+        color: #E1E1E6;
+    }
+    
+    /* Barra Lateral (Sidebar) */
+    [data-testid="stSidebar"] {
+        background-color: #1A1A1E;
+        border-right: 1px solid #29292E;
+    }
     
     /* Expanders / Cards */
     .stExpander {
@@ -635,4 +628,3 @@ elif opcao == "📸 Chamada por Foto":
     foto_turma = st.camera_input("Tire a foto de toda a turma reunida")
     if foto_turma:
         st.info("Processando biometria facial dos alunos presentes...")
-        
