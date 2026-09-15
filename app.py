@@ -20,11 +20,12 @@ st.set_page_config(
 # ============================================================
 # 2. LOGO DO PROJETO
 # ============================================================
+import os
 
-st.sidebar.image(
-    LOGO_FILE,
-    use_container_width=True
-)
+if os.path.exists(LOGO_FILE):
+    st.sidebar.image(LOGO_FILE, use_container_width=True)
+else:
+    st.sidebar.title("🥋 Projeto Sementes")
 
 # ============================================================
 # 3. ESTILIZAÇÃO CSS CUSTOMIZADA - DARK MODE
