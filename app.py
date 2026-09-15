@@ -1,4 +1,3 @@
-st.sidebar.image("logo.png", use_container_width=True)
 import streamlit as st
 import pandas as pd
 import datetime
@@ -10,6 +9,7 @@ st.set_page_config(
     page_icon="🥋",
     layout="wide"
 )
+st.sidebar.image("logo projeto sementes.jpeg", use_container_width=True)
 
 # --- ESTILIZAÇÃO CSS CUSTOMIZADA (DARK MODE) ---
 st.markdown("""
