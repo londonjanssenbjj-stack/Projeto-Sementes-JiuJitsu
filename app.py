@@ -13,7 +13,10 @@ st.sidebar.image("logo projeto sementes.jpeg", use_container_width=True)
 
 # --- ESTILIZAÇÃO CSS CUSTOMIZADA (DARK MODE) ---
 st.markdown("""
-<style>
+</* Esconde o rodapé e o botão do Streamlit */
+footer {visibility: hidden;}
+.stAppDeployButton {display:none;}>
+
     /* Fundo Geral da Aplicação e Cor de Texto */
     .stApp {
         background-color: #121214;
