@@ -7,9 +7,12 @@ import urllib.parse
 # 1. CONFIGURAÇÃO DA PÁGINA
 # ============================================================
 
+LOGO_FILE = "logo projeto sementes.jpeg"
+EXCEL_FILE = "Controle de Presença e Graduação Projeto Sementes.xlsx"
+
 st.set_page_config(
     page_title="Projeto Sementes - Jiu-Jitsu",
-    page_icon="logo projeto sementes.jpeg",
+    page_icon=LOGO_FILE,
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -19,7 +22,7 @@ st.set_page_config(
 # ============================================================
 
 st.sidebar.image(
-    "logo projeto sementes.jpeg",
+    LOGO_FILE,
     use_container_width=True
 )
 
@@ -34,8 +37,14 @@ st.markdown("""
        OCULTAR ELEMENTOS DE MARCA DO STREAMLIT
        ======================================================== */
 
-    /* Rodapé padrão do Streamlit */
+    /* Rodapé */
     footer {
+        visibility: hidden !important;
+        display: none !important;
+    }
+
+    /* Menu principal */
+    #MainMenu {
         visibility: hidden !important;
         display: none !important;
     }
@@ -46,10 +55,28 @@ st.markdown("""
         visibility: hidden !important;
     }
 
-    /* Menu padrão do Streamlit */
-    #MainMenu {
-        visibility: hidden !important;
+    /* Barra de ferramentas do Streamlit */
+    [data-testid="stToolbar"] {
         display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* Indicador/status do Streamlit no canto inferior */
+    [data-testid="stStatusWidget"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* Decoração do Streamlit */
+    [data-testid="stDecoration"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* Links relacionados ao Streamlit */
+    a[href*="streamlit.io"] {
+        display: none !important;
+        visibility: hidden !important;
     }
 
     /* ========================================================
@@ -167,18 +194,12 @@ st.markdown("""
 
 
 # ============================================================
-# 4. ARQUIVO EXCEL
-# ============================================================
-
-EXCEL_FILE = "Controle de Presença e Graduação Projeto Sementes.xlsx"
-
-
-# ============================================================
-# 5. FUNÇÕES AUXILIARES
+# 4. FUNÇÕES AUXILIARES
 # ============================================================
 
 def carregar_aba(nome_aba, header_row=0):
-    """Lê a aba do Excel limpando os dados"""
+    """Lê a aba do Excel limpando os dados."""
+
     try:
         df = pd.read_excel(
             EXCEL_FILE,
@@ -196,7 +217,7 @@ def carregar_aba(nome_aba, header_row=0):
 
 
 def formatar_data_sem_hora(df):
-    """Remove horas de colunas de datas no dataframe"""
+    """Remove horas de colunas de datas no dataframe."""
 
     for col in df.columns:
 
@@ -206,7 +227,10 @@ def formatar_data_sem_hora(df):
         ):
 
             df[col] = (
-                pd.to_datetime(df[col], errors="coerce")
+                pd.to_datetime(
+                    df[col],
+                    errors="coerce"
+                )
                 .dt.strftime("%d/%m/%Y")
                 .fillna(df[col])
             )
@@ -460,7 +484,7 @@ def processar_dados_presenca(nome_aba):
 
 
 # ============================================================
-# 6. NAVEGAÇÃO LATERAL
+# 5. NAVEGAÇÃO LATERAL
 # ============================================================
 
 st.sidebar.title("🥋 Projeto Sementes")
@@ -490,7 +514,7 @@ st.sidebar.caption(
 
 
 # ============================================================
-# 7. CADASTRO DE ALUNOS
+# 6. CADASTRO DE ALUNOS
 # ============================================================
 
 if opcao == "👥 Cadastro e Alunos":
@@ -711,7 +735,7 @@ if opcao == "👥 Cadastro e Alunos":
 
 
 # ============================================================
-# 8. CONTROLE DE PRESENÇA
+# 7. CONTROLE DE PRESENÇA
 # ============================================================
 
 elif opcao == "📅 Controle de Presença":
@@ -788,7 +812,7 @@ elif opcao == "📅 Controle de Presença":
 
 
 # ============================================================
-# 9. CONTROLE DE GRADUAÇÃO E MÉTRICAS
+# 8. CONTROLE DE GRADUAÇÃO E MÉTRICAS
 # ============================================================
 
 elif opcao == "🥋 Graduação e Métricas":
@@ -1119,7 +1143,7 @@ elif opcao == "🥋 Graduação e Métricas":
 
 
 # ============================================================
-# 10. ALUNOS NÃO IDENTIFICADOS
+# 9. ALUNOS NÃO IDENTIFICADOS
 # ============================================================
 
 elif opcao == "🔎 Alunos Não Identificados":
@@ -1136,7 +1160,7 @@ elif opcao == "🔎 Alunos Não Identificados":
 
 
 # ============================================================
-# 11. COMUNICAÇÃO COM OS ALUNOS
+# 10. COMUNICAÇÃO COM OS ALUNOS
 # ============================================================
 
 elif opcao == "📲 Comunicação (WhatsApp)":
@@ -1213,7 +1237,7 @@ elif opcao == "📲 Comunicação (WhatsApp)":
 
 
 # ============================================================
-# 12. ANIVERSARIANTES
+# 11. ANIVERSARIANTES
 # ============================================================
 
 elif opcao == "🎂 Aniversariantes":
@@ -1304,7 +1328,6 @@ elif opcao == "🎂 Aniversariantes":
         hoje = datetime.date.today()
 
         dia_hoje = hoje.day
-
         mes_hoje = hoje.month
 
         # ----------------------------------------------------
@@ -1464,7 +1487,6 @@ elif opcao == "🎂 Aniversariantes":
             for _, r in df_mes_filtrado.iterrows():
 
                 al_nome = r[col_nome]
-
                 al_dia = r["Dia_Mes"]
 
                 al_resp = (
@@ -1515,7 +1537,7 @@ elif opcao == "🎂 Aniversariantes":
 
 
 # ============================================================
-# 13. NOVO CADASTRO
+# 12. NOVO CADASTRO
 # ============================================================
 
 elif opcao == "➕ Novo Cadastro":
@@ -1635,7 +1657,7 @@ elif opcao == "➕ Novo Cadastro":
 
 
 # ============================================================
-# 14. BIOMETRIA FACIAL
+# 13. BIOMETRIA FACIAL
 # ============================================================
 
 elif opcao == "📷 Biometria Facial":
@@ -1709,7 +1731,7 @@ elif opcao == "📷 Biometria Facial":
 
 
 # ============================================================
-# 15. CHAMADA POR FOTO
+# 14. CHAMADA POR FOTO
 # ============================================================
 
 elif opcao == "📸 Chamada por Foto":
