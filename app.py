@@ -10,87 +10,119 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ESTILIZAÇÃO CSS CUSTOMIZADA (DARK MODE) ---
+# --- ESTILIZAÇÃO CSS CUSTOMIZADA (NOVA IDENTIDADE VISUAL GYM/SPORTS UI) ---
 st.markdown("""
 <style>
-    /* Fundo Geral da Aplicação e Cor de Texto */
+    /* Importação da fonte moderna Inter/Roboto */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Fundo Geral da Aplicação */
     .stApp {
-        background-color: #121214;
+        background-color: #0D0D0E;
         color: #E1E1E6;
     }
     
     /* Barra Lateral (Sidebar) */
     [data-testid="stSidebar"] {
-        background-color: #1A1A1E;
-        border-right: 1px solid #29292E;
-    }
-    
-    /* Expanders / Cards */
-    .stExpander {
-        background-color: #202024;
-        border: 1px solid #29292E !important;
-        border-radius: 8px;
-    }
-    
-    /* Dataframes e Tabelas */
-    [data-testid="stDataFrame"] {
-        background-color: #202024;
-        border-radius: 8px;
-        padding: 8px;
+        background-color: #16161A;
+        border-right: 1px solid #232328;
     }
 
-    /* Input text, Selectbox, Textarea e Multiselect */
+    /* Estilo dos Títulos */
+    h1, h2, h3, h4 {
+        color: #FFFFFF !important;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+
+    /* Cards e Expanders Estilizados */
+    .stExpander, div[data-testid="stMetricValue"] {
+        background-color: #1C1C21;
+        border: 1px solid #2A2A30 !important;
+        border-radius: 12px !important;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Customização de Cards de Métricas */
+    div[data-testid="stMetric"] {
+        background-color: #1C1C21;
+        border: 1px solid #2A2A30;
+        padding: 15px;
+        border-radius: 12px;
+    }
+    div[data-testid="stMetricLabel"] {
+        color: #A0A0B0 !important;
+        font-weight: 600;
+    }
+    div[data-testid="stMetricValue"] {
+        color: #FF6B00 !important;
+        font-weight: 800;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Dataframes e Tabelas */
+    [data-testid="stDataFrame"] {
+        background-color: #1C1C21;
+        border: 1px solid #2A2A30;
+        border-radius: 12px;
+        padding: 10px;
+    }
+
+    /* Inputs, Selectbox e Textarea */
     .stTextInput input, 
     .stSelectbox div[data-baseweb="select"], 
     .stMultiSelect div[data-baseweb="select"], 
     .stTextArea textarea {
-        background-color: #202024 !important;
-        color: #E1E1E6 !important;
-        border-radius: 6px !important;
-        border: 1px solid #29292E !important;
+        background-color: #1C1C21 !important;
+        color: #FFFFFF !important;
+        border-radius: 8px !important;
+        border: 1px solid #323238 !important;
     }
 
-    /* Botões do Streamlit */
+    /* Botões Principais em Laranja Vibrante */
     .stButton>button, div[data-testid="stFormSubmitButton"]>button {
-        background-color: #29292E;
-        color: #00B37E;
-        border: 1px solid #00B37E;
-        border-radius: 6px;
-        font-weight: bold;
-        transition: all 0.3s ease;
+        background-color: #FF6B00 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        padding: 10px 24px !important;
+        box-shadow: 0px 4px 10px rgba(255, 107, 0, 0.3);
+        transition: all 0.3s ease !important;
     }
 
     .stButton>button:hover, div[data-testid="stFormSubmitButton"]>button:hover {
-        background-color: #00B37E;
-        color: #FFFFFF;
-        border-color: #00B37E;
+        background-color: #E05D00 !important;
+        transform: translateY(-2px);
+        box-shadow: 0px 6px 14px rgba(255, 107, 0, 0.4);
     }
 
-    /* Botão/Link para envio de WhatsApp */
+    /* Botão/Link para WhatsApp com destaque esportivo */
     a[href*="wa.me"] {
         display: inline-block;
-        padding: 8px 16px;
+        padding: 10px 20px;
         color: #FFFFFF !important;
         background-color: #25D366;
-        border-radius: 6px;
+        border-radius: 8px;
         text-decoration: none;
-        font-weight: bold;
+        font-weight: 700;
         margin-top: 5px;
-        transition: background-color 0.2s ease;
+        box-shadow: 0px 4px 10px rgba(37, 211, 102, 0.2);
+        transition: all 0.2s ease;
     }
     
     a[href*="wa.me"]:hover {
         background-color: #1EBE5D;
-        color: #FFFFFF !important;
-    }
-
-    /* Títulos e Divisores */
-    h1, h2, h3, h4, h5, h6 {
-        color: #FFFFFF !important;
+        transform: translateY(-1px);
     }
 
     hr {
-        border-color: #29292E;
+        border-color: #2A2A30;
     }
 </style>
 """, unsafe_allow_html=True)
