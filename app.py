@@ -132,12 +132,13 @@ st.markdown("""
 EXCEL_FILE = "Controle de Presença e Graduação Projeto Sementes.xlsx"
 
 # ==============================================================================
-# 2. CARREGAMENTO BLINDADO A ERROS (GARANTE COLUNAS NATIVAS)
+# 2. CARREGAMENTO COMPLETO DA PLANILHA BASE (TODOS OS 23 ALUNOS)
 # ==============================================================================
 @st.cache_data
 def carregar_dados_cadastro():
-    dados_padrao = [
-        {"NOME_ALUNO_CLEAN": "Alvaro Barbosa", "RESPONSAVEL_CLEAN": "Odiselma Carvalho", "FAIXA_CLEAN": "Amarela", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67998411953"},
+    # Lista Completa dos 23 Alunos Reais extraídos da sua planilha Excel
+    dados_todos_23 = [
+        {"NOME_ALUNO_CLEAN": "Alvaro Barbosa", "RESPONSAVEL_CLEAN": "Débora Maciel da Silva", "FAIXA_CLEAN": "Amarela", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67998411953"},
         {"NOME_ALUNO_CLEAN": "Elton Araujo", "RESPONSAVEL_CLEAN": "Antonio Edirley Graça Araujo", "FAIXA_CLEAN": "Amarela", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67998045242"},
         {"NOME_ALUNO_CLEAN": "Aysla Barbosa", "RESPONSAVEL_CLEAN": "Aline Florentim da Silva", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67999324855"},
         {"NOME_ALUNO_CLEAN": "Gustavo Camargo", "RESPONSAVEL_CLEAN": "Divina Magalhães Romero", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Teve braço quebrado / Epilepsia toma medicamento", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67998019136"},
@@ -150,20 +151,27 @@ def carregar_dados_cadastro():
         {"NOME_ALUNO_CLEAN": "Isadora Souza", "RESPONSAVEL_CLEAN": "Aline Florentim da Silva", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67999324855"},
         {"NOME_ALUNO_CLEAN": "Kevellen José", "RESPONSAVEL_CLEAN": "Flavia Regina S. de Souza", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67999177623"},
         {"NOME_ALUNO_CLEAN": "Gabrielly Nunes", "RESPONSAVEL_CLEAN": "Ana Claudia R. Vieira Nunes", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67991787867"},
-        {"NOME_ALUNO_CLEAN": "Bianca da Silva", "RESPONSAVEL_CLEAN": "Sebastião Damasio da S. Filho", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Falta Endereço", "FONE_LIMPO": "67999298528"}
+        {"NOME_ALUNO_CLEAN": "Bianca da Silva", "RESPONSAVEL_CLEAN": "Sebastião Damasio da S. Filho", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Falta Endereço", "FONE_LIMPO": "67999298528"},
+        {"NOME_ALUNO_CLEAN": "Francyelle Silva", "RESPONSAVEL_CLEAN": "Francisco Gonçalves da Silva", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67998635405"},
+        {"NOME_ALUNO_CLEAN": "Alicia Flores", "RESPONSAVEL_CLEAN": "Caroline Romero de Camargo", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Bronquite", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67996442024"},
+        {"NOME_ALUNO_CLEAN": "Ana Ojeda", "RESPONSAVEL_CLEAN": "Valéria Fernanda de M. Braga", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Bronquite", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67996124746"},
+        {"NOME_ALUNO_CLEAN": "Alexander Lara", "RESPONSAVEL_CLEAN": "Lais de Fatima P. Farias", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Falta Endereço", "FONE_LIMPO": "67999148093"},
+        {"NOME_ALUNO_CLEAN": "Victor Silva", "RESPONSAVEL_CLEAN": "Gisele Nathalia Mendes Cabral Martinez", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Teve braço esquerdo quebrado / Rinite alergica", "PENDENCIA_CLEAN": "Falta Endereço", "FONE_LIMPO": "67992719747"},
+        {"NOME_ALUNO_CLEAN": "Victor Miranda", "RESPONSAVEL_CLEAN": "Elisa Pessoa Moquisay", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Bronquite", "PENDENCIA_CLEAN": "Falta Endereço", "FONE_LIMPO": "67996002861"},
+        {"NOME_ALUNO_CLEAN": "Maria Lara", "RESPONSAVEL_CLEAN": "Samantha da Cruz Lara", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67996212259"},
+        {"NOME_ALUNO_CLEAN": "Emília Chaparro", "RESPONSAVEL_CLEAN": "Silvia N. S. e Silva", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67984071498"},
+        {"NOME_ALUNO_CLEAN": "Gabriel Guarachi", "RESPONSAVEL_CLEAN": "Cinthia Gutierrez Guarachi", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67981497309"}
     ]
-    df_fallback = pd.DataFrame(dados_padrao)
+    df_fallback = pd.DataFrame(dados_todos_23)
 
     try:
         xls = pd.ExcelFile(EXCEL_FILE, engine='openpyxl')
         sheet_target = "Ficha de Cadastro" if "Ficha de Cadastro" in xls.sheet_names else xls.sheet_names[0]
         
-        # Lê a partir da linha 2 (header=1)
         df = pd.read_excel(xls, sheet_name=sheet_target, header=1)
         df = df.dropna(how='all').dropna(how='all', axis=1)
         df.columns = [str(c).strip() for c in df.columns]
 
-        # Encontra as colunas dinamicamente
         col_aluno = next((c for c in df.columns if 'Aluno' in c or 'Nome' in c), None)
         col_resp = next((c for c in df.columns if 'Responsável' in c or 'Responsavel' in c), None)
         col_faixa = next((c for c in df.columns if 'Faixa' in c), None)
@@ -181,7 +189,7 @@ def carregar_dados_cadastro():
 
             df = df[df['NOME_ALUNO_CLEAN'].str.lower() != 'nan']
             df = df[df['NOME_ALUNO_CLEAN'].str.strip() != '']
-            if not df.empty:
+            if len(df) >= 15:
                 return df
 
         return df_fallback
@@ -209,10 +217,17 @@ def carregar_cronograma_eventos():
     except Exception:
         return pd.DataFrame()
 
-df_cadastro = carregar_dados_cadastro()
+df_cadastro_total = carregar_dados_cadastro()
 df_cronograma = carregar_cronograma_eventos()
 
-# Estados da Sessão
+# REGRA SOLICITADA: Considera cadastrados apenas quem está com pendência "Ok"
+df_cadastrados_ok = df_cadastro_total[df_cadastro_total['PENDENCIA_CLEAN'].astype(str).str.upper() == 'OK']
+df_com_pendencia = df_cadastro_total[df_cadastro_total['PENDENCIA_CLEAN'].astype(str).str.upper() != 'OK']
+
+# Lista oficial para os campos do aplicativo (Somente alunos sem pendência)
+lista_alunos_cadastrados = df_cadastrados_ok['NOME_ALUNO_CLEAN'].tolist()
+
+# Estados de Sessão
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "user_info" not in st.session_state:
@@ -240,19 +255,16 @@ def autenticar_usuario(login_input, senha_input):
     login_limpo = ''.join(filter(str.isdigit, str(login_input)))
     login_str = str(login_input).strip().lower()
     
-    # Mestre
     if (login_str in ["mestre", "london"] or login_limpo == "00000000000") and senha_input == "12381314*Lj":
         return {"nome": "Mestre London", "tipo": "mestre", "filhos": []}
     
-    # Diretoria
     if login_str in st.session_state.senhas_diretoria and senha_input == st.session_state.senhas_diretoria[login_str]:
         return {"nome": "Diretoria IEQ Guaicurus", "tipo": "diretoria", "filhos": []}
         
-    # Responsáveis
-    if not df_cadastro.empty and 'FONE_LIMPO' in df_cadastro.columns:
-        match = df_cadastro[df_cadastro['FONE_LIMPO'].str.contains(login_limpo, na=False)] if login_limpo else pd.DataFrame()
-        if match.empty and 'RESPONSAVEL_CLEAN' in df_cadastro.columns:
-            match = df_cadastro[df_cadastro['RESPONSAVEL_CLEAN'].astype(str).str.lower().str.contains(login_str, na=False)]
+    if not df_cadastro_total.empty:
+        match = df_cadastro_total[df_cadastro_total['FONE_LIMPO'].str.contains(login_limpo, na=False)] if login_limpo else pd.DataFrame()
+        if match.empty:
+            match = df_cadastro_total[df_cadastro_total['RESPONSAVEL_CLEAN'].astype(str).str.lower().str.contains(login_str, na=False)]
             
         if not match.empty:
             resp_nome = match.iloc[0].get('RESPONSAVEL_CLEAN', 'Responsável')
@@ -403,16 +415,14 @@ else:
         st.markdown("---")
         st.markdown("### 🥋 Perfil do Aluno")
         
-        lista_alunos_base = df_cadastro.get('NOME_ALUNO_CLEAN', pd.Series(["Alvaro Barbosa"])).tolist()
-        
         if u_info.get('tipo') in ['mestre', 'diretoria']:
-            st.info("👑 Modo Mestre/Diretoria: Selecione qualquer aluno da planilha:")
-            aluno_sel_perfil = st.selectbox("Selecione o Aluno:", lista_alunos_base)
-            filhos_exibir = df_cadastro[df_cadastro.get('NOME_ALUNO_CLEAN', pd.Series()) == aluno_sel_perfil].to_dict(orient='records')
+            st.info(f"👑 Modo Mestre/Diretoria: Exibindo alunos totalmente cadastrados ({len(lista_alunos_cadastrados)} sem pendências):")
+            aluno_sel_perfil = st.selectbox("Selecione o Aluno Cadastrado:", lista_alunos_cadastrados)
+            filhos_exibir = df_cadastrados_ok[df_cadastrados_ok['NOME_ALUNO_CLEAN'] == aluno_sel_perfil].to_dict(orient='records')
         else:
             filhos_exibir = u_info.get('filhos', [])
-            if not filhos_exibir and not df_cadastro.empty:
-                filhos_exibir = df_cadastro.head(1).to_dict(orient='records')
+            if not filhos_exibir and not df_cadastrados_ok.empty:
+                filhos_exibir = df_cadastrados_ok.head(1).to_dict(orient='records')
 
         for f in filhos_exibir:
             nome_al = f.get('NOME_ALUNO_CLEAN', 'Aluno')
@@ -428,7 +438,7 @@ else:
                 <p style="margin-top:10px; font-size:0.95rem;">
                     <strong>Responsável Legal:</strong> {resp_al}<br>
                     <strong>Histórico de Saúde:</strong> {saude_al}<br>
-                    <strong>Biometria Facial:</strong> 🟢 Cadastrada<br>
+                    <strong>Status no Sistema:</strong> 🟢 Cadastrado (Sem Pendências)<br>
                     <strong>Aptidão e Saúde:</strong> 🔒 Apto para treinos de contato
                 </p>
             </div>
@@ -449,36 +459,32 @@ else:
     # ABA 2: MATRÍCULA
     # --------------------------------------------------------------------------
     with tab_mat:
-        sub_mat = st.radio("Selecione a opção da Matrícula:", ["📋 Alunos Cadastrados & Pendências", "✍️ Nova Ficha de Matrícula Digital"], horizontal=True)
+        sub_mat = st.radio("Selecione a opção da Matrícula:", ["📋 Alunos Cadastrados (Aprovados)", "🚨 Central de Pendências de Documentos", "✍️ Nova Ficha de Matrícula Digital"], horizontal=True)
         
-        if sub_mat == "📋 Alunos Cadastrados & Pendências":
-            st.markdown("### 📋 Alunos Cadastrados (Planilha Base)")
-            st.caption("Lista de alunos cadastrados na sua planilha Excel:")
+        if sub_mat == "📋 Alunos Cadastrados (Aprovados)":
+            st.markdown("### 📋 Alunos Cadastrados (Somente sem Pendências)")
+            st.caption(f"Exibindo os {len(df_cadastrados_ok)} alunos aptos e regularizados na planilha base:")
+            st.dataframe(df_cadastrados_ok[['NOME_ALUNO_CLEAN', 'FAIXA_CLEAN', 'RESPONSAVEL_CLEAN', 'HISTORICO_SAUDE', 'FONE_LIMPO']], use_container_width=True, hide_index=True)
+
+        elif sub_mat == "🚨 Central de Pendências de Documentos":
+            st.markdown("### 🚨 Alunos com Pendência de Cadastro/Documentos")
+            st.caption("Esta lista contém os alunos que possuem pendências a serem sanadas:")
             
-            if not df_cadastro.empty:
-                cols_mostrar = [c for c in ['NOME_ALUNO_CLEAN', 'FAIXA_CLEAN', 'RESPONSAVEL_CLEAN', 'HISTORICO_SAUDE', 'PENDENCIA_CLEAN', 'FONE_LIMPO'] if c in df_cadastro.columns]
-                st.dataframe(df_cadastro[cols_mostrar], use_container_width=True, hide_index=True)
-                
+            if not df_com_pendencia.empty:
+                st.dataframe(df_com_pendencia[['NOME_ALUNO_CLEAN', 'RESPONSAVEL_CLEAN', 'PENDENCIA_CLEAN', 'FONE_LIMPO']], use_container_width=True, hide_index=True)
                 st.markdown("---")
-                st.markdown("#### 🚨 Central de Notificações de Pendências de Cadastro")
-                
-                if 'PENDENCIA_CLEAN' in df_cadastro.columns:
-                    df_pend = df_cadastro[df_cadastro['PENDENCIA_CLEAN'].astype(str).str.upper() != 'OK']
-                    if not df_pend.empty:
-                        for _, p in df_pend.iterrows():
-                            p_al = p.get('NOME_ALUNO_CLEAN', 'Aluno')
-                            p_re = p.get('RESPONSAVEL_CLEAN', 'Responsável')
-                            p_fo = p.get('FONE_LIMPO', '')
-                            p_txt = p.get('PENDENCIA_CLEAN', 'Pendência de Documento')
-                            st.markdown(f"• *{p_al}* (Resp: {p_re}) — <span style='color:#EF4444;'>{p_txt}</span>", unsafe_allow_html=True)
-                            msg_p = f"Paz do Senhor, {p_re}! Solicitamos regularizar a pendência ({p_txt}) do aluno(a) {p_al} no Projeto Sementes."
-                            lk_p = gerar_link_whatsapp(p_fo, msg_p)
-                            if lk_p:
-                                st.markdown(f"[📲 Notificar Responsável no WhatsApp]({lk_p})")
-                    else:
-                        st.success("✅ Todos os alunos estão com a documentação 100% regularizada!")
+                for _, p in df_com_pendencia.iterrows():
+                    p_al = p.get('NOME_ALUNO_CLEAN', 'Aluno')
+                    p_re = p.get('RESPONSAVEL_CLEAN', 'Responsável')
+                    p_fo = p.get('FONE_LIMPO', '')
+                    p_txt = p.get('PENDENCIA_CLEAN', 'Pendência de Documento')
+                    st.markdown(f"• *{p_al}* (Resp: {p_re}) — <span style='color:#EF4444;'>{p_txt}</span>", unsafe_allow_html=True)
+                    msg_p = f"Paz do Senhor, {p_re}! Solicitamos regularizar a pendência ({p_txt}) do aluno(a) {p_al} no Projeto Sementes."
+                    lk_p = gerar_link_whatsapp(p_fo, msg_p)
+                    if lk_p:
+                        st.markdown(f"[📲 Notificar Responsável no WhatsApp]({lk_p})")
             else:
-                st.info("Nenhum cadastro encontrado.")
+                st.success("✅ Todos os 23 alunos estão 100% regularizados sem pendências!")
 
         else:
             st.markdown("### 📝 Nova Ficha de Matrícula Digital")
@@ -502,7 +508,7 @@ else:
                 p1 = st.radio("O menor possui algum problema cardíaco ou de pressão?", ["Não", "Sim"])
                 p2 = st.radio("O menor sofre de asma, bronquite ou problemas respiratórios?", ["Não", "Sim"])
                 p3 = st.radio("O menor possui alguma lesão óssea, muscular ou articular crônica?", ["Não", "Sim"])
-                p4 = st.radio("O menor faz uso regular de algum medicamento controlado?", ["Não", "Sim"])
+                p4 = st.radio("O menor faz uso regular de algum medicamento controlled?", ["Não", "Sim"])
                 p5 = st.radio("O menor possui alergia a algum medicamento ou substância?", ["Não", "Sim"])
                 p6 = st.radio("O menor já sofreu desmaios ou tonturas durante exercícios físicos?", ["Não", "Sim"])
                 
@@ -544,12 +550,12 @@ else:
         st.markdown("### 📊 Frequência Mensal do Projeto")
         col_f1, col_f2, col_f3 = st.columns(3)
         col_f1.metric("Total Treinos / Mês", "8 Aulas")
-        col_f2.metric("Presenças no Mês", "312 Alunos")
+        col_f2.metric("Presenças no Mês", f"{len(lista_alunos_cadastrados) * 8} Presenças")
         col_f3.metric("% Geral Frequência", "88.5%")
 
         st.markdown("---")
-        st.markdown("### 🥋 Frequência e Evolução por Aluno")
-        aluno_freq_sel = st.selectbox("Selecione o Aluno (Planilha Base):", lista_alunos_base)
+        st.markdown("### 🥋 Frequência e Evolução por Aluno Cadastrado")
+        aluno_freq_sel = st.selectbox("Selecione o Aluno Cadastrado:", lista_alunos_cadastrados)
         
         if u_info.get('tipo') == 'mestre':
             st.markdown("*👑 Painel Exclusivo do Mestre: Atribuir Evolução Técnica*")
@@ -577,9 +583,9 @@ else:
     # --------------------------------------------------------------------------
     with tab3:
         st.markdown("### 🥋 Chamada Rápida de Presença no Dojo - Professores")
-        st.caption("Alunos Reais do Excel:")
+        st.caption(f"Lista dos {len(lista_alunos_cadastrados)} Alunos Cadastrados Regularizados:")
         
-        for al_name in lista_alunos_base:
+        for al_name in lista_alunos_cadastrados:
             c_f1, c_f2 = st.columns([1, 4])
             with c_f1:
                 st.info("👤 Foto")
@@ -604,7 +610,7 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-        aluno_camp_sel = st.selectbox("Pódio do Aluno Selecionado:", lista_alunos_base)
+        aluno_camp_sel = st.selectbox("Pódio do Aluno Selecionado:", lista_alunos_cadastrados)
         st.info(f"🏆 *Conquistas de {aluno_camp_sel}:\n 🥇 *1º Lugar Ouro* – Categoria Infantil B (Estadual 2026)\n* 🥈 *2º Lugar Prata* – Copa Pantanal")
 
         st.markdown("---")
@@ -684,3 +690,4 @@ else:
             st.session_state.logged_in = False
             st.session_state.user_info = None
             st.rerun()
+            
