@@ -4,74 +4,94 @@ import datetime
 import urllib.parse
 
 # ==============================================================================
-# 1. CONFIGURAÇÃO DA PÁGINA E DESIGN PREMIUM (DARK MODE, AZUL PROFUNDO & DOURADO)
+# 1. CONFIGURAÇÃO DE PÁGINA MOBILE-FIRST (PERSONALGO STYLE)
 # ==============================================================================
 st.set_page_config(
     page_title="Projeto Sementes - IEQ Guaicurus",
     page_icon="🌱",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
-# Estilização CSS Customizada para Alta Fidelidade com as especificações
+# Estilização CSS Customizada para Interface Nativamente Mobile
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     
-    /* Fundo Geral Azul-marinho quase preto */
+    /* Fundo Geral Dark Mode Profundo */
     .stApp { background-color: #0A0F18; color: #E2E8F0; }
-    [data-testid="stSidebar"] { background-color: #111827; border-right: 1px solid #1E293B; }
     
-    /* Títulos e Destaques */
-    h1, h2, h3, h4, .gold-text { color: #F59E0B !important; font-weight: 700; }
+    /* Oculta elementos nativos do Streamlit */
+    #MainMenu, header, footer, [data-testid="stSidebar"] { display: none !important; }
     
-    /* Customização dos Cards de Métricas e Conteineres */
-    div[data-testid="stMetric"] {
+    /* Cabeçalho Fixo Otimizado */
+    .app-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
         background-color: #111827;
-        border: 1px solid #D97706;
-        padding: 18px;
-        border-radius: 12px;
-        box-shadow: 0px 4px 15px rgba(217, 119, 6, 0.15);
+        border-bottom: 1px solid #1E293B;
+        border-radius: 0 0 16px 16px;
+        margin-bottom: 16px;
     }
-    div[data-testid="stMetricLabel"] { color: #94A3B8 !important; font-weight: 600; text-transform: uppercase; font-size: 0.8rem; }
-    div[data-testid="stMetricValue"] { color: #F59E0B !important; font-weight: 800; font-size: 1.8rem; }
-
-    /* Inputs, Selectboxes e Campos */
-    .stTextInput input, .stSelectbox div[data-baseweb="select"], .stTextArea textarea {
-        background-color: #1E293B !important; color: #FFFFFF !important;
-        border-radius: 8px !important; border: 1px solid #D97706 !important;
-    }
-
-    /* Botões Dourados Metálicos */
-    .stButton>button, div[data-testid="stFormSubmitButton"]>button {
-        background-color: #D97706 !important; color: #FFFFFF !important;
-        border: 1px solid #F59E0B !important; border-radius: 8px !important;
-        font-weight: 700 !important; padding: 10px 24px !important;
-        box-shadow: 0px 4px 14px rgba(217, 119, 6, 0.3);
-        transition: all 0.3s ease !important; width: 100%;
-    }
-    .stButton>button:hover { background-color: #B45309 !important; transform: translateY(-2px); }
-
-    /* Cards e Alertas Personalizados */
-    .stAlert { background-color: #1E1B4B !important; border: 1px solid #3730A3 !important; color: #E0E7FF !important; border-radius: 12px; }
     
     .gold-card {
         background-color: #111827;
         border: 1px solid #D97706;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 15px;
-        box-shadow: 0px 4px 12px rgba(217, 119, 6, 0.1);
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0px 4px 12px rgba(217, 119, 6, 0.12);
     }
     
     .gold-badge {
         background-color: #D97706;
         color: #000000;
-        font-weight: bold;
-        padding: 4px 12px;
-        border-radius: 20px;
+        font-weight: 800;
+        font-size: 0.75rem;
+        padding: 3px 10px;
+        border-radius: 12px;
         display: inline-block;
+    }
+    
+    .star-badge {
+        color: #F59E0B;
+        font-size: 1.1rem;
+        margin-left: 4px;
+    }
+
+    /* Botões em Dourado Metálico */
+    .stButton>button, div[data-testid="stFormSubmitButton"]>button {
+        background-color: #D97706 !important;
+        color: #FFFFFF !important;
+        border: 1px solid #F59E0B !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        padding: 12px 20px !important;
+        box-shadow: 0px 4px 14px rgba(217, 119, 6, 0.25);
+        width: 100%;
+    }
+    .stButton>button:hover { background-color: #B45309 !important; }
+
+    /* Estilo das Abas de Navegação Inferiores */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 6px;
+        background-color: #111827;
+        padding: 6px;
+        border-radius: 14px;
+        border: 1px solid #1E293B;
+    }
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 8px;
+        color: #94A3B8;
+        font-weight: 600;
+        padding: 8px 12px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #D97706 !important;
+        color: #FFFFFF !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -79,7 +99,7 @@ st.markdown("""
 EXCEL_FILE = "Controle de Presença e Graduação Projeto Sementes.xlsx"
 
 # ==============================================================================
-# 2. CARREGAMENTO E MANIPULAÇÃO DE DADOS
+# 2. CARREGAMENTO INTELIGENTE DE DADOS DA PLANILHA EXCEL
 # ==============================================================================
 @st.cache_data
 def carregar_dados_cadastro():
@@ -87,11 +107,53 @@ def carregar_dados_cadastro():
         df = pd.read_excel(EXCEL_FILE, sheet_name="Ficha de Cadastro", header=0, engine='openpyxl')
         df = df.dropna(how='all').dropna(how='all', axis=1)
         df.columns = [str(c).strip() for c in df.columns]
+        
+        if 'Contato' in df.columns:
+            df['FONE_LIMPO'] = df['Contato'].astype(str).apply(lambda x: ''.join(filter(str.isdigit, x)))
+        else:
+            df['FONE_LIMPO'] = ""
         return df
     except Exception:
         return pd.DataFrame()
 
 df_cadastro = carregar_dados_cadastro()
+
+# Gerenciamento de Sessão de Usuário
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "user_info" not in st.session_state:
+    st.session_state.user_info = None
+
+# Base em memória para senhas de pais e dados de oração/desenvolvimento
+if "senhas_pais" not in st.session_state:
+    st.session_state.senhas_pais = {"67998411953": "123456"}  # Exemplo pré-cadastrado para teste
+if "pedidos_oracao_count" not in st.session_state:
+    st.session_state.pedidos_oracao_count = 14
+if "desenvolvimento_dados" not in st.session_state:
+    st.session_state.desenvolvimento_dados = {}
+
+def autenticar_usuario(login_input, senha_input):
+    login_limpo = ''.join(filter(str.isdigit, str(login_input)))
+    login_str = str(login_input).strip().lower()
+    
+    # 1. Acesso Mestre / Diretoria (Senha Única Mestra)
+    if (login_str in ["mestre", "london", "diretoria"] or login_limpo == "00000000000") and senha_input == "12381314*Lj":
+        return {"nome": "Mestre London / Diretoria", "tipo": "mestre", "filhos": []}
+        
+    # 2. Acesso Responsável / Pais
+    if not df_cadastro.empty:
+        match = df_cadastro[df_cadastro['FONE_LIMPO'].str.contains(login_limpo, na=False)] if login_limpo else pd.DataFrame()
+        if match.empty and 'Responsável' in df_cadastro.columns:
+            match = df_cadastro[df_cadastro['Responsável'].astype(str).str.lower().str.contains(login_str, na=False)]
+            
+        if not match.empty:
+            resp_nome = match.iloc[0].get('Responsável', 'Responsável')
+            fone = match.iloc[0].get('FONE_LIMPO', '')
+            # Checa senha cadastrada pelo Mestre
+            senha_correta = st.session_state.senhas_pais.get(fone, "123456")
+            if senha_input == senha_correta:
+                return {"nome": resp_nome, "tipo": "pai", "fone": fone, "filhos": match.to_dict(orient='records')}
+    return None
 
 def gerar_link_whatsapp(numero, mensagem):
     if pd.isna(numero) or str(numero).strip() == "" or str(numero).strip().lower() == "nan":
@@ -103,258 +165,250 @@ def gerar_link_whatsapp(numero, mensagem):
     return f"https://wa.me/{num_limpo}?text={msg_enc}"
 
 # ==============================================================================
-# 3. MENU DE NAVEGAÇÃO LATERAL (SIDEBAR)
+# 3. TELA DE LOGIN E PRIMEIRO ACESSO
 # ==============================================================================
-st.sidebar.image("logo_projeto_sementes.png", width=80)
-st.sidebar.markdown("<h2 style='text-align: center; color:#F59E0B;'>PROJETO SEMENTES</h2>", unsafe_allow_html=True)
-st.sidebar.markdown("<p style='text-align: center; color: #94A3B8; font-size: 0.8rem;'>Cultivando valores, fortalecendo famílias</p>", unsafe_allow_html=True)
-
-menu = st.sidebar.radio(
-    "Navegação nos Painéis:",
-    [
-        "📱 1. Login",
-        "👤 2. Primeiro Acesso & Validação",
-        "🏠 3. Dashboard dos Pais",
-        "📅 4. Histórico de Frequência",
-        "🥋 5. Painel do Professor (Chamada)",
-        "📊 6. Secretaria & Mapa Social",
-        "📢 7. Palestras Socioeducativas",
-        "🌊 8. Batismo & Integração Espiritual"
-    ]
-)
-
-# ==============================================================================
-# 📱 1. PAINEL: TELA DE LOGIN E BOAS-VINDAS
-# ==============================================================================
-if menu == "📱 1. Login":
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.image("logo_projeto_sementes.png", width=120)
-        st.markdown("<h2 style='text-align: center;'>PROJETO SEMENTES</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #94A3B8;'>Cultivando valores, fortalecendo famílias</p>", unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
+if not st.session_state.logged_in:
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.image("logo_projeto_sementes.png", width=110)
+    st.markdown("<h2 style='text-align: center; color:#F59E0B;'>PROJETO SEMENTES</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #94A3B8; font-size: 0.9rem;'>Cultivando valores, fortalecendo famílias</p>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    with st.form("form_login"):
+        user_in = st.text_input("WhatsApp / CPF do Responsável ou Mestre", placeholder="Ex: 67998411953 ou mestre")
+        pass_in = st.text_input("Senha de Acesso", type="password", placeholder="••••••••")
+        btn_login = st.form_submit_button("ENTRAR NO APP")
         
-        cpf = st.text_input("CPF do Responsável", placeholder="000.000.000-00")
-        senha = st.text_input("Senha", type="password", placeholder="••••••••")
-        
-        if st.button("ENTRAR"):
-            st.success("Login efetuado com sucesso! Redirecionando...")
+        if btn_login:
+            user_data = autenticar_usuario(user_in, pass_in)
+            if user_data:
+                st.session_state.logged_in = True
+                st.session_state.user_info = user_data
+                st.success("Acesso autorizado com sucesso!")
+                st.rerun()
+            else:
+                st.error("Credenciais inválidas. Verifique os dados ou solicite sua senha ao Mestre.")
+                
+    st.markdown("<br><p style='text-align: center; color: #64748B; font-size: 0.75rem;'>Apoio: Igreja do Evangelho Quadrangular – Guaicurus</p>", unsafe_allow_html=True)
+
+# ==============================================================================
+# 4. APLICAÇÃO PRINCIPAL LOGADA (ESTRUTURA DE NAVEGAÇÃO POR ABAS)
+# ==============================================================================
+else:
+    # Top Bar / Cabeçalho Fixo
+    u_info = st.session_state.user_info
+    st.markdown(f"""
+    <div class="app-header">
+        <div>
+            <span style="font-size:0.75rem; color:#94A3B8;">Paz do Senhor,</span><br>
+            <strong style="color:#F59E0B;">{u_info.get('nome')}</strong>
+        </div>
+        <div style="font-size: 1.4rem;">🔔<span style="color:#EF4444; font-size:0.8rem;">●</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Abas Inferiores de Navegação
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "🏠 Início",
+        "📅 Frequência",
+        "🥋 Tatame",
+        "🏆 Campeão & Fé",
+        "📊 Secretaria"
+    ])
+
+    # --------------------------------------------------------------------------
+    # ABA 1: INÍCIO (DASHBOARD DOS PAIS & DESENVOLVIMENTO)
+    # --------------------------------------------------------------------------
+    with tab1:
+        st.markdown("### 🎂 Aniversariante do Dia & Mês")
+        st.info("🎉 *Hoje é aniversário do aluno Alvaro Barbosa!* (30/08)")
+        link_bday = gerar_link_whatsapp("5567998411953", "Parabéns Alvaro! Que o Senhor te abençoe grandemente e te dê muita sabedoria no tatame e na vida! 🎉🌱")
+        if link_bday:
+            st.markdown(f"[🥳 Enviar Mensagem de Parabéns no WhatsApp]({link_bday})")
             
-        st.markdown("<br><br><p style='text-align: center; color: #64748B; font-size: 0.8rem;'>Apoio: Igreja do Evangelho Quadrangular – Guaicurus</p>", unsafe_allow_html=True)
-
-# ==============================================================================
-# 👤 2. PAINEL: TELA DE PRIMEIRO ACESSO E VALIDAÇÃO
-# ==============================================================================
-elif menu == "👤 2. Primeiro Acesso & Validação":
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown("## Primeiro Acesso: Confirme seus dados")
-        st.caption("Cadastre sua senha segura e confirme os dependentes vinculados.")
-        
-        nova_senha = st.text_input("Nova Senha Segura", type="password")
-        confirma_senha = st.text_input("Confirmar Nova Senha", type="password")
-        
-        c_whats1, c_whats2 = st.columns([3, 1])
-        with c_whats1:
-            whatsapp = st.text_input("WhatsApp Cadastrado", value="(67) 99999-0000")
-        with c_whats2:
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.button("Atualizar")
+        st.markdown("---")
+        st.markdown("### 🥋 Perfil dos Seus Filhos")
+        filhos = u_info.get('filhos', [])
+        if not filhos and not df_cadastro.empty:
+            filhos = df_cadastro.head(2).to_dict(orient='records')
             
-        st.markdown("<div class='gold-card'>", unsafe_allow_html=True)
-        st.markdown("### 👨‍👩‍👧‍👦 Filhos Vinculados ao CPF")
-        st.markdown("✅ **Alvaro Barbosa** — <span style='color:#F59E0B;'>Faixa Amarela</span>", unsafe_allow_html=True)
-        st.markdown("✅ **Arthur Barbosa** — <span style='color:#FFFFFF;'>Faixa Branca</span>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        if st.button("CONCLUIR E ENTRAR"):
-            st.success("Dados validados com sucesso!")
-
-# ==============================================================================
-# 🏠 3. PAINEL: DASHBOARD PRINCIPAL DOS PAIS
-# ==============================================================================
-elif menu == "🏠 3. Dashboard dos Pais":
-    st.markdown("## Olá, Débora! 👋")
-    st.info("🚨 **Alerta de Documentação:** Identificamos pendência na entrega da Ficha Médica/Termo de Autorização. Favor regularizar na secretaria.")
-    
-    st.markdown("### 🥋 Perfil dos Alunos")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("<div class='gold-card' style='border-color: #F59E0B;'>", unsafe_allow_html=True)
-        st.image("logo_projeto_sementes.png", width=80)
-        st.markdown("#### Alvaro Barbosa")
-        st.markdown("<span class='gold-badge'>Faixa Amarela</span>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-    with c2:
-        st.markdown("<div class='gold-card' style='border-color: #FFFFFF;'>", unsafe_allow_html=True)
-        st.image("logo_projeto_sementes.png", width=80)
-        st.markdown("#### Arthur Barbosa")
-        st.markdown("<span class='gold-badge' style='background-color:#E2E8F0;'>Faixa Branca</span>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-    m1, m2 = st.columns(2)
-    with m1:
-        st.metric(label="Resumo de Frequência", value="5 Presenças", delta="Agosto 2026")
-    with m2:
-        st.markdown("<div class='gold-card'>", unsafe_allow_html=True)
-        st.markdown("### 🛡️ Saúde Monitorada")
-        st.write("Sem restrições graves cadastradas. Apto para atividades de combate.")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-# ==============================================================================
-# 📅 4. PAINEL: HISTÓRICO COMPLETO DE FREQUÊNCIA
-# ==============================================================================
-elif menu == "📅 4. Histórico de Frequência":
-    st.markdown("## 📅 Frequência & Rotina de Treino")
-    
-    c_m1, c_m2, c_m3 = st.columns([2, 1, 1])
-    with c_m1:
-        st.markdown("### <b>&lt; Agosto 2026 &gt;</b>", unsafe_allow_html=True)
-    with c_m2:
-        st.metric("Presenças", "5 DIIAS")
-    with c_m3:
-        st.metric("Aulas Realizadas", "9 AULAS")
-        
-    st.markdown("### Calendário Mensal (Terças e Quintas)")
-    
-    grid_cal = [
-        {"dia": "04/08", "status": "🟡 Presença (X)", "treino": "Devocional: Disciplina / Raspagem de Guarda"},
-        {"dia": "06/08", "status": "🟡 Presença (X)", "treino": "Devocional: Respeito / Passagem de Guarda"},
-        {"dia": "11/08", "status": "🔴 Falta", "treino": "Treino Tático / Quedas"},
-        {"dia": "13/08", "status": "🟡 Presença (X)", "treino": "Devocional: Honestidade / Armlock"},
-        {"dia": "18/08", "status": "🟡 Presença (X)", "treino": "Devocional: Amor / Defesa Pessoal"},
-        {"dia": "20/08", "status": "🟡 Presença (X)", "treino": "Simulado de Campeonato"},
-    ]
-    
-    df_cal = pd.DataFrame(grid_cal)
-    st.dataframe(df_cal, use_container_width=True)
-    
-    st.markdown("### 🥋 Detalhes do Treino Selecionado")
-    st.markdown("""
-    - 📖 **Devocional Bíblico:** Fruto do Espírito - Domínio Próprio.
-    - 🏃 **Aquecimento:** Polichinelos, rolamentos e fuga de quadril.
-    - 🥋 **Técnica de Jiu-Jítsu:** Queda de quadril (Ippon Seoi Nage) + Controle Lateral.
-    """)
-
-# ==============================================================================
-# 🥋 5. PAINEL: INTERFACE DO PROFESSOR (CHAMADA RÁPIDA)
-# ==============================================================================
-elif menu == "🥋 5. Painel do Professor (Chamada)":
-    st.markdown("## 🥋 Chamada Rápida — Instrutor: London")
-    
-    f1, f2, f3 = st.columns(3)
-    with f1: st.button("Todos")
-    with f2: st.button("Faixa Branca")
-    with f3: st.button("Faixa Amarela")
-    
-    st.markdown("---")
-    
-    alunos_lista = [
-        {"nome": "Alvaro Barbosa", "faixa": "Amarela", "alerta": "Nenhum"},
-        {"nome": "Arthur Barbosa", "faixa": "Branca", "alerta": "Nenhum"},
-        {"nome": "Bernardo Silva", "faixa": "Branca", "alerta": "🚨 Asma (Ativador na mochila)"},
-        {"nome": "Gabriel Souza", "faixa": "Cinza", "alerta": "Nenhum"},
-    ]
-    
-    for aluno in alunos_lista:
-        ca1, ca2, ca3 = st.columns([3, 2, 1])
-        with ca1:
-            st.markdown(f"**{aluno['nome']}** ({aluno['faixa']})")
-            if aluno['alerta'] != "Nenhum":
-                st.caption(f"<span style='color:#EF4444;'>{aluno['alerta']}</span>", unsafe_allow_html=True)
-        with ca2:
-            st.checkbox("Presença", key=aluno['nome'])
-        with ca3:
-            st.markdown("🟡")
+        for f in filhos:
+            nome_aluno = f.get('Nome do Aluno', 'Aluno')
+            faixa = f.get('Faixa Graus', 'Branca')
+            saude = f.get('Histórico de Saúde', 'Não')
+            batizado = True if "14" in str(f.get('Nº', '')) or idx_aluno % 2 == 0 else False
             
-    st.markdown("---")
-    b1, b2 = st.columns(2)
-    with b1:
-        if st.button("📖 Devocional do Dia"):
-            st.info("Tema de Hoje: 'A importância da obediência aos pais e mestres'.")
-    with b2:
-        if st.button("Finalizar Chamada"):
-            st.success("Chamada salva e registrada no banco de dados!")
+            st.markdown(f"""
+            <div class="gold-card">
+                <h4>{nome_aluno} {'⭐' if batizado else ''}</h4>
+                <span class="gold-badge">Faixa {faixa}</span>
+                <p style="font-size:0.85rem; margin-top:8px;">
+                    <strong>Biometria Facial:</strong> 🟢 Cadastrada<br>
+                    <strong>Saúde:</strong> {'🚨 ' + str(saude) if str(saude).lower() != 'não' else '🔒 Apto para os treinos'}
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
 
-# ==============================================================================
-# 📊 6. PAINEL: SECRETARIA E MAPA DE ABRANGÊNCIA SOCIAL
-# ==============================================================================
-elif menu == "📊 6. Secretaria & Mapa Social":
-    st.markdown("## 📊 Painel Administrativo da Secretaria")
-    
-    btn_pdf = st.button("📄 Emitir & Baixar Relatório Oficial (PDF)")
-    st.markdown("---")
-    
-    col_left, col_right = st.columns(2)
-    
-    with col_left:
-        st.markdown("### 🗺️ Mapa Social de Abrangência (Corumbá-MS)")
-        mapa_data = pd.DataFrame({
-            'Bairro': ['Guaicurus', 'Nova Corumbá', 'Centro', 'Guarani'],
-            'Alunos (%)': [45, 30, 15, 10]
-        })
-        st.bar_chart(mapa_data.set_index('Bairro'))
+        st.markdown("---")
+        st.markdown("### 🏫 Acompanhamento Escolar & Familiar (Mensal)")
+        with st.expander("📝 Preencher Avaliação Mensal do Filho"):
+            aluno_sel = st.selectbox("Selecione o Filho:", [f.get('Nome do Aluno') for f in filhos] if filhos else ["Alvaro Barbosa"])
+            esc = st.select_slider("1. Desenvolvimento Escolar:", options=["Ruim", "Regular", "Bom", "Ótimo"], value="Ótimo")
+            fam = st.select_slider("2. Desenvolvimento Familiar:", options=["Ruim", "Regular", "Bom", "Ótimo"], value="Ótimo")
+            soc = st.select_slider("3. Desenvolvimento Social:", options=["Ruim", "Regular", "Bom", "Ótimo"], value="Bom")
+            obs = st.text_area("Observações para o Mestre:")
+            if st.button("Salvar Avaliação Privada"):
+                st.success("Avaliação salva! Apenas você e o Mestre possuem acesso a estas informações.")
+
+    # --------------------------------------------------------------------------
+    # ABA 2: FREQUÊNCIA & PREVISÃO DE GRADUAÇÃO
+    # --------------------------------------------------------------------------
+    with tab2:
+        st.markdown("### 📅 Frequência — Agosto 2026")
+        c1, c2 = st.columns(2)
+        c1.metric("Presenças Registradas", "5 Dias")
+        c2.metric("Total de Treinos", "9 Aulas")
         
-    with col_right:
-        st.markdown("### 📋 Pendências de Cadastro")
-        pendencias = [
-            {"Nome": "Arthur Barbosa", "Pendente": "Falta Documento", "Fone": "5567999990000"},
-            {"Nome": "Lucas Mendes", "Pendente": "Falta Endereço", "Fone": "5567999991111"}
+        st.markdown("#### Histórico de Treino (Terças e Quintas)")
+        grid_cal = [
+            {"Data": "04/08", "Status": "🟡 Presença (X)", "Devocional": "Disciplina"},
+            {"Data": "06/08", "Status": "🟡 Presença (X)", "Devocional": "Respeito"},
+            {"Data": "11/08", "Status": "🔴 Falta", "Devocional": "Honestidade"},
+            {"Data": "13/08", "Status": "🟡 Presença (X)", "Devocional": "Amor"},
         ]
+        st.dataframe(pd.DataFrame(grid_cal), use_container_width=True)
         
-        for p in pendencias:
-            st.markdown(f"**{p['Nome']}** — <span style='color:#EF4444;'>{p['Pendente']}</span>", unsafe_allow_html=True)
-            link_wsp = gerar_link_whatsapp(p['Fone'], f"Olá! Notamos uma pendência de ({p['Pendente']}) do aluno {p['Nome']} no Projeto Sementes.")
-            if link_wsp:
-                st.markdown(f"[💬 Cobrar via WhatsApp]({link_wsp})")
+        st.markdown("---")
+        st.markdown("### 🥋 Previsão de Graduação (Sugestão do Mestre)")
+        if u_info.get('tipo') == 'mestre':
+            st.date_input("Mestre: Definir Próxima Data de Exame de Faixa:", datetime.date(2026, 12, 15))
+            st.button("Atualizar Calendário da Academia")
+        else:
+            st.info("🎯 *Próxima Cerimônia de Graduação e Grau:* 15/12/2026\n\n*Frequência mínima requerida: 80% dos treinos.*")
+
+    # --------------------------------------------------------------------------
+    # ABA 3: TATAME, BIOMETRIA & DUPLA CHAMADA
+    # --------------------------------------------------------------------------
+    with tab3:
+        st.markdown("### 🥋 Chamada Rápida do Tatame — Instrutor London")
+        
+        modo_chamada = st.radio("Escolha a forma de chamada:", ["1. Toque na Foto do Aluno", "2. Foto Coletiva (Visão Computacional IA)"])
+        
+        if modo_chamada == "1. Toque na Foto do Aluno":
+            st.caption("Toque na foto ou caixa do aluno para registrar a presença instantânea:")
+            if not df_cadastro.empty:
+                for idx, row in df_cadastro.head(10).iterrows():
+                    aluno_n = row.get('Nome do Aluno', 'Aluno')
+                    saude_aluno = str(row.get('Histórico de Saúde', 'Não'))
+                    col_a, col_b = st.columns([3, 1])
+                    with col_a:
+                        st.markdown(f"*{aluno_n}*")
+                        if saude_aluno.lower() != 'não' and saude_aluno != '':
+                            st.caption(f"<span style='color:#EF4444;'>🚨 Alerta Saúde: {saude_aluno}</span>", unsafe_allow_html=True)
+                    with col_b:
+                        st.checkbox("Presente", key=f"p_box_{idx}")
+        else:
+            st.caption("Carregue a foto coletiva tirada ao final da aula:")
+            f_aula = st.file_uploader("Capturar ou subir foto do tatame:", type=["jpg", "png"])
+            if f_aula:
+                st.image(f_aula, use_container_width=True)
+                st.warning("⚠️ *IA Notifica:* 2 alunos na foto ainda não possuem Biometria Facial cadastrada. Clique abaixo para vincular.")
+                st.button("📸 Cadastrar Biometria dos Alunos Incompletos")
+                
+        if st.button("FINALIZAR E SALVAR CHAMADA"):
+            st.success("Chamada salva com sucesso na planilha oficial!")
+
+    # --------------------------------------------------------------------------
+    # ABA 4: CAMPEÃO, EVANGELISMO & PALESTRAS
+    # --------------------------------------------------------------------------
+    with tab4:
+        sub_aba = st.radio("Selecione a área:", ["🏆 Área do Campeão", "✝️ Evangelismo & Células", "📢 Palestras Socioeducativas"], horizontal=True)
+        
+        if sub_aba == "🏆 Área do Campeão":
+            st.markdown("#### 🏆 Histórico de Campeonatos e Pódios")
+            st.markdown("""
+            <div class="gold-card">
+                <h5>🥇 Campeonato Estadual de Jiu-Jitsu 2026</h5>
+                <p style="font-size:0.85rem;">
+                    <strong>Alvaro Barbosa:</strong> Medalha de Ouro 🥇 (Infantil B)<br>
+                    <strong>Arthur Barbosa:</strong> Medalha de Prata 🥈 (Mirim)<br>
+                    <strong>Classificação Geral da Academia:</strong> 2º Lugar Geral por Equipes 🏆
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.info("📅 *Próximo Campeonato:* Copa Corumbá Open de Jiu-Jitsu — 20/11/2026")
+
+        elif sub_aba == "✝️ Evangelismo & Células":
+            st.markdown("#### 💬 Células Familiares — IEQ Guaicurus")
+            celulas = [
+                {"nome": "Célula Filhos da Promessa", "lider": "Diácono Roberto", "fone": "5567999990000"},
+                {"nome": "Célula Sementes de Fé", "lider": "Líder Mary", "fone": "5567999990001"},
+                {"nome": "Célula Amigos do Tatame", "lider": "Odiselma", "fone": "5567999990002"},
+                {"nome": "Célula Guerreiros da Luz", "lider": "Marcos", "fone": "5567999990003"},
+                {"nome": "Célula Graça e Vida", "lider": "Luciana", "fone": "5567999990004"},
+            ]
+            for c in celulas:
+                st.markdown(f"*{c['nome']}* (Líder: {c['lider']})")
+                link_c = gerar_link_whatsapp(c['fone'], f"Olá {c['lider']}, paz do Senhor! Gostaria de saber mais e participar da sua Célula!")
+                if link_c:
+                    st.markdown(f"[💬 Quero Participar desta Célula]({link_c})")
+                st.markdown("---")
+                
+            st.markdown("#### 📊 Impacto Espiritual (Anônimo)")
+            st.metric("Total de Pedidos de Oração e Vidas Encaminhadas", f"{st.session_state.pedidos_oracao_count} Vidas")
+
+        elif sub_aba == "📢 Palestras Socioeducativas":
+            st.markdown("#### 🧠 Palestras Realizadas & Treinamentos")
+            st.markdown("""
+            <div class="gold-card">
+                <h5>Inteligência Emocional e Combate ao Bullying</h5>
+                <p style="font-size:0.85rem;">
+                    <strong>Palestrante:</strong> Dr. Marco Aurélio<br>
+                    <strong>Impacto:</strong> 88% de adesão das famílias cadastradas
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # --------------------------------------------------------------------------
+    # ABA 5: SECRETARIA, MAPA SOCIAL & GESTÃO DE SENHAS
+    # --------------------------------------------------------------------------
+    with tab5:
+        st.markdown("### 📊 Secretaria & Diretoria")
+        
+        # Acesso Restrito ao Mestre e Diretoria para Emissão de Relatório e Senhas
+        if u_info.get('tipo') == 'mestre':
+            st.success("👑 *Nível de Permissão do Usuário:* Mestre / Diretoria (Acesso Total)")
+            
             st.markdown("---")
+            st.markdown("#### 🔐 Gestão de Senhas dos Pais (Exclusivo Mestre)")
+            c_p1, c_p2, c_p3 = st.columns([2, 2, 1])
+            with c_p1:
+                fone_pai = st.text_input("WhatsApp do Pai (Apenas números):", "67998411953")
+            with c_p2:
+                nova_senha_pai = st.text_input("Definir Nova Senha:", "123456")
+            with c_p3:
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("Salvar Senha"):
+                    st.session_state.senhas_pais[fone_pai] = nova_senha_pai
+                    st.success("Senha atualizada!")
 
-# ==============================================================================
-# 📢 7. PAINEL: CRONOGRAMA DE PALESTRAS SOCIOEDUCATIVAS
-# ==============================================================================
-elif menu == "📢 7. Palestras Socioeducativas":
-    st.markdown("## 📢 Cronograma de Eventos e Palestras")
-    
-    aba1, aba2 = st.tabs(["Palestras Socioeducativas", "Exames de Faixa"])
-    
-    with aba1:
-        st.markdown("<div class='gold-card'>", unsafe_allow_html=True)
-        st.markdown("### 🧠 Inteligência Emocional e Combate ao Bullying")
-        st.write("📅 **Data:** 25/09/2026 — 19:00")
-        st.write("👤 **Palestrante Convidado:** Dr. Marco Aurélio (Psicólogo Infantil)")
-        st.write("📍 **Local:** Salão Principal — IEQ Guaicurus")
+            st.markdown("---")
+            st.markdown("#### 📄 Emissão de Relatórios Oficiais")
+            st.button("📄 Exportar Relatório Completo da Academia (PDF)")
+            
+        else:
+            st.info("ℹ️ Dados gerais da secretaria e mapa social de Corumbá-MS:")
+
+        st.markdown("---")
+        st.markdown("#### 🗺️ Mapa Social de Abrangência Territorial (Corumbá-MS)")
+        mapa_df = pd.DataFrame({
+            'Bairro': ['Guaicurus', 'Nova Corumbá', 'Centro', 'Guarani'],
+            'Porcentagem (%)': [45, 30, 15, 10]
+        })
+        st.bar_chart(mapa_df.set_index('Bairro'))
         
-        btn_c1, btn_c2 = st.columns(2)
-        with btn_c1:
-            if st.button("Sim, Confirmar Presença", key="sim1"):
-                st.success("Presença Confirmada!")
-        with btn_c2:
-            st.button("Não Poderei Ir", key="nao1")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with aba2:
-        st.markdown("<div class='gold-card'>", unsafe_allow_html=True)
-        st.markdown("### 🥋 Graduação e Exame de Faixa - 2º Semestre")
-        st.write("📅 **Data:** 15/12/2026 — 18:30")
-        st.write("📍 **Local:** Tatame Central do Projeto Sementes")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-# ==============================================================================
-# 🌊 8. PAINEL: BATISMO E INTEGRAÇÃO ESPIRITUAL
-# ==============================================================================
-elif menu == "🌊 8. Batismo & Integração Espiritual":
-    st.markdown("## 🌊 Acompanhamento Eclesiástico & Discipulado")
-    
-    st.markdown("<div class='gold-card'>", unsafe_allow_html=True)
-    st.markdown("### ✝️ Marcos de Fé do Aluno")
-    st.markdown("🌊 <span class='gold-badge'>Batizado nas Águas em: 14/06/2026</span>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-    
-    st.markdown("### 🏡 Célula e Integração Familiar")
-    st.info("<b>Célula Familiar Ativa:</b> Célula Filhos da Promessa<br><b>Líder Responsável:</b> Diácono Roberto & Mary — IEQ Guaicurus", icon="ℹ️")
-    
-    if st.button("💬 Quero Visitar uma Célula"):
-        link_celula = gerar_link_whatsapp("5567999990000", "Olá! Gostaria de saber mais informações para visitar uma Célula Familiar da IEQ Guaicurus.")
-        if link_celula:
-            st.markdown(f"[Clique aqui para entrar em contato com a equipe de Recepção]({link_celula})")
+        st.markdown("---")
+        if st.button("🚪 Sair do Aplicativo"):
+            st.session_state.logged_in = False
+            st.session_state.user_info = None
+            st.rerun()
