@@ -1,29 +1,4 @@
-import pandas as pd
-import datetime
-import urllib.parse
-from PIL import Image
-
-try:
-    from streamlit_canvas import st_canvas
-    CANVAS_DISPONIVEL = True
-except ImportError:
-    CANVAS_DISPONIVEL = False
-
-# ==============================================================================
-# 1. CONFIGURAÇÃO DE PÁGINA MOBILE-FIRST (PERSONALGO STYLE)
-# ==============================================================================
-st.set_page_config(
-    page_title="Projeto Sementes - IEQ Guaicurus",
-    page_icon="🌱",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
-
-# Estilização CSS Customizada para Interface Nativamente Mobile
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;…
-[15:30, 16/09/2026] Papai London: import streamlit as st
+import streamlit as st
 import pandas as pd
 import datetime
 import urllib.parse
@@ -45,22 +20,25 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Estilização CSS Customizada: Fontes Ampliadas e Alto Contraste
+# Estilização CSS Customizada Sanitizada
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+    
     html, body, [class*="css"] { 
         font-family: 'Inter', sans-serif; 
         font-size: 16px;
     }
     
-    /* Fundo Dark Mode de Alto Contraste */
-    .stApp { background-color: #0A0F18; color: #FFFFFF; }
+    .stApp { 
+        background-color: #0A0F18; 
+        color: #FFFFFF; 
+    }
     
-    /* Oculta marcações nativas do Streamlit */
-    #MainMenu, header, footer, [data-testid="stSidebar"] { display: none !important; }
+    #MainMenu, header, footer, [data-testid="stSidebar"] { 
+        display: none !important; 
+    }
     
-    /* Cabeçalho Fixo Otimizado */
     .app-header {
         display: flex;
         align-items: center;
@@ -100,19 +78,18 @@ st.markdown("""
         display: inline-block;
     }
 
-    /* Animação do Sininho de Notificação */
     @keyframes pulse-red {
         0% { transform: scale(1); filter: drop-shadow(0 0 2px #EF4444); }
         50% { transform: scale(1.2); filter: drop-shadow(0 0 8px #EF4444); }
         100% { transform: scale(1); filter: drop-shadow(0 0 2px #EF4444); }
     }
+    
     .bell-active {
         display: inline-block;
         animation: pulse-red 1.5s infinite;
         cursor: pointer;
     }
 
-    /* Botões Dourados e Vibrantes */
     .stButton>button, div[data-testid="stFormSubmitButton"]>button {
         background-color: #D97706 !important;
         color: #FFFFFF !important;
@@ -124,9 +101,11 @@ st.markdown("""
         box-shadow: 0px 4px 14px rgba(217, 119, 6, 0.3);
         width: 100%;
     }
-    .stButton>button:hover { background-color: #B45309 !important; }
+    
+    .stButton>button:hover { 
+        background-color: #B45309 !important; 
+    }
 
-    /* Rótulos e Textos Grandes */
     label, p, span, div {
         color: #F1F5F9 !important;
         font-weight: 600;
@@ -139,7 +118,6 @@ st.markdown("""
         border: 1px solid #475569 !important;
     }
 
-    /* Estilo das Abas de Navegação */
     .stTabs [data-baseweb="tab-list"] {
         gap: 4px;
         background-color: #111827;
@@ -147,6 +125,7 @@ st.markdown("""
         border-radius: 14px;
         border: 1px solid #334155;
     }
+    
     .stTabs [data-baseweb="tab"] {
         border-radius: 8px;
         color: #CBD5E1;
@@ -154,6 +133,7 @@ st.markdown("""
         padding: 8px 10px;
         font-size: 0.8rem;
     }
+    
     .stTabs [aria-selected="true"] {
         background-color: #D97706 !important;
         color: #FFFFFF !important;
@@ -188,8 +168,6 @@ if "user_info" not in st.session_state:
     st.session_state.user_info = None
 if "sino_visto" not in st.session_state:
     st.session_state.sino_visto = False
-if "ver_historia_completa" not in st.session_state:
-    st.session_state.ver_historia_completa = False
 
 if "senhas_pais" not in st.session_state:
     st.session_state.senhas_pais = {"67998411953": "123456"}
@@ -445,7 +423,7 @@ else:
             p1 = st.radio("• O menor possui algum problema cardíaco ou de pressão?", ["Não", "Sim"])
             p2 = st.radio("• O menor sofre de asma, bronquite ou problemas respiratórios?", ["Não", "Sim"])
             p3 = st.radio("• O menor possui alguma lesão óssea, muscular ou articular crônica?", ["Não", "Sim"])
-            p4 = st.radio("• O menor faz uso regular de algum medicamento controlado?", ["Não", "Sim"])
+            p4 = st.radio("• O menor faz uso regular de algum medicamento controlled?", ["Não", "Sim"])
             p5 = st.radio("• O menor possui alergia a algum medicamento ou substância?", ["Não", "Sim"])
             p6 = st.radio("• O menor já sofreu desmaios ou tonturas durante exercícios físicos?", ["Não", "Sim"])
             
@@ -520,7 +498,6 @@ else:
         st.markdown("### 🥋 Desempenho e Evolução Individual")
         aluno_sel_freq = st.selectbox("Selecione o Aluno para ver Frequência e Evolução:", df_cadastro['Nome do Aluno'].dropna().tolist() if not df_cadastro.empty else ["Alvaro Barbosa"])
         
-        # Campo Exclusivo do Mestre para atribuir Evolução
         if u_info.get('tipo') == 'mestre':
             st.markdown("*👑 Painel do Mestre: Atribuir Avaliação de Evolução*")
             ev_opcao = st.radio(f"Definir evolução técnica de {aluno_sel_freq}:", ["Ótima", "Boa", "Regular"], horizontal=True)
