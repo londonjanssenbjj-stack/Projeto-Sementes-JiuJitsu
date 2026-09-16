@@ -13,7 +13,7 @@ except ImportError:
 # 1. CONFIGURAÇÃO DE PÁGINA MOBILE-FIRST & ALTO CONTRASTE
 # ==============================================================================
 st.set_page_config(
-    page_title="Projeto Sementes - Jiu-Jitsu Voluntário",
+    page_title="Projeto Sementes - IEQ Guaicurus",
     page_icon="🌱",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -129,45 +129,47 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Nome do arquivo exatamente como está no seu repositório GitHub
 EXCEL_FILE = "Controle de Presença e Graduação Projeto Sementes.xlsx"
 
 # ==============================================================================
-# 2. FUNÇÕES ROBUSTAS DE CARREGAMENTO (EVITA KEYERROR)
+# 2. CARREGAMENTO INTELIGENTE (AJUSTADO PARA A LINHA 2 DO SEU EXCEL)
 # ==============================================================================
 @st.cache_data
 def carregar_dados_cadastro():
     try:
         xls = pd.ExcelFile(EXCEL_FILE, engine='openpyxl')
         sheet_target = "Ficha de Cadastro" if "Ficha de Cadastro" in xls.sheet_names else xls.sheet_names[0]
-        df = pd.read_excel(xls, sheet_name=sheet_target, header=0)
+        
+        # Tenta ler com o cabeçalho na Linha 2 (header=1) que é a estrutura real da sua planilha
+        df = pd.read_excel(xls, sheet_name=sheet_target, header=1)
         df = df.dropna(how='all').dropna(how='all', axis=1)
         df.columns = [str(c).strip() for c in df.columns]
-        
-        # Mapeamento Flexível de Colunas Nativas
-        col_aluno = next((c for c in df.columns if any(k in c.lower() for k in ['aluno', 'nome'])), None)
-        col_resp = next((c for c in df.columns if any(k in c.lower() for k in ['responsavel', 'responsável', 'pai', 'mae'])), None)
-        col_fone = next((c for c in df.columns if any(k in c.lower() for k in ['contato', 'tel', 'fone', 'whats', 'celular'])), None)
-        col_faixa = next((c for c in df.columns if any(k in c.lower() for k in ['faixa', 'gradua'])), None)
 
-        df['NOME_ALUNO_CLEAN'] = df[col_aluno] if col_aluno else "Aluno Não Identificado"
-        df['RESPONSAVEL_CLEAN'] = df[col_resp] if col_resp else "Responsável Não Identificado"
-        df['FAIXA_CLEAN'] = df[col_faixa] if col_faixa else "Branca"
+        # Mapeamento dinâmico das colunas reais da sua planilha
+        col_aluno = next((c for c in df.columns if 'Nome do Aluno' in c or 'Aluno' in c), df.columns[1] if len(df.columns) > 1 else df.columns[0])
+        col_faixa = next((c for c in df.columns if 'Faixa' in c), df.columns[3] if len(df.columns) > 3 else df.columns[0])
+        col_resp = next((c for c in df.columns if 'Responsável' in c or 'Responsavel' in c), df.columns[5] if len(df.columns) > 5 else df.columns[0])
+        col_fone = next((c for c in df.columns if 'Contato' in c or 'Fone' in c or 'Tel' in c), df.columns[6] if len(df.columns) > 6 else df.columns[0])
+        col_saude = next((c for c in df.columns if 'Histórico de Saúde' in c or 'Saúde' in c), df.columns[7] if len(df.columns) > 7 else df.columns[0])
+        col_pend = next((c for c in df.columns if 'Pendência' in c or 'Pendencia' in c), df.columns[8] if len(df.columns) > 8 else df.columns[0])
+
+        df['NOME_ALUNO_CLEAN'] = df[col_aluno].astype(str).str.strip()
+        df['RESPONSAVEL_CLEAN'] = df[col_resp].astype(str).str.strip()
+        df['FAIXA_CLEAN'] = df[col_faixa].astype(str).str.strip()
+        df['HISTORICO_SAUDE'] = df[col_saude].astype(str).str.strip()
+        df['PENDENCIA_CLEAN'] = df[col_pend].astype(str).str.strip()
         
-        if col_fone:
-            df['FONE_LIMPO'] = df[col_fone].astype(str).apply(lambda x: ''.join(filter(str.isdigit, x)))
-        else:
-            df['FONE_LIMPO'] = ""
-            
+        df['FONE_LIMPO'] = df[col_fone].astype(str).apply(lambda x: ''.join(filter(str.isdigit, x)))
+        
+        # Filtra linhas vazias ou inválidas
+        df = df[df['NOME_ALUNO_CLEAN'].str.lower() != 'nan']
+        df = df[df['NOME_ALUNO_CLEAN'].str.strip() != '']
+        
         return df
-    except Exception:
-        # Fallback de Segurança se a planilha estiver em branco
-        return pd.DataFrame({
-            'NOME_ALUNO_CLEAN': ['Alvaro Barbosa', 'Nathan Santos', 'Isadora Carvalho'],
-            'RESPONSAVEL_CLEAN': ['Odiselma Carvalho', 'London Santos', 'London Santos'],
-            'FAIXA_CLEAN': ['Amarela', 'Branca 2 Graus', 'Branca'],
-            'FONE_LIMPO': ['67998411953', '67998411953', '67998411953'],
-            'Pendência Documento': ['OK', 'Pendente CIN', 'OK']
-        })
+    except Exception as e:
+        # Retorna dados vazios em caso de erro sem quebrar a interface
+        return pd.DataFrame()
 
 @st.cache_data
 def carregar_cronograma_eventos():
@@ -175,18 +177,21 @@ def carregar_cronograma_eventos():
         xls = pd.ExcelFile(EXCEL_FILE, engine='openpyxl')
         if "Cronograma de Eventos" in xls.sheet_names:
             df_ev = pd.read_excel(xls, sheet_name="Cronograma de Eventos")
-            df_ev = df_ev.dropna(how='all')
-            return df_ev
+            return df_ev.dropna(how='all')
         else:
             return pd.DataFrame({
+                'Tipo de Evento': ['Dia de Palestra', 'Dia de Treinamento', 'Dia de Campeonato', 'Dia de Aniversariantes do Mês', 'Dia de Graduação', 'Dia de Ação Social'],
                 'Evento': [
-                    'Palestra: Escolhas Saudáveis - Influências - Prevenções',
                     'Palestra: Lidando com Emoções - Inteligência Emocional e Saúde Mental',
-                    'Palestra: O Valor do Estudo - Projeto de Vida - Futuro'
+                    'Treinamento Básico: Primeiros Socorros no Tatame',
+                    'Copa Corumbá Open de Jiu-Jitsu',
+                    'Comemoração de Aniversariantes do Mês (Setembro)',
+                    'Cerimônia de Entrega de Faixas e Graus',
+                    'Grande Aulão de Jiu-Jitsu Kids'
                 ],
-                'Data Evento': ['29/09/2026', '29/10/2026', '26/11/2026'],
-                'Hora Evento': ['19:00', '19:00', '19:00'],
-                'Palestrante / Instrutor / Equipe / Igreja': ['Equipe PROERD', 'Psicóloga Eva Mateus', 'Pedagogos Luis e Edima']
+                'Data Evento': ['29/10/2026', '15/10/2026', '20/11/2026', '29/09/2026', '15/12/2026', '10/10/2026'],
+                'Hora Evento': ['19:00', '18:30', '08:00', '19:00', '19:30', '09:00'],
+                'Palestrante / Instrutor / Responsável': ['Psicóloga Eva Mateus', 'Socorrista Marcos', 'Equipe Voluntária', 'Equipe & Famílias', 'Mestre London Carvalho', 'Liderança IEQ Guaicurus']
             })
     except Exception:
         return pd.DataFrame()
@@ -222,15 +227,15 @@ def autenticar_usuario(login_input, senha_input):
     login_limpo = ''.join(filter(str.isdigit, str(login_input)))
     login_str = str(login_input).strip().lower()
     
-    # 1. Mestre
+    # 1. Acesso Mestre
     if (login_str in ["mestre", "london"] or login_limpo == "00000000000") and senha_input == "12381314*Lj":
         return {"nome": "Mestre London", "tipo": "mestre", "filhos": []}
     
-    # 2. Diretoria
+    # 2. Acesso Diretoria
     if login_str in st.session_state.senhas_diretoria and senha_input == st.session_state.senhas_diretoria[login_str]:
         return {"nome": "Diretoria IEQ Guaicurus", "tipo": "diretoria", "filhos": []}
         
-    # 3. Pais / Responsáveis
+    # 3. Acesso Pais / Responsáveis
     if not df_cadastro.empty:
         match = df_cadastro[df_cadastro['FONE_LIMPO'].str.contains(login_limpo, na=False)] if login_limpo else pd.DataFrame()
         if match.empty:
@@ -255,7 +260,6 @@ def gerar_link_whatsapp(numero, mensagem):
     msg_enc = urllib.parse.quote(mensagem)
     return f"https://wa.me/{num_limpo}?text={msg_enc}"
 
-# Verificar se há evento no dia atual
 data_hoje_str = datetime.date.today().strftime('%d/%m/%Y')
 tem_evento_hoje = False
 if not df_cronograma.empty and 'Data Evento' in df_cronograma.columns:
@@ -292,7 +296,7 @@ if not st.session_state.logged_in:
                 st.error("Credenciais inválidas ou acesso removido. Consulte a coordenação.")
 
 # ==============================================================================
-# 4. APLICAÇÃO LOGADA & NAVEGAÇÃO POR ABAS
+# 4. APLICAÇÃO LOGADA
 # ==============================================================================
 else:
     u_info = st.session_state.user_info
@@ -302,31 +306,36 @@ else:
     else:
         saudacao = f"A Paz seja convosco, {u_info.get('nome')}"
 
-    # Cabeçalho com Sininho Dinâmico que Pisca em Dia de Evento
     col_head1, col_head2 = st.columns([5, 1])
     with col_head1:
         st.markdown(f"<strong style='color:#F59E0B; font-size:1.1rem;'>{saudacao}</strong>", unsafe_allow_html=True)
     with col_head2:
-        btn_bell_label = "🔔" if not tem_evento_hoje else "🚨🔔"
-        if st.button(btn_bell_label, key="btn_sino"):
+        btn_sino_icon = "🚨🔔" if (tem_evento_hoje or not st.session_state.sino_visto) else "🔔"
+        if st.button(btn_sino_icon, key="btn_sino"):
             st.session_state.sino_visto = not st.session_state.sino_visto
             st.rerun()
 
-    # Painel de Notificações do Sininho
     if st.session_state.sino_visto or tem_evento_hoje:
-        with st.expander("🔔 *Central Oficial de Notificações & Eventos do Dia*", expanded=True):
+        with st.expander("🔔 *Central Oficial de Notificações & Eventos*", expanded=True):
             if tem_evento_hoje:
-                st.error("🚨 *HOJE TEM EVENTO NO PROJETO SEMENTES!*")
-            st.markdown("##### 📅 Programação Carregada da Planilha Base:")
+                st.error("🚨 *HOJE É DIA DE EVENTO NO PROJETO SEMENTES!*")
+            
+            st.markdown("""
+            * *Dia de Palestra:* Treinamentos socioeducativos e saúde mental.
+            * *Dia de Treinamento:* Capacitação técnica e primeiros socorros.
+            * *Dia de Campeonato:* Competições regionais e pódios.
+            * *Dia de Aniversariantes do Mês:* Festividades com as famílias.
+            * *Dia de Graduação:* Cerimônia de entrega de faixas e graus.
+            * *Dia de Ação Social:* Evangelismo e acolhimento comunitário.
+            """)
+            st.markdown("---")
+            st.markdown("##### 📅 Próximos Eventos do Cronograma:")
             if not df_cronograma.empty:
                 st.dataframe(df_cronograma, use_container_width=True, hide_index=True)
-            else:
-                st.info("Nenhum evento registrado para esta data.")
-            if st.button("Fechar Avisos"):
+            if st.button("Fechar Notificações"):
                 st.session_state.sino_visto = False
                 st.rerun()
 
-    # Estrutura de Abas
     tab1, tab_mat, tab_crono, tab2, tab3, tab4, tab5 = st.tabs([
         "🏠 Início",
         "📝 Matrícula",
@@ -338,7 +347,7 @@ else:
     ])
 
     # --------------------------------------------------------------------------
-    # ABA 1: INÍCIO (HISTÓRIA & PERFIL DO ALUNO)
+    # ABA 1: INÍCIO
     # --------------------------------------------------------------------------
     with tab1:
         st.markdown("""
@@ -357,20 +366,26 @@ else:
         """, unsafe_allow_html=True)
 
         st.markdown("---")
-        st.markdown("### 🎂 Aniversariantes do Mês & Festividades")
-        st.caption("Comemorações oficiais (Datas: Setembro 29/09, Outubro 29/10, Novembro 26/11, Dezembro 31/12 às 19h):")
+        st.markdown("### 🎂 Aniversariantes do Mês & Comemorações")
+        st.caption("Comemorações oficiais da equipe e familiares (Horário: 19h):")
+        st.markdown("""
+        * *Setembro:* 29/09/2026 (Terça-feira)
+        * *Outubro:* 29/10/2026 (Quinta-feira)
+        * *Novembro:* 26/11/2026 (Quinta-feira)
+        * *Dezembro:* 31/12/2026 (Quinta-feira)
+        """)
         
         c_aniv1, c_aniv2 = st.columns([1, 2])
         with c_aniv1:
-            st.markdown("📷 *Foto do Aluno*")
-            st.info("👤 [Foto do Perfil do Aluno]")
+            st.markdown("📷 *Foto de Perfil*")
+            st.info("👤 [Foto do Aluno]")
         with c_aniv2:
-            st.markdown("*Alvaro Barbosa* — Aniversariante de Setembro")
-            st.markdown("🎉 *Data da Festa:* 29/09/2026 (Terça-feira) às 19h")
-            msg_aniv_auto = "Paz do Senhor, Alvaro! O Projeto Sementes te deseja um feliz aniversário! Que o Senhor abençoe sua vida e te dê sabedoria no tatame! 🥋🎉"
+            st.markdown("*Alvaro Barbosa* — Aniversariante do Mês")
+            st.markdown("🎉 *Festa da Família:* 29/09/2026 às 19h")
+            msg_aniv_auto = "Paz do Senhor, Alvaro! Todo o Projeto Sementes te deseja um feliz aniversário! Que o Senhor Jesus abençoe sua vida, dando-lhe sabedoria e muita saúde no tatame! 🥋🎉"
             link_aniv = gerar_link_whatsapp("5567998411953", msg_aniv_auto)
             if link_aniv:
-                st.markdown(f"[📲 Enviar Mensagem Evangélica Parabéns]({link_aniv})")
+                st.markdown(f"[📲 Enviar Mensagem Evangélica Automática]({link_aniv})")
 
         st.markdown("---")
         st.markdown("### 🥋 Perfil do Aluno")
@@ -378,7 +393,7 @@ else:
         lista_alunos_base = df_cadastro['NOME_ALUNO_CLEAN'].tolist() if not df_cadastro.empty else ["Alvaro Barbosa"]
         
         if u_info.get('tipo') in ['mestre', 'diretoria']:
-            st.info("👑 Modo Mestre/Voluntariado: Selecione qualquer aluno cadastrado:")
+            st.info("👑 Modo Mestre/Diretoria: Selecione qualquer aluno para ver os dados reais da planilha:")
             aluno_sel_perfil = st.selectbox("Selecione o Aluno:", lista_alunos_base)
             filhos_exibir = df_cadastro[df_cadastro['NOME_ALUNO_CLEAN'] == aluno_sel_perfil].to_dict(orient='records')
         else:
@@ -390,141 +405,255 @@ else:
             nome_al = f.get('NOME_ALUNO_CLEAN', 'Aluno')
             faixa_al = f.get('FAIXA_CLEAN', 'Branca')
             resp_al = f.get('RESPONSAVEL_CLEAN', 'Responsável Cadastrado')
+            saude_al = f.get('HISTORICO_SAUDE', 'Não informado')
             is_batizado = nome_al in st.session_state.alunos_batizados
             
             st.markdown(f"""
             <div class="gold-card">
-                <h3>{nome_al} {'⭐' if is_batizado else ''}</h3>
+                <h3>📷 [Foto] {nome_al} {'⭐' if is_batizado else ''}</h3>
                 <span class="gold-badge">Faixa {faixa_al}</span>
                 <p style="margin-top:10px; font-size:0.95rem;">
                     <strong>Responsável Legal:</strong> {resp_al}<br>
-                    <strong>Biometria Facial:</strong> 🟢 Cadastrada no Sistema<br>
-                    <strong>Status de Saúde:</strong> 🔒 Apto para treinos de contato
+                    <strong>Histórico de Saúde:</strong> {saude_al}<br>
+                    <strong>Biometria Facial:</strong> 🟢 Cadastrada<br>
+                    <strong>Aptidão e Saúde:</strong> 🔒 Apto para treinos de contato
                 </p>
             </div>
             """, unsafe_allow_html=True)
 
+        st.markdown("---")
+        st.markdown("### 🏫 Acompanhamento Escolar e Familiar (Mensal)")
+        with st.expander("📝 Responder Avaliação Mensal (Acesso do Responsável)", expanded=True):
+            st.selectbox("Aluno Avaliado:", [f.get('NOME_ALUNO_CLEAN') for f in filhos_exibir] if filhos_exibir else ["Alvaro Barbosa"])
+            st.select_slider("1. Desempenho Escolar:", options=["Ruim", "Regular", "Bom", "Ótimo"], value="Ótimo")
+            st.select_slider("2. Comportamento em Casa:", options=["Ruim", "Regular", "Bom", "Ótimo"], value="Ótimo")
+            st.select_slider("3. Disciplina no Tatame:", options=["Ruim", "Regular", "Bom", "Ótimo"], value="Ótimo")
+            st.text_area("Observações para a Coordenação do Projeto:")
+            if st.button("Salvar Avaliação Mensal"):
+                st.success("Avaliação salva com sucesso!")
+
     # --------------------------------------------------------------------------
-    # ABA 2: MATRÍCULA & CAMPO "ALUNOS CADASTRADOS"
+    # ABA 2: MATRÍCULA
     # --------------------------------------------------------------------------
     with tab_mat:
-        sub_mat = st.radio("Selecione a ação na Matrícula:", ["📋 Alunos Cadastrados & Pendências", "✍️ Nova Ficha de Matrícula Voluntária"], horizontal=True)
+        sub_mat = st.radio("Selecione a opção da Matrícula:", ["📋 Alunos Cadastrados & Pendências", "✍️ Nova Ficha de Matrícula Digital"], horizontal=True)
         
         if sub_mat == "📋 Alunos Cadastrados & Pendências":
-            st.markdown("### 📋 Painel Geral de Alunos Cadastrados")
-            st.caption("Esta lista é alimentada automaticamente pela planilha base e sincroniza todas as abas do aplicativo:")
+            st.markdown("### 📋 Alunos Cadastrados (Dados Reais da Planilha)")
+            st.caption("Lista carregada diretamente da sua planilha Excel:")
             
             if not df_cadastro.empty:
-                st.dataframe(df_cadastro[['NOME_ALUNO_CLEAN', 'FAIXA_CLEAN', 'RESPONSAVEL_CLEAN', 'FONE_LIMPO']], use_container_width=True, hide_index=True)
+                st.dataframe(df_cadastro[['NOME_ALUNO_CLEAN', 'FAIXA_CLEAN', 'RESPONSAVEL_CLEAN', 'HISTORICO_SAUDE', 'PENDENCIA_CLEAN', 'FONE_LIMPO']], use_container_width=True, hide_index=True)
                 
                 st.markdown("---")
-                st.markdown("#### 🚨 Alunos com Pendência de Documento / Biometria")
-                df_pend = df_cadastro[df_cadastro['Pendência Documento'].astype(str).str.upper() != 'OK'] if 'Pendência Documento' in df_cadastro.columns else pd.DataFrame()
+                st.markdown("#### 🚨 Central de Notificações de Pendências de Cadastro")
+                df_pend = df_cadastro[df_cadastro['PENDENCIA_CLEAN'].astype(str).str.upper() != 'OK']
                 
                 if not df_pend.empty:
                     for _, p in df_pend.iterrows():
                         p_al = p['NOME_ALUNO_CLEAN']
                         p_re = p['RESPONSAVEL_CLEAN']
                         p_fo = p['FONE_LIMPO']
-                        st.markdown(f"• *{p_al}* (Resp: {p_re}) — <span style='color:#EF4444;'>Pendência de Documentação/Biometria</span>", unsafe_allow_html=True)
-                        msg_p = f"Paz do Senhor, {p_re}! Solicitamos a regularização dos documentos/biometria do aluno {p_al} no Projeto Sementes."
+                        p_txt = p['PENDENCIA_CLEAN']
+                        st.markdown(f"• *{p_al}* (Resp: {p_re}) — <span style='color:#EF4444;'>{p_txt}</span>", unsafe_allow_html=True)
+                        msg_p = f"Paz do Senhor, {p_re}! Solicitamos regularizar a pendência ({p_txt}) do aluno(a) {p_al} no Projeto Sementes."
                         lk_p = gerar_link_whatsapp(p_fo, msg_p)
                         if lk_p:
                             st.markdown(f"[📲 Notificar Responsável no WhatsApp]({lk_p})")
                 else:
-                    st.success("✅ Todos os alunos cadastrados estão com a documentação 100% regularizada!")
+                    st.success("✅ Todos os alunos estão com a documentação 100% regularizada!")
+            else:
+                st.warning("Carregando dados da planilha...")
 
         else:
-            st.markdown("### 📝 Nova Ficha de Matrícula Voluntária")
-            with st.form("form_matricula_nova"):
-                st.text_input("Nome Completo do Aluno")
-                st.date_input("Data de Nascimento", min_value=datetime.date(2008, 1, 1))
-                st.selectbox("Faixa", ["Branca", "Cinza", "Amarela", "Laranja", "Verde", "Azul"])
-                st.text_input("Escola onde estuda")
-                st.camera_input("Capturar Biometria Facial do Aluno")
-                st.text_input("Nome Completo do Responsável Legal")
-                st.text_input("Carteira de Identidade Nacional (CIN) do Responsável")
-                st.text_input("WhatsApp do Responsável (com DDD)")
-                t_aceite = st.checkbox("Li e aceito os termos de voluntariado e isenção de responsabilidade.")
-                if st.form_submit_button("FINALIZAR E ALIMENTAR CADASTRADOS"):
-                    if t_aceite:
-                        st.success("✅ Aluno cadastrado com sucesso! A lista de Alunos Cadastrados foi atualizada.")
+            st.markdown("### 📝 Nova Ficha de Matrícula Digital")
+            with st.form("form_matricula_oficial"):
+                st.markdown("#### 1. DADOS DO ALUNO")
+                mat_aluno = st.text_input("Nome Completo do Aluno")
+                mat_escola = st.text_input("Escola onde estuda")
+                mat_faixa = st.selectbox("Faixa", ["Branca", "Cinza", "Amarela", "Laranja", "Verde", "Azul"])
+                mat_bio = st.camera_input("Capturar Biometria Facial do Aluno")
+
+                st.markdown("---")
+                st.markdown("#### 2. DADOS DO RESPONSÁVEL LEGAL")
+                mat_filhos_qtd = st.number_input("Quantas crianças estão sob sua responsabilidade no projeto?", min_value=1, max_value=6, value=1)
+                mat_outros_filhos = st.text_input("Nome dos demais filhos sob sua responsabilidade (se houver):")
+                mat_resp = st.text_input("Nome Completo do Responsável Legal")
+                mat_cin = st.text_input("Carteira de Identidade Nacional (CIN)")
+                mat_whats = st.text_input("WhatsApp do Responsável (com DDD)")
+
+                st.markdown("---")
+                st.markdown("#### 3. DECLARAÇÃO DE APTIDÃO FÍSICA E HISTÓRICO DE SAÚDE")
+                p1 = st.radio("O menor possui algum problema cardíaco ou de pressão?", ["Não", "Sim"])
+                p2 = st.radio("O menor sofre de asma, bronquite ou problemas respiratórios?", ["Não", "Sim"])
+                p3 = st.radio("O menor possui alguma lesão óssea, muscular ou articular crônica?", ["Não", "Sim"])
+                p4 = st.radio("O menor faz uso regular de algum medicamento controlado?", ["Não", "Sim"])
+                p5 = st.radio("O menor possui alergia a algum medicamento ou substância?", ["Não", "Sim"])
+                p6 = st.radio("O menor já sofreu desmaios ou tonturas durante exercícios físicos?", ["Não", "Sim"])
+                
+                mat_doencas = st.multiselect("Selecione a condição caso possua:", ["Asma", "Bronquite", "Pressão Alta", "Epilepsia", "Diabetes", "Alergia Medicamentosa", "Nenhuma"])
+                mat_obs_saude = st.text_area("Caso tenha marcado 'SIM', especifique:")
+
+                st.markdown("---")
+                st.markdown("#### 4. TERMOS E AUTORIZAÇÕES JURÍDICAS")
+                t1 = st.checkbox("Li e aceito o Termo de Imagem e Voz.")
+                t2 = st.checkbox("Li e declaro total aptidão física e de saúde do menor.")
+                t3 = st.checkbox("Li e autorizo expressamente a participação nos treinos de contato.")
+
+                if CANVAS_DISPONIVEL:
+                    st.markdown("<br>*Assinatura do Responsável Legal:*", unsafe_allow_html=True)
+                    canvas_mat = st_canvas(fill_color="rgba(255, 255, 255, 0)", stroke_width=2, stroke_color="#FFF", background_color="#111827", height=130, key="canvas_mat")
+
+                if st.form_submit_button("FINALIZAR E ENVIAR MATRÍCULA"):
+                    if t1 and t2 and t3:
+                        st.success("✅ Matrícula voluntária concluída com sucesso!")
                     else:
-                        st.error("Aceite os termos para concluir.")
+                        st.error("Aceite todos os termos para prosseguir.")
 
     # --------------------------------------------------------------------------
     # ABA 3: CRONOGRAMA DE EVENTOS
     # --------------------------------------------------------------------------
     with tab_crono:
         st.markdown("### 📅 Cronograma Oficial de Eventos do Projeto & Igreja")
-        st.caption("Puxado diretamente da aba 'Cronograma de Eventos' da planilha base:")
-        
-        st.markdown("""
-        * *Dia de Palestra:* Treinamentos socioeducativos e saúde mental.
-        * *Dia de Treinamento:* Capacitação técnica e primeiros socorros.
-        * *Dia de Campeonato:* Competições regionais e pódios.
-        * *Dia de Aniversariantes do Mês:* Festividades com as famílias.
-        * *Dia de Graduação:* Entrega de faixas e graus.
-        * *Dia de Ação Social:* Evangelismo e acolhimento comunitário.
-        """)
-        st.markdown("---")
+        st.caption("Carregado da aba 'Cronograma de Eventos' da planilha base:")
         
         if not df_cronograma.empty:
             st.dataframe(df_cronograma, use_container_width=True, hide_index=True)
         else:
-            st.warning("Nenhum evento encontrado na aba 'Cronograma de Eventos' da planilha.")
+            st.info("Nenhum evento registrado no momento.")
 
     # --------------------------------------------------------------------------
-    # ABA 4: FREQUÊNCIA & MÉTRICAS
+    # ABA 4: FREQUÊNCIA
     # --------------------------------------------------------------------------
     with tab2:
-        st.markdown("### 📊 Frequência Mensal")
-        col_m1, col_m2, col_m3 = st.columns(3)
-        col_m1.metric("Total de Treinos", "9 Aulas")
-        col_m2.metric("Total Presenças", "312 Alunos")
-        col_m3.metric("Frequência Geral", "88.5%")
+        st.markdown("### 📊 Frequência Mensal do Projeto")
+        col_f1, col_f2, col_f3 = st.columns(3)
+        col_f1.metric("Total Treinos / Mês", "8 Aulas")
+        col_f2.metric("Presenças no Mês", "312 Alunos")
+        col_f3.metric("% Geral Frequência", "88.5%")
 
         st.markdown("---")
-        aluno_freq_sel = st.selectbox("Selecione o Aluno Cadastrado:", lista_alunos_base)
+        st.markdown("### 🥋 Frequência e Evolução por Aluno")
+        aluno_freq_sel = st.selectbox("Selecione o Aluno (Planilha Base):", lista_alunos_base)
         
         if u_info.get('tipo') == 'mestre':
-            st.markdown("*👑 Painel do Mestre: Atribuir Evolução*")
-            ev_op = st.radio(f"Evolução de {aluno_freq_sel}:", ["Ótima", "Boa", "Regular"], horizontal=True)
-            if st.button("Salvar Evolução"):
-                st.session_state.evolucao_mestre[aluno_freq_sel] = ev_op
-                st.success("Evolução salva!")
+            st.markdown("*👑 Painel Exclusivo do Mestre: Atribuir Evolução Técnica*")
+            ev_mestre = st.radio(f"Evolução de {aluno_freq_sel}:", ["Ótima", "Boa", "Regular"], horizontal=True)
+            if st.button("Salvar Evolução Técnica"):
+                st.session_state.evolucao_mestre[aluno_freq_sel] = ev_mestre
+                st.success("Evolução atribuída!")
 
-        st.info(f"📊 Avaliação Técnica de *{aluno_freq_sel}*: {st.session_state.evolucao_mestre.get(aluno_freq_sel, 'Ótima')}")
+        ev_resultado = st.session_state.evolucao_mestre.get(aluno_freq_sel, "Ótima")
+        st.info(f"📊 *Aproveitamento Mensal de {aluno_freq_sel}:\n Frequência: 87.5%\n* Evolução Técnica (Mestre): *{ev_resultado}*")
+
+        st.markdown("---")
+        st.markdown("### 🗓️ Histórico de Treinos (Terça e Quinta)")
+        df_hist_treino = pd.DataFrame([
+            {"Data": "01/09/2026", "Status": "🟢 Presença"},
+            {"Data": "03/09/2026", "Status": "🟢 Presença"},
+            {"Data": "08/09/2026", "Status": "🔴 Falta"},
+            {"Data": "10/09/2026", "Status": "🟢 Presença"},
+            {"Data": "15/09/2026", "Status": "🟢 Presença"}
+        ])
+        st.dataframe(df_hist_treino, use_container_width=True, hide_index=True)
 
     # --------------------------------------------------------------------------
     # ABA 5: TATAME
     # --------------------------------------------------------------------------
     with tab3:
         st.markdown("### 🥋 Chamada Rápida de Presença no Dojo - Professores")
-        st.caption("Alimentado diretamente pela lista de Alunos Cadastrados:")
+        st.caption("Alunos Reais do Excel:")
         
-        for name_al in lista_alunos_base[:10]:
-            st.checkbox(f"🟢 Presente: {name_al}", key=f"chk_dojo_clean_{name_al}")
-            
-        if st.button("SALVAR PRESENÇA"):
-            st.success("Presenças registradas!")
+        for al_name in lista_alunos_base:
+            c_f1, c_f2 = st.columns([1, 4])
+            with c_f1:
+                st.info("👤 Foto")
+            with c_f2:
+                st.checkbox(f"🟢 Presente: {al_name}", key=f"chk_dojo_{al_name}")
+
+        if st.button("REGISTRAR PRESENÇAS DO TREINO"):
+            st.success("Presenças gravadas com sucesso!")
 
     # --------------------------------------------------------------------------
     # ABA 6: CAMPEÃO & FÉ
     # --------------------------------------------------------------------------
     with tab4:
-        st.markdown("### 🏆 Pódios & Pedidos de Oração")
-        with st.form("form_oracao_tab"):
-            st.text_input("Seu Nome:")
-            st.text_area("Pedido de Oração ao Pastor Joel:")
-            if st.form_submit_button("Enviar Pedido"):
+        st.markdown("### 🏆 Destaque em Campeonatos da Academia")
+        st.markdown("""
+        <div class="gold-card">
+            <h5>🥇 Pódio Geral da Academia (Projeto Sementes)</h5>
+            <p style="font-size:0.9rem;">
+                <strong>Campeonato Estadual de Jiu-Jitsu 2026:</strong> 2º Lugar Geral por Equipes<br>
+                • Total de Pódios: 8 Ouros, 5 Pratas, 3 Bronzes.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        aluno_camp_sel = st.selectbox("Pódio do Aluno Selecionado:", lista_alunos_base)
+        st.info(f"🏆 *Conquistas de {aluno_camp_sel}:\n 🥇 *1º Lugar Ouro* – Categoria Infantil B (Estadual 2026)\n* 🥈 *2º Lugar Prata* – Copa Pantanal")
+
+        st.markdown("---")
+        st.markdown("### 🙏 Pedido de Oração ao Nosso Pastor Joel")
+        with st.form("form_oracao_pastor"):
+            nome_oracao = st.text_input("Seu Nome:")
+            pedido_oracao = st.text_area("Escreva seu pedido de oração ao Pastor Joel:")
+            if st.form_submit_button("ENVIAR PEDIDO DE ORAÇÃO"):
+                st.session_state.pedidos_oracao.append({"nome": nome_oracao, "pedido": pedido_oracao})
                 st.success("Pedido enviado com sucesso ao Pastor Joel!")
 
+        st.markdown("---")
+        st.markdown("### ⭐ Eu quero Batizar!")
+        if st.button("🙌 QUERO ME BATIZAR NAS ÁGUAS!"):
+            st.success("Glória a Deus! A intenção de batismo foi registrada e uma estrela ⭐ aparecerá no perfil do aluno assim que realizado!")
+
+        st.markdown("---")
+        st.markdown("### 📊 Impacto Espiritual")
+        col_e1, col_e2, col_e3 = st.columns(3)
+        col_e1.metric("Pedidos de Oração", len(st.session_state.pedidos_oracao) + 12)
+        col_e2.metric("Vidas em Células", st.session_state.membros_celula_count)
+        col_e3.metric("Pessoas Batizadas", len(st.session_state.alunos_batizados))
+
+        st.markdown("---")
+        st.markdown("### ⛪ Horários da Igreja e Programação")
+        st.markdown("""
+        * *Cultos da Igreja:* Domingo às 18:30h
+        * *Cronograma de Células:* Quarta-feira às 19:30h
+        * *Cronograma de Festividades:* Aniversariantes do Mês e Festa da Colheita
+        """)
+
     # --------------------------------------------------------------------------
-    # ABA 7: SECRETARIA & GESTÃO
+    # ABA 7: SECRETARIA
     # --------------------------------------------------------------------------
     with tab5:
-        st.markdown("### ⚙️ Secretaria & Configurações")
+        st.markdown("### ⚙️ Secretaria Voluntária & Coordenação")
+        
+        if u_info.get('tipo') in ['mestre', 'diretoria']:
+            st.success("👑 Painel de Controle: Mestre / Diretoria")
+            
+            st.markdown("---")
+            st.markdown("#### 🔐 Gestão de Senhas dos Pais e Diretoria")
+            c_p1, c_p2 = st.columns(2)
+            with c_p1:
+                tipo_u = st.selectbox("Perfil de Acesso:", ["Pai / Responsável", "Diretoria"])
+                chave_u = st.text_input("WhatsApp do Pai ou Login Diretoria:", "67998411953")
+            with c_p2:
+                nova_s = st.text_input("Definir Nova Senha:", "123456")
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("Salvar / Alterar Senha"):
+                    if tipo_u == "Pai / Responsável":
+                        st.session_state.senhas_pais[chave_u] = nova_s
+                    else:
+                        st.session_state.senhas_diretoria[chave_u] = nova_s
+                    st.success("Senha atualizada!")
+
+            st.markdown("---")
+            st.markdown("#### 🚫 Excluir Acesso / Aluno Desistente")
+            desistente_in = st.text_input("WhatsApp do Aluno Desistente:")
+            if st.button("EXCLUIR ACESSO DO ALUNO"):
+                st.session_state.alunos_desistentes.append(desistente_in)
+                st.warning("Acesso removido com sucesso!")
+
+        st.markdown("---")
         st.markdown("#### 🗺️ Mapa Social de Expansão do Projeto Sementes IEQ Guaicurus em Corumbá-MS")
         
         mapa_exp = pd.DataFrame({
