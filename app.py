@@ -320,7 +320,7 @@ else:
 
         st.markdown("---")
         st.markdown("### 🎂 Aniversariantes do Mês & Festividades")
-        st.caption("Comemorações oficiais da equipe voluntária e familiares (Datas: Setembro 29/09, Outubro 29/10, Novembro 26/11, Dezembro 31/12 às 19h):")
+        st.caption("Comemorações oficiais da equipe voluntária e familiares (Datas: Setembro 29/09, Outubro 29/10, Novembro 26/11, Dezembro 29/12 às 19h):")
         
         c_aniv1, c_aniv2 = st.columns([1, 2])
         with c_aniv1:
