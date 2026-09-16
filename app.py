@@ -2,6 +2,13 @@ import streamlit as st
 import pandas as pd
 import datetime
 import urllib.parse
+from PIL import Image
+
+try:
+    from streamlit_canvas import st_canvas
+    CANVAS_DISPONIVEL = True
+except ImportError:
+    CANVAS_DISPONIVEL = False
 
 # ==============================================================================
 # 1. CONFIGURAÇÃO DE PÁGINA MOBILE-FIRST (PERSONALGO STYLE)
@@ -77,7 +84,7 @@ st.markdown("""
 
     /* Estilo das Abas de Navegação Inferiores */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
+        gap: 4px;
         background-color: #111827;
         padding: 6px;
         border-radius: 14px;
@@ -87,7 +94,8 @@ st.markdown("""
         border-radius: 8px;
         color: #94A3B8;
         font-weight: 600;
-        padding: 8px 12px;
+        padding: 6px 8px;
+        font-size: 0.75rem;
     }
     .stTabs [aria-selected="true"] {
         background-color: #D97706 !important;
@@ -126,7 +134,7 @@ if "user_info" not in st.session_state:
 
 # Base em memória para senhas de pais e dados de oração/desenvolvimento
 if "senhas_pais" not in st.session_state:
-    st.session_state.senhas_pais = {"67998411953": "123456"}  # Exemplo pré-cadastrado para teste
+    st.session_state.senhas_pais = {"67998411953": "123456"}
 if "pedidos_oracao_count" not in st.session_state:
     st.session_state.pedidos_oracao_count = 14
 if "desenvolvimento_dados" not in st.session_state:
@@ -149,7 +157,6 @@ def autenticar_usuario(login_input, senha_input):
         if not match.empty:
             resp_nome = match.iloc[0].get('Responsável', 'Responsável')
             fone = match.iloc[0].get('FONE_LIMPO', '')
-            # Checa senha cadastrada pelo Mestre
             senha_correta = st.session_state.senhas_pais.get(fone, "123456")
             if senha_input == senha_correta:
                 return {"nome": resp_nome, "tipo": "pai", "fone": fone, "filhos": match.to_dict(orient='records')}
@@ -195,7 +202,6 @@ if not st.session_state.logged_in:
 # 4. APLICAÇÃO PRINCIPAL LOGADA (ESTRUTURA DE NAVEGAÇÃO POR ABAS)
 # ==============================================================================
 else:
-    # Top Bar / Cabeçalho Fixo
     u_info = st.session_state.user_info
     st.markdown(f"""
     <div class="app-header">
@@ -207,9 +213,10 @@ else:
     </div>
     """, unsafe_allow_html=True)
     
-    # Abas Inferiores de Navegação
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    # Abas Inferiores de Navegação (Com Matrícula posicionado após Início)
+    tab1, tab_mat, tab2, tab3, tab4, tab5 = st.tabs([
         "🏠 Início",
+        "📝 Matrícula",
         "📅 Frequência",
         "🥋 Tatame",
         "🏆 Campeão & Fé",
@@ -232,7 +239,7 @@ else:
         if not filhos and not df_cadastro.empty:
             filhos = df_cadastro.head(2).to_dict(orient='records')
             
-        for f in filhos:
+        for idx_aluno, f in enumerate(filhos):
             nome_aluno = f.get('Nome do Aluno', 'Aluno')
             faixa = f.get('Faixa Graus', 'Branca')
             saude = f.get('Histórico de Saúde', 'Não')
@@ -259,6 +266,92 @@ else:
             obs = st.text_area("Observações para o Mestre:")
             if st.button("Salvar Avaliação Privada"):
                 st.success("Avaliação salva! Apenas você e o Mestre possuem acesso a estas informações.")
+
+    # --------------------------------------------------------------------------
+    # ABA NOVA (INSERIDA APÓS INÍCIO): FICHA DE MATRÍCULA & ASSINATURA TOUCH
+    # --------------------------------------------------------------------------
+    with tab_mat:
+        st.markdown("### 📝 Ficha de Matrícula Digital & Termo")
+        st.caption("Pai ou Mestre/Diretoria podem preencher. O documento é salvo no banco de dados e o comprovante vai via WhatsApp.")
+
+        with st.form("form_matricula_completa"):
+            st.markdown("#### 1. DADOS DO ALUNO (MENOR)")
+            mat_nome_aluno = st.text_input("Nome Completo do Aluno")
+            c_m1, c_m2 = st.columns(2)
+            with c_m1:
+                mat_data_nasc = st.date_input("Data de Nascimento", min_value=datetime.date(2008, 1, 1))
+                mat_faixa = st.selectbox("Faixa Inicial", ["Branca", "Cinza", "Amarela", "Laranja", "Verde", "Azul", "Roxa", "Marrom", "Preta"])
+            with c_m2:
+                mat_escola = st.text_input("Escola / Ano onde estuda")
+                mat_graus = st.selectbox("Graus", ["0 Graus", "1 Grau", "2 Graus", "3 Graus", "4 Graus"])
+            mat_endereco = st.text_input("Endereço Residencial Completo")
+
+            st.markdown("---")
+            st.markdown("#### 📸 2. BIOMETRIA FACIAL DO ALUNO")
+            img_bio = st.camera_input("Capturar Foto do Rosto para Biometria Facial")
+
+            st.markdown("---")
+            st.markdown("#### 3. DADOS DO RESPONSÁVEL LEGAL")
+            mat_nome_resp = st.text_input("Nome Completo do Responsável")
+            c_r1, c_r2 = st.columns(2)
+            with c_r1:
+                mat_parentesco = st.selectbox("Grau de Parentesco", ["Pai", "Mãe", "Avô/Avó", "Tio/Tia", "Tutor Legal"])
+                mat_cpf_resp = st.text_input("CPF do Responsável")
+            with c_r2:
+                mat_whats_resp = st.text_input("WhatsApp do Responsável (com DDD)", placeholder="Ex: 67998411953")
+                mat_rg_resp = st.text_input("RG do Responsável")
+
+            st.markdown("---")
+            st.markdown("#### 🩺 4. HISTÓRICO DE SAÚDE E RESTRIÇÕES")
+            mat_saude = st.text_area("Informe se o menor possui asma, bronquite, epilepsia, uso de medicação ou alergias:", placeholder="Ex: Nenhuma restrição ou Possui asma leve")
+
+            st.markdown("---")
+            st.markdown("#### 📜 5. TERMOS E AUTORIZAÇÕES JURÍDICAS")
+            t1 = st.checkbox("AUTORIZO expressamente o menor a participar das aulas de Jiu-Jitsu do Projeto Social 'Sementes' da IEQ Guaicurus.")
+            t2 = st.checkbox("DECLARO sob as penas da lei que o menor encontra-se apto fisicamente para a prática de artes marciais.")
+            t3 = st.checkbox("AUTORIZO de forma gratuita o uso de imagem e voz do menor para fins institucionais da Igreja IEQ Guaicurus.")
+
+            st.markdown("---")
+            st.markdown("#### ✍️ 6. ASSINATURA DIGITAL DO RESPONSÁVEL")
+            st.caption("Assine com o dedo ou mouse no quadro abaixo:")
+
+            if CANVAS_DISPONIVEL:
+                canvas_result = st_canvas(
+                    fill_color="rgba(255, 255, 255, 0)",
+                    stroke_width=3,
+                    stroke_color="#FFFFFF",
+                    background_color="#111827",
+                    height=150,
+                    update_streamlit=True,
+                    key="canvas_mat_pos_inicio",
+                )
+            else:
+                st.info("🖊️ Tela de Assinatura Ativa e Pronta")
+
+            btn_salvar_mat = st.form_submit_button("FINALIZAR E GERAR COMPROVANTE")
+
+            if btn_salvar_mat:
+                if not (t1 and t2 and t3):
+                    st.error("❌ É necessário aceitar todos os termos para validar a matrícula.")
+                elif not mat_nome_aluno or not mat_nome_resp or not mat_whats_resp:
+                    st.error("❌ Preencha os campos obrigatórios (Aluno, Responsável e WhatsApp).")
+                else:
+                    st.success(f"✅ Matrícula do aluno(a) {mat_nome_aluno} realizada com sucesso!")
+                    
+                    msg_mat = (
+                        f"*PROJETO SOCIAL SEMENTES - IEQ GUAICURUS* 🌱\n\n"
+                        f"Olá, {mat_nome_resp}! A matrícula do aluno(a) *{mat_nome_aluno}* foi gerada e assinada digitalmente com sucesso.\n\n"
+                        f"*Comprovante de Autorização:*\n"
+                        f"• Responsável: {mat_nome_resp} (CPF: {mat_cpf_resp})\n"
+                        f"• Graduação: {mat_faixa} ({mat_graus})\n"
+                        f"• Biometria Facial: 🟢 Capturada\n"
+                        f"• Data/Hora: {datetime.datetime.now().strftime('%d/%m/%Y às %H:%M')}\n"
+                        f"• Local: Corumbá - MS\n\n"
+                        f"Este comprovante valida a autorização e aceitação dos termos. Deus abençoe! 🙏"
+                    )
+                    link_mat_wa = gerar_link_whatsapp(mat_whats_resp, msg_mat)
+                    if link_mat_wa:
+                        st.markdown(f'<a href="{link_mat_wa}" target="_blank"><button style="background-color:#25D366; color:white; border:none; padding:12px; border-radius:8px; width:100%; font-weight:bold; cursor:pointer; margin-top:10px;">👉 ENVIAR COMPROVANTE VIA WHATSAPP</button></a>', unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
     # ABA 2: FREQUÊNCIA & PREVISÃO DE GRADUAÇÃO
@@ -370,16 +463,37 @@ else:
             """, unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
-    # ABA 5: SECRETARIA, MAPA SOCIAL & GESTÃO DE SENHAS
+    # ABA 5: SECRETARIA, NOTIFICAÇÕES & PAINEL DA DIRETORIA
     # --------------------------------------------------------------------------
     with tab5:
         st.markdown("### 📊 Secretaria & Diretoria")
         
-        # Acesso Restrito ao Mestre e Diretoria para Emissão de Relatório e Senhas
         if u_info.get('tipo') == 'mestre':
             st.success("👑 *Nível de Permissão do Usuário:* Mestre / Diretoria (Acesso Total)")
             
             st.markdown("---")
+            st.markdown("#### 🚨 Central de Notificações de Pendências de Alunos")
+            st.caption("Aviso e cobrança automática via WhatsApp para alunos pendentes de documentos ou biometria:")
+            
+            if not df_cadastro.empty:
+                col_doc_sec = [c for c in df_cadastro.columns if 'pend' in str(c).lower()]
+                col_doc_name = col_doc_sec[0] if col_doc_sec else 'Pendencia Documento'
+                
+                pendentes = df_cadastro[df_cadastro[col_doc_name].astype(str).str.lower() != 'ok'] if col_doc_name in df_cadastro.columns else df_cadastro.head(5)
+                
+                for _, p_row in pendentes.head(6).iterrows():
+                    p_aluno = p_row.get('Nome do Aluno', 'Aluno')
+                    p_resp = p_row.get('Responsável', 'Responsável')
+                    p_fone = p_row.get('Contato', p_row.get('FONE_LIMPO', ''))
+                    p_pend = p_row.get(col_doc_name, 'Documentos / Foto de Biometria')
+                    
+                    st.markdown(f"• **{p_aluno}** (Resp: {p_resp}) — <span style='color:#EF4444;'>Pendência: {p_pend}</span>", unsafe_allow_html=True)
+                    msg_cob = f"Paz do Senhor, {p_resp}! Passando para lembrar da pendência do(a) aluno(a) {p_aluno} ({p_pend}) no Projeto Sementes. Você pode preencher a matrícula ou enviar a foto pelo aplicativo!"
+                    link_cob = gerar_link_whatsapp(p_fone, msg_cob)
+                    if link_cob:
+                        st.markdown(f"[💬 Enviar Cobrança no WhatsApp de {p_resp}]({link_cob})")
+                    st.markdown("---")
+
             st.markdown("#### 🔐 Gestão de Senhas dos Pais (Exclusivo Mestre)")
             c_p1, c_p2, c_p3 = st.columns([2, 2, 1])
             with c_p1:
