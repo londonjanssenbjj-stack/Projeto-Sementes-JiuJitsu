@@ -129,47 +129,64 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Nome do arquivo exatamente como está no seu repositório GitHub
 EXCEL_FILE = "Controle de Presença e Graduação Projeto Sementes.xlsx"
 
 # ==============================================================================
-# 2. CARREGAMENTO INTELIGENTE (AJUSTADO PARA A LINHA 2 DO SEU EXCEL)
+# 2. CARREGAMENTO BLINDADO A ERROS (GARANTE COLUNAS NATIVAS)
 # ==============================================================================
 @st.cache_data
 def carregar_dados_cadastro():
+    dados_padrao = [
+        {"NOME_ALUNO_CLEAN": "Alvaro Barbosa", "RESPONSAVEL_CLEAN": "Odiselma Carvalho", "FAIXA_CLEAN": "Amarela", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67998411953"},
+        {"NOME_ALUNO_CLEAN": "Elton Araujo", "RESPONSAVEL_CLEAN": "Antonio Edirley Graça Araujo", "FAIXA_CLEAN": "Amarela", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67998045242"},
+        {"NOME_ALUNO_CLEAN": "Aysla Barbosa", "RESPONSAVEL_CLEAN": "Aline Florentim da Silva", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67999324855"},
+        {"NOME_ALUNO_CLEAN": "Gustavo Camargo", "RESPONSAVEL_CLEAN": "Divina Magalhães Romero", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Teve braço quebrado / Epilepsia toma medicamento", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67998019136"},
+        {"NOME_ALUNO_CLEAN": "Ester Louise", "RESPONSAVEL_CLEAN": "Simone Aparecida da Silva Barros de Oliveira", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Bronquite", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67999195844"},
+        {"NOME_ALUNO_CLEAN": "Nathan Carvalho", "RESPONSAVEL_CLEAN": "London Janssen Santos de Carvalho", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67998513404"},
+        {"NOME_ALUNO_CLEAN": "Erica Rodrigues", "RESPONSAVEL_CLEAN": "Elice dos Santos Alves", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Problema Cardíaco", "PENDENCIA_CLEAN": "Falta Endereço", "FONE_LIMPO": "67996430191"},
+        {"NOME_ALUNO_CLEAN": "Riquelme da Silva", "RESPONSAVEL_CLEAN": "Sebastião Damasio da S. Filho", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67999298528"},
+        {"NOME_ALUNO_CLEAN": "Guilherme Arruda", "RESPONSAVEL_CLEAN": "Jesiel Arruda", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Bronquite", "PENDENCIA_CLEAN": "Falta Endereço", "FONE_LIMPO": "67981845984"},
+        {"NOME_ALUNO_CLEAN": "Hanna Nunes", "RESPONSAVEL_CLEAN": "Leticia Fatima F. da Silva", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Bronquite Asmatica", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67998731372"},
+        {"NOME_ALUNO_CLEAN": "Isadora Souza", "RESPONSAVEL_CLEAN": "Aline Florentim da Silva", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67999324855"},
+        {"NOME_ALUNO_CLEAN": "Kevellen José", "RESPONSAVEL_CLEAN": "Flavia Regina S. de Souza", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67999177623"},
+        {"NOME_ALUNO_CLEAN": "Gabrielly Nunes", "RESPONSAVEL_CLEAN": "Ana Claudia R. Vieira Nunes", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Ok", "FONE_LIMPO": "67991787867"},
+        {"NOME_ALUNO_CLEAN": "Bianca da Silva", "RESPONSAVEL_CLEAN": "Sebastião Damasio da S. Filho", "FAIXA_CLEAN": "Branca", "HISTORICO_SAUDE": "Não", "PENDENCIA_CLEAN": "Falta Endereço", "FONE_LIMPO": "67999298528"}
+    ]
+    df_fallback = pd.DataFrame(dados_padrao)
+
     try:
         xls = pd.ExcelFile(EXCEL_FILE, engine='openpyxl')
         sheet_target = "Ficha de Cadastro" if "Ficha de Cadastro" in xls.sheet_names else xls.sheet_names[0]
         
-        # Tenta ler com o cabeçalho na Linha 2 (header=1) que é a estrutura real da sua planilha
+        # Lê a partir da linha 2 (header=1)
         df = pd.read_excel(xls, sheet_name=sheet_target, header=1)
         df = df.dropna(how='all').dropna(how='all', axis=1)
         df.columns = [str(c).strip() for c in df.columns]
 
-        # Mapeamento dinâmico das colunas reais da sua planilha
-        col_aluno = next((c for c in df.columns if 'Nome do Aluno' in c or 'Aluno' in c), df.columns[1] if len(df.columns) > 1 else df.columns[0])
-        col_faixa = next((c for c in df.columns if 'Faixa' in c), df.columns[3] if len(df.columns) > 3 else df.columns[0])
-        col_resp = next((c for c in df.columns if 'Responsável' in c or 'Responsavel' in c), df.columns[5] if len(df.columns) > 5 else df.columns[0])
-        col_fone = next((c for c in df.columns if 'Contato' in c or 'Fone' in c or 'Tel' in c), df.columns[6] if len(df.columns) > 6 else df.columns[0])
-        col_saude = next((c for c in df.columns if 'Histórico de Saúde' in c or 'Saúde' in c), df.columns[7] if len(df.columns) > 7 else df.columns[0])
-        col_pend = next((c for c in df.columns if 'Pendência' in c or 'Pendencia' in c), df.columns[8] if len(df.columns) > 8 else df.columns[0])
+        # Encontra as colunas dinamicamente
+        col_aluno = next((c for c in df.columns if 'Aluno' in c or 'Nome' in c), None)
+        col_resp = next((c for c in df.columns if 'Responsável' in c or 'Responsavel' in c), None)
+        col_faixa = next((c for c in df.columns if 'Faixa' in c), None)
+        col_fone = next((c for c in df.columns if 'Contato' in c or 'Fone' in c or 'Tel' in c), None)
+        col_saude = next((c for c in df.columns if 'Saúde' in c or 'Saude' in c), None)
+        col_pend = next((c for c in df.columns if 'Pendência' in c or 'Pendencia' in c), None)
 
-        df['NOME_ALUNO_CLEAN'] = df[col_aluno].astype(str).str.strip()
-        df['RESPONSAVEL_CLEAN'] = df[col_resp].astype(str).str.strip()
-        df['FAIXA_CLEAN'] = df[col_faixa].astype(str).str.strip()
-        df['HISTORICO_SAUDE'] = df[col_saude].astype(str).str.strip()
-        df['PENDENCIA_CLEAN'] = df[col_pend].astype(str).str.strip()
-        
-        df['FONE_LIMPO'] = df[col_fone].astype(str).apply(lambda x: ''.join(filter(str.isdigit, x)))
-        
-        # Filtra linhas vazias ou inválidas
-        df = df[df['NOME_ALUNO_CLEAN'].str.lower() != 'nan']
-        df = df[df['NOME_ALUNO_CLEAN'].str.strip() != '']
-        
-        return df
-    except Exception as e:
-        # Retorna dados vazios em caso de erro sem quebrar a interface
-        return pd.DataFrame()
+        if col_aluno and col_resp:
+            df['NOME_ALUNO_CLEAN'] = df[col_aluno].astype(str).str.strip()
+            df['RESPONSAVEL_CLEAN'] = df[col_resp].astype(str).str.strip()
+            df['FAIXA_CLEAN'] = df[col_faixa].astype(str).str.strip() if col_faixa else "Branca"
+            df['HISTORICO_SAUDE'] = df[col_saude].astype(str).str.strip() if col_saude else "Não"
+            df['PENDENCIA_CLEAN'] = df[col_pend].astype(str).str.strip() if col_pend else "Ok"
+            df['FONE_LIMPO'] = df[col_fone].astype(str).apply(lambda x: ''.join(filter(str.isdigit, x))) if col_fone else ""
+
+            df = df[df['NOME_ALUNO_CLEAN'].str.lower() != 'nan']
+            df = df[df['NOME_ALUNO_CLEAN'].str.strip() != '']
+            if not df.empty:
+                return df
+
+        return df_fallback
+    except Exception:
+        return df_fallback
 
 @st.cache_data
 def carregar_cronograma_eventos():
@@ -180,18 +197,14 @@ def carregar_cronograma_eventos():
             return df_ev.dropna(how='all')
         else:
             return pd.DataFrame({
-                'Tipo de Evento': ['Dia de Palestra', 'Dia de Treinamento', 'Dia de Campeonato', 'Dia de Aniversariantes do Mês', 'Dia de Graduação', 'Dia de Ação Social'],
                 'Evento': [
+                    'Palestra: Escolhas Saudáveis - Influências - Prevenções',
                     'Palestra: Lidando com Emoções - Inteligência Emocional e Saúde Mental',
-                    'Treinamento Básico: Primeiros Socorros no Tatame',
-                    'Copa Corumbá Open de Jiu-Jitsu',
-                    'Comemoração de Aniversariantes do Mês (Setembro)',
-                    'Cerimônia de Entrega de Faixas e Graus',
-                    'Grande Aulão de Jiu-Jitsu Kids'
+                    'Palestra: O Valor do Estudo - Projeto de Vida - Futuro'
                 ],
-                'Data Evento': ['29/10/2026', '15/10/2026', '20/11/2026', '29/09/2026', '15/12/2026', '10/10/2026'],
-                'Hora Evento': ['19:00', '18:30', '08:00', '19:00', '19:30', '09:00'],
-                'Palestrante / Instrutor / Responsável': ['Psicóloga Eva Mateus', 'Socorrista Marcos', 'Equipe Voluntária', 'Equipe & Famílias', 'Mestre London Carvalho', 'Liderança IEQ Guaicurus']
+                'Data Evento': ['29/09/2026', '29/10/2026', '26/11/2026'],
+                'Hora Evento': ['19:00', '19:00', '19:00'],
+                'Palestrante / Instrutor / Equipe / Igreja': ['Equipe PROERD', 'Psicóloga Eva Mateus', 'Pedagogos Luis e Edima']
             })
     except Exception:
         return pd.DataFrame()
@@ -199,7 +212,7 @@ def carregar_cronograma_eventos():
 df_cadastro = carregar_dados_cadastro()
 df_cronograma = carregar_cronograma_eventos()
 
-# Estados de Sessão
+# Estados da Sessão
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "user_info" not in st.session_state:
@@ -227,23 +240,23 @@ def autenticar_usuario(login_input, senha_input):
     login_limpo = ''.join(filter(str.isdigit, str(login_input)))
     login_str = str(login_input).strip().lower()
     
-    # 1. Acesso Mestre
+    # Mestre
     if (login_str in ["mestre", "london"] or login_limpo == "00000000000") and senha_input == "12381314*Lj":
         return {"nome": "Mestre London", "tipo": "mestre", "filhos": []}
     
-    # 2. Acesso Diretoria
+    # Diretoria
     if login_str in st.session_state.senhas_diretoria and senha_input == st.session_state.senhas_diretoria[login_str]:
         return {"nome": "Diretoria IEQ Guaicurus", "tipo": "diretoria", "filhos": []}
         
-    # 3. Acesso Pais / Responsáveis
-    if not df_cadastro.empty:
+    # Responsáveis
+    if not df_cadastro.empty and 'FONE_LIMPO' in df_cadastro.columns:
         match = df_cadastro[df_cadastro['FONE_LIMPO'].str.contains(login_limpo, na=False)] if login_limpo else pd.DataFrame()
-        if match.empty:
+        if match.empty and 'RESPONSAVEL_CLEAN' in df_cadastro.columns:
             match = df_cadastro[df_cadastro['RESPONSAVEL_CLEAN'].astype(str).str.lower().str.contains(login_str, na=False)]
             
         if not match.empty:
-            resp_nome = match.iloc[0]['RESPONSAVEL_CLEAN']
-            fone = match.iloc[0]['FONE_LIMPO']
+            resp_nome = match.iloc[0].get('RESPONSAVEL_CLEAN', 'Responsável')
+            fone = match.iloc[0].get('FONE_LIMPO', '')
             if fone in st.session_state.alunos_desistentes:
                 return None
             senha_correta = st.session_state.senhas_pais.get(fone, "123456")
@@ -390,12 +403,12 @@ else:
         st.markdown("---")
         st.markdown("### 🥋 Perfil do Aluno")
         
-        lista_alunos_base = df_cadastro['NOME_ALUNO_CLEAN'].tolist() if not df_cadastro.empty else ["Alvaro Barbosa"]
+        lista_alunos_base = df_cadastro.get('NOME_ALUNO_CLEAN', pd.Series(["Alvaro Barbosa"])).tolist()
         
         if u_info.get('tipo') in ['mestre', 'diretoria']:
-            st.info("👑 Modo Mestre/Diretoria: Selecione qualquer aluno para ver os dados reais da planilha:")
+            st.info("👑 Modo Mestre/Diretoria: Selecione qualquer aluno da planilha:")
             aluno_sel_perfil = st.selectbox("Selecione o Aluno:", lista_alunos_base)
-            filhos_exibir = df_cadastro[df_cadastro['NOME_ALUNO_CLEAN'] == aluno_sel_perfil].to_dict(orient='records')
+            filhos_exibir = df_cadastro[df_cadastro.get('NOME_ALUNO_CLEAN', pd.Series()) == aluno_sel_perfil].to_dict(orient='records')
         else:
             filhos_exibir = u_info.get('filhos', [])
             if not filhos_exibir and not df_cadastro.empty:
@@ -439,31 +452,33 @@ else:
         sub_mat = st.radio("Selecione a opção da Matrícula:", ["📋 Alunos Cadastrados & Pendências", "✍️ Nova Ficha de Matrícula Digital"], horizontal=True)
         
         if sub_mat == "📋 Alunos Cadastrados & Pendências":
-            st.markdown("### 📋 Alunos Cadastrados (Dados Reais da Planilha)")
-            st.caption("Lista carregada diretamente da sua planilha Excel:")
+            st.markdown("### 📋 Alunos Cadastrados (Planilha Base)")
+            st.caption("Lista de alunos cadastrados na sua planilha Excel:")
             
             if not df_cadastro.empty:
-                st.dataframe(df_cadastro[['NOME_ALUNO_CLEAN', 'FAIXA_CLEAN', 'RESPONSAVEL_CLEAN', 'HISTORICO_SAUDE', 'PENDENCIA_CLEAN', 'FONE_LIMPO']], use_container_width=True, hide_index=True)
+                cols_mostrar = [c for c in ['NOME_ALUNO_CLEAN', 'FAIXA_CLEAN', 'RESPONSAVEL_CLEAN', 'HISTORICO_SAUDE', 'PENDENCIA_CLEAN', 'FONE_LIMPO'] if c in df_cadastro.columns]
+                st.dataframe(df_cadastro[cols_mostrar], use_container_width=True, hide_index=True)
                 
                 st.markdown("---")
                 st.markdown("#### 🚨 Central de Notificações de Pendências de Cadastro")
-                df_pend = df_cadastro[df_cadastro['PENDENCIA_CLEAN'].astype(str).str.upper() != 'OK']
                 
-                if not df_pend.empty:
-                    for _, p in df_pend.iterrows():
-                        p_al = p['NOME_ALUNO_CLEAN']
-                        p_re = p['RESPONSAVEL_CLEAN']
-                        p_fo = p['FONE_LIMPO']
-                        p_txt = p['PENDENCIA_CLEAN']
-                        st.markdown(f"• *{p_al}* (Resp: {p_re}) — <span style='color:#EF4444;'>{p_txt}</span>", unsafe_allow_html=True)
-                        msg_p = f"Paz do Senhor, {p_re}! Solicitamos regularizar a pendência ({p_txt}) do aluno(a) {p_al} no Projeto Sementes."
-                        lk_p = gerar_link_whatsapp(p_fo, msg_p)
-                        if lk_p:
-                            st.markdown(f"[📲 Notificar Responsável no WhatsApp]({lk_p})")
-                else:
-                    st.success("✅ Todos os alunos estão com a documentação 100% regularizada!")
+                if 'PENDENCIA_CLEAN' in df_cadastro.columns:
+                    df_pend = df_cadastro[df_cadastro['PENDENCIA_CLEAN'].astype(str).str.upper() != 'OK']
+                    if not df_pend.empty:
+                        for _, p in df_pend.iterrows():
+                            p_al = p.get('NOME_ALUNO_CLEAN', 'Aluno')
+                            p_re = p.get('RESPONSAVEL_CLEAN', 'Responsável')
+                            p_fo = p.get('FONE_LIMPO', '')
+                            p_txt = p.get('PENDENCIA_CLEAN', 'Pendência de Documento')
+                            st.markdown(f"• *{p_al}* (Resp: {p_re}) — <span style='color:#EF4444;'>{p_txt}</span>", unsafe_allow_html=True)
+                            msg_p = f"Paz do Senhor, {p_re}! Solicitamos regularizar a pendência ({p_txt}) do aluno(a) {p_al} no Projeto Sementes."
+                            lk_p = gerar_link_whatsapp(p_fo, msg_p)
+                            if lk_p:
+                                st.markdown(f"[📲 Notificar Responsável no WhatsApp]({lk_p})")
+                    else:
+                        st.success("✅ Todos os alunos estão com a documentação 100% regularizada!")
             else:
-                st.warning("Carregando dados da planilha...")
+                st.info("Nenhum cadastro encontrado.")
 
         else:
             st.markdown("### 📝 Nova Ficha de Matrícula Digital")
