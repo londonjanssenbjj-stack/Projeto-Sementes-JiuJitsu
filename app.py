@@ -1,4 +1,27 @@
-import streamlit as st
+[23:39, 15/09/2026] Papai London: import streamlit as st
+import pandas as pd
+import datetime
+import urllib.parse
+from io import BytesIO
+
+# ==============================================================================
+# 1. CONFIGURAÇÃO DA PÁGINA E DESIGN PREMIUM (DARK MODE, AZUL PROFUNDO & DOURADO)
+# ==============================================================================
+st.set_page_config(
+    page_title="Projeto Sementes - IEQ Guaicurus",
+    page_icon="🌱",
+    layout="wide"
+)
+
+# Estilização CSS Customizada de Alta Fidelidade (Identidade Visual Baseada na Logo)
+st.markdown("""
+<style>
+    @import url('https://googleapis.com');
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+    
+    /* Fundo Geral e Sidebar */
+    .stApp { background-color: #0A0F18; color: #E2E…
+[23:48, 15/09/2026] Papai London: import streamlit as st
 import pandas as pd
 import datetime
 import urllib.parse
@@ -139,15 +162,15 @@ def gerar_link_whatsapp(numero, mensagem):
     if pd.isna(numero) or str(numero).strip() == "" or str(numero).strip().lower() == "nan":
         return None
     num_limpo = ''.join(filter(str.isdigit, str(numero)))
-    if not num_limpo.startswith("55") and len(num_limpo) in:
+    if not num_limpo.startswith("55") and len(num_limpo) in [10, 11]:
         num_limpo = "55" + num_limpo
     msg_enc = urllib.parse.quote(mensagem)
-    return f"https://wa.me{num_limpo}?text={msg_enc}"
+    return f"https://wa.me/{num_limpo}?text={msg_enc}"
 
 # ==============================================================================
 # 3. INTERFACE DE NAVEGAÇÃO E REGRAS DE NEGÓCIO (FRONTEND)
 # ==============================================================================
-st.sidebar.image("https://icons8.com", width=60)
+st.sidebar.image("logo_projeto_sementes.png", width=60)
 st.sidebar.markdown("<h2 style='text-align: center; color:#F59E0B;'>PROJETO SEMENTES</h2>", unsafe_allow_html=True)
 st.sidebar.markdown("<p style='text-align: center; color: #94A3B8; font-size: 0.8rem;'>IEQ Guaicurus — Jiu-Jitsu Kids</p>", unsafe_allow_html=True)
 
@@ -193,7 +216,7 @@ if menu == "🏠 Dashboard dos Pais":
             if not df_ago.empty:
                 aluno_freq = df_ago[df_ago["Nome do Aluno"].str.strip().str.lower() == filho_selecionado.lower()]
                 if not aluno_freq.empty:
-                    presencas = aluno_freq.iloc["Presenças Registradas"]
+                    presencas = aluno_freq.iloc[0]["Presenças Registradas"]
             st.metric(label="Presenças em Agosto", value=f"{presencas} Aulas")
             
         saude = str(filho_row.get("Histórico de Saúde", "Não")).strip()
@@ -203,7 +226,7 @@ if menu == "🏠 Dashboard dos Pais":
             st.success("🔒 *Histórico de Saúde:* Nenhuma restrição médica ativa. Aluno apto para os treinos.")
 
         st.markdown("### 👤 Biometria Facial Registrada")
-        st.image("https://icons8.com", caption=f"Foto Biométrica Oficial de {filho_selecionado}")
+        st.image("logo_projeto_sementes.png", caption=f"Foto Biométrica Oficial de {filho_selecionado}")
 
 # ------------------------------------------------------------------------------
 # MÓDULO 2: CHAMADA POR BIOMETRIA FACIAL IA
