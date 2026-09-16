@@ -13,33 +13,10 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilização CSS Customizada de Alta Fidelidade (Identidade Visual Baseada na Logo)
+# Estilização CSS Customizada de Alta Fidelidade
 st.markdown("""
 <style>
-    @import url('https://googleapis.com');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    
-    /* Fundo Geral e Sidebar */
-    .stApp { background-color: #0A0F18; color: #E2E…
-[23:48, 15/09/2026] Papai London: import streamlit as st
-import pandas as pd
-import datetime
-import urllib.parse
-from io import BytesIO
-
-# ==============================================================================
-# 1. CONFIGURAÇÃO DA PÁGINA E DESIGN PREMIUM (DARK MODE, AZUL PROFUNDO & DOURADO)
-# ==============================================================================
-st.set_page_config(
-    page_title="Projeto Sementes - IEQ Guaicurus",
-    page_icon="🌱",
-    layout="wide"
-)
-
-# Estilização CSS Customizada de Alta Fidelidade (Identidade Visual Baseada na Logo)
-st.markdown("""
-<style>
-    @import url('https://googleapis.com');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     
     /* Fundo Geral e Sidebar */
