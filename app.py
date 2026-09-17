@@ -2491,9 +2491,7 @@ else:
                         .items()
                     ):
 
-                        caminho = aluno.get(
-                          "foto"
-                        )
+                        caminho = aluno.get("foto")
 
                         if (
                             caminho
@@ -2529,10 +2527,7 @@ else:
                             face_recognition
                             .compare_faces(
                                 conhecidos,
-                                cod
-                            )
-                        )
-                                
+                                cod,
                                 tolerance=0.48
                             )
                         )
@@ -2543,9 +2538,22 @@ else:
                                 True
                             )
 
-                            encontrados.append(
-                                nomes_conhecidos[indice]
-                            )
+                            if indice < len(
+                                nomes_conhecidos
+                            ):
+
+                                nome_encontrado = (
+                                    nomes_conhecidos[indice]
+                                )
+
+                                if (
+                                    nome_encontrado
+                                    not in encontrados
+                                ):
+
+                                    encontrados.append(
+                                        nome_encontrado
+                                    )
 
                     data_presenca = datetime.date.today().strftime(
                         "%d/%m/%Y"
