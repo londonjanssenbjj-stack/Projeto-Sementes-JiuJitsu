@@ -10,34 +10,47 @@ st.set_page_config(
 )
 
 # ==========================================
-# TELA DE AUTENTICAÇÃO / LOGIN
+# TELA DE AUTENTICAÇÃO / LOGIN (DESIGN ORIGINAL RESTAURADO)
 # ==========================================
 if not st.session_state.get("authenticated", False):
+    # Exibição da Logo do Projeto Sementes no topo
+    try:
+        st.image("logo_projeto_sementes.png", use_container_width=True)
+    except Exception:
+        pass
+
     st.markdown("<h1 style='text-align: center;'>PROJETO SEMENTES</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #aaaaaa;'>Iniciativa Voluntária de Jiu-Jitsu e Apoio à Família<br>Cessão de Espaço Comunitário: IEQ Guaicurus</p>", unsafe_allow_html=True)
     
-    st.markdown("---")
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    # Rótulo atualizado
-    usuario_input = st.text_input("Login do Responsável", value="London", key="login_usuario")
+    # Campo com o rótulo original
+    usuario_input = st.text_input("WhatsApp / CPF do Responsável ou Mestre", value="London", key="login_usuario")
     
-    # CSS para contraste visual no campo de senha
+    # CSS para garantir legibilidade/contraste da senha digitada sem alterar o tema escuro
     st.markdown("""
         <style>
-        input[type="password"], input[type="text"] {
+        div[data-baseweb="input"] input {
             color: #FFFFFF !important;
-            background-color: #1E293B !important;
         }
         button[aria-label="Show password"], button[aria-label="Hide password"] {
             color: #F59E0B !important;
+        }
+        /* Estilo do botão de login original (Laranja/Dourado) */
+        div.stButton > button:first-child {
+            background-color: #E67E22 !important;
+            color: white !important;
+            font-weight: bold !important;
+            border-radius: 8px !important;
+            border: none !important;
         }
         </style>
     """, unsafe_allow_html=True)
     
     senha_input = st.text_input("Senha de Acesso", type="password", key="login_senha")
-    
+
     if st.button("ENTRAR NO APLICATIVO", use_container_width=True):
-        if senha_input == "1234":  # Altere para a sua senha real
+        if senha_input == "1234":  # Substitua pela sua senha real
             st.session_state["authenticated"] = True
             st.session_state["usuario"] = usuario_input
             st.rerun()
@@ -50,7 +63,7 @@ if not st.session_state.get("authenticated", False):
 # ESTRUTURA FIXA COM NAVEGAÇÃO E CABEÇALHO
 # ==========================================
 
-# CSS para fixar a barra superior/abas no topo
+# CSS para fixar/congelar a barra superior e as abas no topo durante a rolagem
 st.markdown("""
     <style>
     div[data-testid="stHeader"] {
@@ -65,6 +78,7 @@ st.markdown("""
         padding-bottom: 10px;
         border-bottom: 2px solid #333333;
     }
+    /* Estilo para a caixa do Mural de Avisos */
     .mural-avisos {
         background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%);
         color: white;
@@ -74,14 +88,14 @@ st.markdown("""
         margin-top: 15px;
         margin-bottom: 20px;
     }
-    .mural-avisos h3 {
+    .mural-avisos h2 {
         color: #FFFFFF !important;
         margin-top: 0;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Data e Hora de Acesso
+# Data e Hora de Acesso atualizada
 agora = datetime.now()
 data_hora_formatada = agora.strftime("%d/%m/%Y - %H:%M:%S")
 
@@ -114,6 +128,7 @@ with aba1:
 
     tem_evento_hoje = len(eventos_hoje) > 0
 
+    # CSS para o sino piscante em vermelho quando houver novo evento
     st.markdown("""
         <style>
         @keyframes piscar {
@@ -125,16 +140,6 @@ with aba1:
             color: #FF0000;
             font-size: 28px;
             animation: piscar 1s infinite;
-            cursor: pointer;
-            border: none;
-            background: none;
-        }
-        .sino-dourado {
-            color: #FFD700;
-            font-size: 28px;
-            cursor: pointer;
-            border: none;
-            background: none;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -151,6 +156,7 @@ with aba1:
             st.session_state["exibir_mural"] = True
             st.rerun()
 
+    # Exibição do Mural de Avisos do Dia ao Clicar no Sino
     if st.session_state.get("exibir_mural", False):
         st.markdown("""
             <div class='mural-avisos'>
@@ -172,6 +178,7 @@ with aba1:
 
     st.markdown("---")
 
+    # Resumo das Atividades Institucionais
     st.markdown("""
     * *Dia de Palestra:* Treinamentos socioeducativos e saúde mental.
     * *Dia de Treinamento:* Capacitação técnica e primeiros socorros.
