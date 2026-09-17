@@ -43,7 +43,7 @@ FOTOS_DIR.mkdir(exist_ok=True)
 
 JSON_FILE = DATA_DIR / "dados_aplicativo.json"
 
-LOGIN_MESTRE = "Mikhael"
+LOGIN_MESTRE = "London"
 SENHA_MESTRE = "12381314*Lj"
 
 # ==============================================================================
