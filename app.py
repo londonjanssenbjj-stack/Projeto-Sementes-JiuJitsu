@@ -2492,7 +2492,7 @@ else:
                     ):
 
                         caminho = aluno.get(
-                            "foto"
+                          "foto"
                         )
 
                         if (
@@ -2513,7 +2513,7 @@ else:
                             )
 
                             if enc:
-                            conhecidos.append(
+                                conhecidos.append(
                                     enc[0]
                                 )
 
@@ -2529,7 +2529,10 @@ else:
                             face_recognition
                             .compare_faces(
                                 conhecidos,
-                                cod,
+                                cod
+                            )
+                        )
+                                
                                 tolerance=0.48
                             )
                         )
