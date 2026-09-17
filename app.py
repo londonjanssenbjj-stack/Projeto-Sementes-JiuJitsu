@@ -2,32 +2,27 @@ import streamlit as st
 import pandas as pd
 import datetime
 import urllib.parse
-import os
-import json
-import re
+import base64
 from pathlib import Path
 
-try:
-from streamlit_canvas import st_canvas
-CANVAS_DISPONIVEL = True
-except ImportError:
-CANVAS_DISPONIVEL = False
+# ============================================================
+# IMPORTAÇÃO OPCIONAL DO STREAMLIT CANVAS
+# ============================================================
 
 try:
-import face_recognition
-FACE_RECOGNITION_DISPONIVEL = True
+    from streamlit_canvas import st_canvas
 except ImportError:
-FACE_RECOGNITION_DISPONIVEL = False
+    st_canvas = None
 
-# ==============================================================================
-# 1. CONFIGURAÇÃO
-# ==============================================================================
+# ============================================================
+# CONFIGURAÇÃO DA PÁGINA
+# ============================================================
 
 st.set_page_config(
-page_title="Projeto Sementes - IEQ Guaicurus",
-page_icon="🌱",
-layout="centered",
-initial_sidebar_state="collapsed",
+    page_title="Projeto Sementes - Jiu-Jitsu",
+    page_icon="🥋",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 EXCEL_FILE = "Controle de Presença e Graduação Projeto Sementes.xlsx"
