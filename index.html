@@ -1,837 +1,3220 @@
-<!-- APP CONTAINER -->
-<div id="app" class="flex-1 flex flex-col max-w-md mx-auto w-full bg-darkbase border-x border-darkborder shadow-2xl relative min-h-screen">
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#121212">
+  <meta name="description" content="Projeto Sementes Jiu-Jitsu — aplicativo de gestão, matrícula, frequência, fé e jornada bíblica.">
+  <title>Projeto Sementes — Jiu-Jitsu</title>
 
-    <!-- AUTH SCREEN (LOGIN) -->
-    <div id="screen-login" class="flex-1 flex flex-col justify-between p-6 overflow-y-auto">
-        <div class="flex flex-col items-center mt-8">
-            <!-- Logo Oficial -->
-            <div class="w-32 h-32 mb-4 rounded-full bg-amber-500/10 border-2 border-amber-500/40 flex items-center justify-center gold-glow overflow-hidden p-2">
-                <img id="logo-img" src="https://raw.githubusercontent.com/projeto-sementes/app/main/logo_projeto_sementes.png" alt="Projeto Sementes" class="w-full h-full object-contain" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23f59e0b\'><path d=\'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5\'/></svg>'">
+  <!-- FONTES -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- ÍCONES -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root{
+      --bg:#121212;
+      --bg2:#171717;
+      --panel:#1c1c1c;
+      --panel2:#222;
+      --text:#f5f5f5;
+      --muted:#a6a6a6;
+      --gold:#d4af37;
+      --gold2:#f4d76e;
+      --gold3:#8c6a15;
+      --danger:#e53935;
+      --success:#22c55e;
+      --blue:#2563eb;
+      --border:rgba(212,175,55,.38);
+      --shadow:0 12px 36px rgba(0,0,0,.35);
+      --radius:20px;
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      background:
+        radial-gradient(circle at top right,rgba(212,175,55,.08),transparent 32%),
+        linear-gradient(180deg,#0e0e0e,#121212 35%,#101010);
+      color:var(--text);
+      font-family:Inter,Arial,sans-serif;
+      min-height:100vh;
+    }
+    button,input,textarea,select{font:inherit}
+    button{cursor:pointer}
+    a{color:inherit}
+    .hidden{display:none!important}
+    .app{min-height:100vh}
+    .container{width:min(1180px,94%);margin:0 auto}
+    .screen{min-height:100vh}
+
+    /* LOGIN */
+    #loginScreen{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px 0;
+    }
+    .login-wrap{width:min(440px,94vw)}
+    .logo-box{
+      display:flex;
+      justify-content:center;
+      margin-bottom:18px;
+    }
+    .logo-box img{
+      width:min(180px,48vw);
+      height:auto;
+      max-height:180px;
+      object-fit:contain;
+      border-radius:24px;
+      border:1px solid var(--border);
+      box-shadow:0 0 28px rgba(212,175,55,.12);
+      background:#050505;
+    }
+    .brand-title{
+      font-family:"Bebas Neue",sans-serif;
+      letter-spacing:2px;
+      text-align:center;
+      font-size:34px;
+      margin:8px 0 2px;
+      color:var(--gold2);
+    }
+    .brand-sub{
+      text-align:center;
+      color:var(--muted);
+      font-size:12px;
+      letter-spacing:.8px;
+      margin-bottom:24px;
+    }
+    .login-card,.card{
+      background:linear-gradient(145deg,rgba(31,31,31,.97),rgba(19,19,19,.98));
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .login-card{padding:24px}
+    .field{margin-bottom:15px}
+    .field label{
+      display:block;
+      color:#ddd;
+      font-size:13px;
+      margin-bottom:7px;
+      font-weight:600;
+    }
+    .input-wrap{position:relative}
+    .input-wrap i{
+      position:absolute;
+      left:13px;
+      top:50%;
+      transform:translateY(-50%);
+      color:var(--gold2);
+      width:18px;
+    }
+    .input,.select,.textarea{
+      width:100%;
+      border:1px solid #383838;
+      background:#101010;
+      color:#fff;
+      border-radius:13px;
+      padding:13px 14px;
+      outline:none;
+      transition:.2s;
+    }
+    .input-wrap .input{padding-left:42px}
+    .input:focus,.select:focus,.textarea:focus{
+      border-color:var(--gold);
+      box-shadow:0 0 0 3px rgba(212,175,55,.09);
+    }
+    .textarea{min-height:110px;resize:vertical}
+    .btn{
+      border:0;
+      border-radius:13px;
+      padding:12px 16px;
+      color:#fff;
+      background:#2a2a2a;
+      border:1px solid #444;
+      font-weight:700;
+      transition:.2s;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn-gold{
+      color:#0c0c0c;
+      background:linear-gradient(135deg,var(--gold2),var(--gold),var(--gold3));
+      border-color:var(--gold);
+    }
+    .btn-danger{background:#351616;border-color:#6f2222}
+    .btn-success{background:#11321d;border-color:#1d6b36}
+    .btn-blue{background:#12264e;border-color:#214d9b}
+    .btn-full{width:100%}
+    .login-links{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      margin-top:15px;
+      font-size:12px;
+    }
+    .link-btn{
+      background:none;
+      border:0;
+      color:var(--gold2);
+      padding:0;
+    }
+    .security-badge{
+      margin-top:18px;
+      border:1px solid #333;
+      border-radius:14px;
+      padding:11px;
+      color:#aaa;
+      font-size:11px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:center;
+    }
+    .security-badge svg{color:var(--gold2)}
+
+    /* APP SHELL */
+    #mainScreen{display:none}
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:100;
+      backdrop-filter:blur(18px);
+      background:rgba(12,12,12,.9);
+      border-bottom:1px solid #2d2d2d;
+    }
+    .topbar-inner{
+      min-height:66px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .brand-mini{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .brand-mini img{
+      width:40px;height:40px;object-fit:contain;border-radius:10px;
+    }
+    .brand-mini strong{
+      font-family:"Bebas Neue";
+      letter-spacing:1px;
+      font-size:20px;
+      color:var(--gold2);
+    }
+    .user-chip{
+      border:1px solid #3a3a3a;
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:11px;
+      color:#ccc;
+      white-space:nowrap;
+    }
+    .nav{
+      display:flex;
+      gap:7px;
+      overflow:auto;
+      padding:8px 0 10px;
+      scrollbar-width:none;
+    }
+    .nav::-webkit-scrollbar{display:none}
+    .nav button{
+      flex:0 0 auto;
+      background:#1a1a1a;
+      border:1px solid #303030;
+      color:#bbb;
+      border-radius:11px;
+      padding:9px 11px;
+      font-size:11px;
+      font-weight:700;
+    }
+    .nav button.active{
+      color:#111;
+      border-color:var(--gold);
+      background:linear-gradient(135deg,var(--gold2),var(--gold));
+    }
+
+    main{padding:24px 0 60px}
+    .page{display:none}
+    .page.active{display:block}
+    .page-title{
+      font-family:"Bebas Neue";
+      font-size:34px;
+      letter-spacing:1.5px;
+      color:var(--gold2);
+      margin:0 0 6px;
+    }
+    .page-sub{color:var(--muted);font-size:13px;margin:0 0 20px}
+    .section-title{
+      font-family:"Bebas Neue";
+      letter-spacing:1px;
+      color:var(--gold2);
+      font-size:25px;
+      margin:0 0 12px;
+    }
+
+    /* BENTO */
+    .bento{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:14px;
+    }
+    .bento .wide{grid-column:span 2}
+    .bento .tall{grid-row:span 2}
+    .card{padding:18px}
+    .gold-border{border-color:rgba(212,175,55,.65);box-shadow:0 0 25px rgba(212,175,55,.08)}
+    .card-header{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      margin-bottom:12px;
+    }
+    .icon-gold{color:var(--gold2)}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    .body-text{line-height:1.75;color:#ddd;font-size:14px}
+    .expand-content{display:none}
+    .expand-content.open{display:block}
+    .toggle{
+      background:none;border:0;color:var(--gold2);font-weight:700;font-size:12px;
+    }
+    .tabs{
+      display:flex;
+      gap:7px;
+      overflow:auto;
+      margin-bottom:15px;
+    }
+    .tab{
+      flex:0 0 auto;
+      padding:9px 12px;
+      border-radius:10px;
+      border:1px solid #353535;
+      background:#161616;
+      color:#bbb;
+      font-size:12px;
+      font-weight:700;
+    }
+    .tab.active{
+      background:linear-gradient(135deg,var(--gold2),var(--gold));
+      color:#111;border-color:var(--gold);
+    }
+    .tab-pane{display:none}
+    .tab-pane.active{display:block}
+
+    .list{display:grid;gap:9px;padding:0;margin:0;list-style:none}
+    .list li{
+      background:#151515;
+      border:1px solid #2b2b2b;
+      border-radius:12px;
+      padding:11px;
+    }
+    .number-list{counter-reset:item}
+    .number-list li{counter-increment:item}
+    .number-list li:before{
+      content:counter(item) ". ";
+      color:var(--gold2);
+      font-weight:800;
+    }
+    .notice{
+      padding:13px;
+      border-radius:13px;
+      border:1px solid rgba(229,57,53,.55);
+      background:rgba(229,57,53,.08);
+      color:#ffb7b5;
+      font-size:12px;
+    }
+    .success-notice{
+      padding:13px;border-radius:13px;
+      border:1px solid rgba(34,197,94,.45);
+      background:rgba(34,197,94,.08);
+      color:#b5f3c7;font-size:12px;
+    }
+
+    /* GRADUATION */
+    .belt-line{
+      display:flex;gap:8px;overflow:auto;padding:10px 0;
+    }
+    .belt{
+      min-width:78px;height:34px;border-radius:7px;border:1px solid #444;
+      display:flex;align-items:center;justify-content:center;
+      color:#111;font-size:10px;font-weight:800;
+    }
+    .white{background:#f3f3f3}.gray{background:#888;color:#fff}.yellow{background:#f4d03f}
+    .orange{background:#ef8c35}.green{background:#34a853;color:#fff}.blue{background:#2667b1;color:#fff}
+    .purple{background:#7040a3;color:#fff}.brown{background:#6e4328;color:#fff}.black{background:#080808;color:#fff}
+
+    /* HEALTH / HOME MISSION */
+    .icon-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .icon-tile{background:#151515;border:1px solid #303030;border-radius:15px;padding:14px}
+    .icon-tile h4{margin:8px 0 5px;font-size:13px}
+    .icon-tile p{margin:0;color:#aaa;font-size:11px;line-height:1.5}
+    .task{
+      display:flex;gap:10px;align-items:flex-start;
+      background:#151515;border:1px solid #303030;border-radius:14px;padding:12px;
+    }
+    .task input{margin-top:4px;accent-color:var(--gold)}
+    .task strong{font-size:13px}
+    .task p{font-size:11px;color:#aaa;line-height:1.55;margin:5px 0 0}
+
+    /* DASHBOARD */
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .stat strong{display:block;font-family:"Bebas Neue";font-size:34px;color:var(--gold2)}
+    .stat span{font-size:11px;color:#aaa}
+    .bars{display:grid;gap:10px}
+    .bar-row{display:grid;grid-template-columns:110px 1fr 45px;align-items:center;gap:8px;font-size:11px}
+    .bar{height:9px;border-radius:999px;background:#2a2a2a;overflow:hidden}
+    .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold3),var(--gold2));border-radius:999px}
+
+    /* FORMS */
+    .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
+    .full{grid-column:1/-1}
+    .choice-row{display:flex;gap:8px;flex-wrap:wrap}
+    .choice{
+      position:relative;display:inline-block;
+    }
+    .choice input{position:absolute;opacity:0}
+    .choice span{
+      display:block;border:1px solid #383838;background:#141414;border-radius:10px;padding:9px 12px;color:#aaa;font-size:12px;
+    }
+    .choice input:checked + span{
+      border-color:var(--gold);color:#111;background:linear-gradient(135deg,var(--gold2),var(--gold));
+    }
+    .step{
+      display:flex;align-items:center;gap:8px;margin-bottom:18px;
+    }
+    .step-dot{
+      width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+      background:#292929;color:#aaa;font-weight:800;font-size:12px;
+    }
+    .step-dot.active{background:var(--gold);color:#111}
+    .step-line{height:1px;flex:1;background:#333}
+
+    /* SIGNATURE */
+    .signature-pad{
+      width:100%;height:190px;background:#fff;border-radius:14px;border:3px dashed #aaa;
+      touch-action:none;
+    }
+    .signature-tools{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+
+    /* CAMERA */
+    .camera-box{
+      position:relative;overflow:hidden;border-radius:18px;background:#050505;border:1px solid #333;
+      min-height:300px;display:flex;align-items:center;justify-content:center;
+    }
+    #cameraVideo{width:100%;height:100%;min-height:300px;object-fit:cover}
+    .face-guide{
+      position:absolute;width:180px;height:230px;border:3px solid var(--gold2);
+      border-radius:50%;box-shadow:0 0 0 999px rgba(0,0,0,.25);
+      pointer-events:none;
+    }
+
+    /* STUDENTS */
+    .student-list{display:grid;gap:8px}
+    .student-row{
+      display:grid;grid-template-columns:48px 10px 1fr auto;gap:10px;align-items:center;
+      padding:10px;border:1px solid #303030;background:#151515;border-radius:14px;
+    }
+    .avatar{
+      width:48px;height:48px;border-radius:50%;object-fit:cover;background:#292929;
+      border:1px solid #444;
+    }
+    .dot{width:10px;height:10px;border-radius:50%}
+    .dot.red{background:#ef4444}.dot.green{background:#22c55e}
+    .student-row strong{font-size:13px}.student-row span{font-size:10px;color:#aaa}
+    .action-row{display:flex;gap:7px;flex-wrap:wrap}
+
+    /* TATAME */
+    .attendance-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .athlete{
+      border:2px solid #303030;border-radius:15px;background:#151515;padding:10px;text-align:center;
+    }
+    .athlete.present{border-color:var(--success);box-shadow:0 0 18px rgba(34,197,94,.12)}
+    .athlete img{width:64px;height:64px;border-radius:50%;object-fit:cover}
+    .athlete strong{display:block;font-size:11px;margin-top:7px}
+    .athlete small{color:#888;font-size:9px}
+
+    /* FAITH */
+    .faith-card{
+      background:linear-gradient(145deg,#211d12,#141414);
+      border-color:rgba(212,175,55,.45);
+    }
+    .cell-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .cell-item{border:1px solid #3b3524;background:#171510;border-radius:14px;padding:14px}
+    .cell-item h4{margin:0 0 5px;color:var(--gold2);font-size:13px}
+
+    /* GAME */
+    .game-map{display:grid;gap:12px;position:relative}
+    .era{
+      border:1px solid #4b3a13;border-radius:18px;padding:16px;
+      background:linear-gradient(145deg,#231e12,#15130e);
+      position:relative;
+    }
+    .era.locked{opacity:.5;filter:saturate(.5)}
+    .era-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .era h3{font-family:"Bebas Neue";font-size:24px;color:var(--gold2);margin:0}
+    .nodes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+    .node{padding:11px;border-radius:12px;background:#171717;border:1px solid #343434;font-size:10px}
+    .resource-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+    .resource{padding:12px;border:1px solid #3d351f;background:#171510;border-radius:14px;text-align:center}
+    .resource strong{font-family:"Bebas Neue";font-size:28px;color:var(--gold2);display:block}
+    .resource span{font-size:9px;color:#aaa}
+    .quiz-option{width:100%;text-align:left;margin:6px 0}
+    .timer{font-family:"Bebas Neue";font-size:48px;color:var(--gold2);text-align:center}
+
+    /* SECRETARIA */
+    .table-wrap{overflow:auto;border:1px solid #303030;border-radius:14px}
+    table{width:100%;border-collapse:collapse;min-width:700px}
+    th,td{padding:10px;border-bottom:1px solid #2a2a2a;text-align:left;font-size:11px}
+    th{color:var(--gold2);background:#161616}
+    td{color:#ccc}
+
+    /* MODAL / TOAST */
+    .modal-backdrop{
+      position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:300;
+      display:flex;align-items:center;justify-content:center;padding:18px;
+    }
+    .modal{
+      width:min(650px,96vw);max-height:90vh;overflow:auto;
+      background:#181818;border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);padding:20px;
+    }
+    .modal-head{display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .close{
+      width:34px;height:34px;border-radius:50%;border:1px solid #444;background:#222;color:#fff;
+    }
+    #toast{
+      position:fixed;right:16px;bottom:16px;z-index:500;
+      max-width:360px;padding:12px 15px;border-radius:12px;
+      background:#222;border:1px solid var(--gold);color:#fff;
+      box-shadow:var(--shadow);display:none;font-size:12px;
+    }
+    #toast.show{display:block}
+
+    /* FOOTER */
+    footer{margin-top:30px;padding:25px 0;color:#777;font-size:10px;text-align:center}
+
+    @media(max-width:900px){
+      .bento{grid-template-columns:repeat(2,1fr)}
+      .stats{grid-template-columns:repeat(2,1fr)}
+      .attendance-grid{grid-template-columns:repeat(3,1fr)}
+    }
+    @media(max-width:620px){
+      .container{width:min(94%,520px)}
+      .bento{grid-template-columns:1fr}
+      .bento .wide,.bento .tall{grid-column:auto;grid-row:auto}
+      .form-grid{grid-template-columns:1fr}
+      .full{grid-column:auto}
+      .icon-grid{grid-template-columns:1fr}
+      .cell-grid{grid-template-columns:1fr}
+      .nodes{grid-template-columns:1fr}
+      .attendance-grid{grid-template-columns:repeat(2,1fr)}
+      .student-row{grid-template-columns:42px 10px 1fr}
+      .student-row .action-row{grid-column:1/-1}
+      .topbar-inner{flex-wrap:wrap;padding:8px 0}
+      .user-chip{margin-left:auto}
+    }
+  </style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- =========================================================
+       LOGIN
+       ========================================================= -->
+  <section id="loginScreen" class="screen">
+    <div class="login-wrap">
+      <div class="logo-box">
+        <img id="loginLogo"
+             src="logo_projeto_sementes.png"
+             alt="Brasão oficial do Projeto Sementes"
+             onerror="this.style.display='none'">
+      </div>
+
+      <div class="brand-title">PROJETO SEMENTES</div>
+      <div class="brand-sub">IEQ GUAICURUS • JIU-JITSU • CORUMBÁ/MS</div>
+
+      <div class="login-card">
+        <h2 class="section-title">Acesso</h2>
+        <p class="small muted">Entre com o login fornecido pela Secretaria.</p>
+
+        <form id="loginForm">
+          <div class="field">
+            <label for="login">E-mail, CPF ou celular</label>
+            <div class="input-wrap">
+              <i data-lucide="mail"></i>
+              <input id="login" class="input" autocomplete="username" required
+                     placeholder="Digite seu login">
             </div>
-            <h1 class="font-bebas text-4xl text-amber-500 tracking-wider text-center">PROJETO SEMENTES</h1>
-            <p class="text-xs text-gray-400 text-center uppercase tracking-widest mt-1">IEQ Guaicurus — Corumbá/MS</p>
+          </div>
+
+          <div class="field">
+            <label for="password">Senha</label>
+            <div class="input-wrap">
+              <i data-lucide="lock"></i>
+              <input id="password" class="input" type="password" autocomplete="current-password"
+                     required placeholder="Digite sua senha">
+            </div>
+          </div>
+
+          <button class="btn btn-gold btn-full" type="submit">
+            <i data-lucide="log-in"></i> Entrar
+          </button>
+        </form>
+
+        <div class="login-links">
+          <button class="link-btn" id="forgotBtn" type="button">Esqueci minha senha</button>
+          <button class="link-btn" id="demoBtn" type="button">Acesso de demonstração</button>
         </div>
 
-        <div class="my-6 space-y-4">
-            <div class="bg-darkcard border border-darkborder p-4 rounded-xl">
-                <h2 class="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
-                    <i data-lucide="shield-check" class="w-4 h-4"></i> Acesso Restrito e Seguro
-                </h2>
-                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-3">
-                    <div>
-                        <label class="text-xs text-gray-400 block mb-1">E-mail ou Telefone (WhatsApp)</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
-                                <i data-lucide="user" class="w-4 h-4"></i>
-                            </span>
-                            <input type="text" id="login-user" required placeholder="Ex: (67) 99999-9999 ou mestre@sementes.com" class="w-full pl-9 pr-3 py-2 bg-darkbase border border-darkborder rounded-lg text-sm text-gray-100 focus:outline-none focus:border-amber-500">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-xs text-gray-400 block mb-1">Senha de Acesso</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
-                                <i data-lucide="lock" class="w-4 h-4"></i>
-                            </span>
-                            <input type="password" id="login-pass" required placeholder="••••••••" class="w-full pl-9 pr-3 py-2 bg-darkbase border border-darkborder rounded-lg text-sm text-gray-100 focus:outline-none focus:border-amber-500">
-                        </div>
-                    </div>
-                    <button type="submit" class="w-full py-3 bg-gradient-to-r from-amber-600 to-amber-500 text-black font-semibold rounded-lg text-sm hover:from-amber-500 hover:to-amber-400 transition shadow-lg shadow-amber-600/20 mt-2">
-                        Entrar no Sistema
-                    </button>
-                </form>
-                <div class="mt-3 text-center">
-                    <button onclick="fillDemoLogin('master')" class="text-xs text-amber-400 hover:underline mx-2">Testar Master (Mestre London)</button>
-                    <button onclick="fillDemoLogin('parent')" class="text-xs text-amber-400 hover:underline mx-2">Testar Responsável</button>
-                </div>
-            </div>
+        <div class="security-badge">
+          <i data-lucide="shield-check"></i>
+          Ambiente protegido por sandbox e criptografia AES-256
         </div>
+      </div>
 
-        <div class="text-center pb-4">
-            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 text-xs">
-                <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
-                <span>Ambiente protegido por Sandbox e AES-256</span>
-            </div>
+      <div class="card" style="margin-top:12px;padding:14px">
+        <div class="small muted">
+          <strong style="color:#ddd">Observação de segurança:</strong>
+          este arquivo HTML é uma interface de front-end. Login real, dados de menores,
+          biometria, assinatura e armazenamento devem ser ligados a um backend seguro
+          antes do uso em produção.
         </div>
+      </div>
     </div>
+  </section>
 
-    <!-- MAIN APP INTERFACE (HIDDEN BY DEFAULT) -->
-    <div id="screen-app" class="flex-1 flex flex-col hidden">
-        
-        <!-- TOP APP BAR -->
-        <header class="bg-darkcard border-b border-darkborder px-4 py-3 flex items-center justify-between sticky top-0 z-30">
-            <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center p-1">
-                    <img src="https://raw.githubusercontent.com/projeto-sementes/app/main/logo_projeto_sementes.png" class="w-full h-full object-contain" alt="Logo">
-                </div>
-                <div>
-                    <h2 class="font-bebas text-lg text-amber-500 leading-none">PROJETO SEMENTES</h2>
-                    <span id="user-role-badge" class="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-medium uppercase">Perfil Master</span>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <button onclick="logout()" class="p-2 text-gray-400 hover:text-red-400 rounded-lg hover:bg-darkborder transition" title="Sair">
-                    <i data-lucide="log-out" class="w-5 h-5"></i>
-                </button>
-            </div>
-        </header>
+  <!-- =========================================================
+       MAIN APPLICATION
+       ========================================================= -->
+  <section id="mainScreen" class="screen">
 
-        <!-- MAIN CONTENT AREA (DYNAMIC TABS) -->
-        <main id="main-content" class="flex-1 pb-20 overflow-y-auto">
-            <!-- Tabs will be rendered here dynamically -->
-        </main>
+    <header class="topbar">
+      <div class="container">
+        <div class="topbar-inner">
+          <div class="brand-mini">
+            <img src="logo_projeto_sementes.png" alt="Projeto Sementes"
+                 onerror="this.style.display='none'">
+            <strong>PROJETO SEMENTES</strong>
+          </div>
+          <div class="user-chip" id="userChip">Visitante</div>
+          <button class="btn" id="logoutBtn" type="button" style="padding:8px 10px;font-size:11px">
+            Sair
+          </button>
+        </div>
 
-        <!-- BOTTOM NAVIGATION BAR -->
-        <nav id="bottom-nav" class="bg-darkcard border-t border-darkborder fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 grid grid-cols-6 py-2 px-1 text-center">
-            <button onclick="switchTab('home')" class="nav-btn flex flex-col items-center justify-center text-amber-500" data-tab="home">
-                <i data-lucide="home" class="w-5 h-5"></i>
-                <span class="text-[10px] mt-1 font-medium">Início</span>
-            </button>
-            <button onclick="switchTab('matricula')" class="nav-btn flex flex-col items-center justify-center text-gray-400 hover:text-amber-500" data-tab="matricula">
-                <i data-lucide="file-text" class="w-5 h-5"></i>
-                <span class="text-[10px] mt-1 font-medium">Matrícula</span>
-            </button>
-            <button onclick="switchTab('tatame')" class="nav-btn flex flex-col items-center justify-center text-gray-400 hover:text-amber-500" data-tab="tatame">
-                <i data-lucide="shield" class="w-5 h-5"></i>
-                <span class="text-[10px] mt-1 font-medium">Tatame</span>
-            </button>
-            <button onclick="switchTab('game')" class="nav-btn flex flex-col items-center justify-center text-gray-400 hover:text-amber-500" data-tab="game">
-                <i data-lucide="gamepad-2" class="w-5 h-5"></i>
-                <span class="text-[10px] mt-1 font-medium">Game</span>
-            </button>
-            <button onclick="switchTab('fe')" class="nav-btn flex flex-col items-center justify-center text-gray-400 hover:text-amber-500" data-tab="fe">
-                <i data-lucide="church" class="w-5 h-5"></i>
-                <span class="text-[10px] mt-1 font-medium">Fé</span>
-            </button>
-            <button onclick="switchTab('secretaria')" class="nav-btn flex flex-col items-center justify-center text-gray-400 hover:text-amber-500" data-tab="secretaria">
-                <i data-lucide="settings" class="w-5 h-5"></i>
-                <span class="text-[10px] mt-1 font-medium">Secretaria</span>
-            </button>
+        <nav class="nav" id="mainNav">
+          <button data-page="homePage" class="active">Início</button>
+          <button data-page="enrollmentPage">Matrícula</button>
+          <button data-page="studentsPage">Alunos</button>
+          <button data-page="tatamePage">Tatame</button>
+          <button data-page="frequencyPage">Frequência</button>
+          <button data-page="faithPage">Fé</button>
+          <button data-page="gamePage">Game Gospel</button>
+          <button data-page="secretaryPage">Secretaria</button>
         </nav>
+      </div>
+    </header>
 
-    </div>
+    <main class="container">
 
+      <!-- =====================================================
+           HOME
+           ===================================================== -->
+      <section id="homePage" class="page active">
+        <h1 class="page-title">Bem-vindo à família Sementes</h1>
+        <p class="page-sub">Disciplina, valores cristãos, jiu-jitsu e fortalecimento das famílias.</p>
+
+        <div class="bento">
+
+          <article class="card wide gold-border">
+            <div class="card-header">
+              <div>
+                <h2 class="section-title">A HISTÓRIA DO PROJETO SEMENTES</h2>
+                <span class="small muted">Primeira leitura</span>
+              </div>
+              <i class="icon-gold" data-lucide="book-open"></i>
+            </div>
+
+            <div class="body-text">
+              <p><strong>A Paz seja convosco!</strong></p>
+              <div id="historyShort">
+                <p>
+                  O Projeto Sementes nasceu no coração de Deus e, por Sua misericórdia,
+                  foi compartilhado aos corações do Pastor Joel Amorim e toda IEQ Guaicurus.
+                </p>
+                <p>
+                  Foram dias de oração, planejamento e dedicação, buscando estruturar o projeto
+                  da melhor maneira para acolher e atender crianças das comunidades próximas à igreja,
+                  alcançando também suas famílias.
+                </p>
+              </div>
+
+              <div id="historyFull" class="expand-content">
+                <p>
+                  Em uma noite de culto, o mover de Deus quebrantou os corações da membresia da igreja,
+                  que abraçaram o projeto. Na mesma noite, por meio das ofertas voluntárias dos irmãos,
+                  foi arrecadado o valor necessário para a aquisição do nosso dojo.
+                </p>
+                <p>
+                  Assim, com o apoio dos instrutores e dos pais, iniciamos nossas aulas.
+                  Desde então, com muita disciplina, dedicação e entusiasmo, nossos alunos vêm
+                  aprendendo muito mais do que a Arte Suave.
+                </p>
+                <p>
+                  Ensinamos valores morais e éticos fundamentados in Cristo Jesus, unindo o Jiu-Jitsu
+                  a palestras socioeducativas e ações de evangelismo, contribuindo para a formação
+                  integral de nossas crianças, adolescentes e jovens e fortalecendo os vínculos com suas famílias.
+                </p>
+                <p>
+                  Acreditamos que, quando alcançamos uma criança, também podemos alcançar seu lar.
+                  Por isso, nosso propósito é construir uma ponte entre o projeto, os alunos e suas famílias,
+                  levando acolhimento, conhecimento, valores e a Palavra de Deus.
+                </p>
+                <p>
+                  Nosso grande sonho é levar a Semente do Evangelho até a sua casa, alcançando não apenas
+                  nossos alunos, mas toda a sua família.
+                </p>
+                <p><strong>Sejam todos bem-vindos a esta família! 🌱🥋</strong></p>
+              </div>
+
+              <button class="toggle" id="historyToggle" type="button">Ler mais...</button>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="section-title">O PROPÓSITO</h2>
+                <span class="small muted">Missão • Visão • Metas</span>
+              </div>
+              <i class="icon-gold" data-lucide="church"></i>
+            </div>
+            <p class="body-text">
+              O Projeto Sementes une a disciplina da arte marcial com os ensinamentos da Palavra de Deus.
+              Acreditamos que os princípios bíblicos oferecem o verdadeiro fundamento para a vida.
+            </p>
+            <ul class="list small">
+              <li><strong>Missão:</strong> Transformar a vida de crianças e jovens unindo a disciplina do jiu-jitsu aos valores cristãos.</li>
+              <li><strong>Visão:</strong> Ser referência em desenvolvimento integral físico, mental e espiritual e fortalecimento das famílias.</li>
+              <li><strong>Metas:</strong> Promover saúde e autocontrole; oferecer apoio socioeducativo; acolher e evangelizar as famílias.</li>
+            </ul>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="section-title">AGENDA E AULAS</h2>
+                <span class="small muted">Terça e quinta • 19h</span>
+              </div>
+              <i class="icon-gold" data-lucide="clock-3"></i>
+            </div>
+            <ul class="list small number-list">
+              <li><strong>Devocional — 10 min:</strong> oração e reflexão bíblica.</li>
+              <li><strong>Aquecimento — 15 min:</strong> exercícios funcionais e flexibilidade.</li>
+              <li><strong>Técnica — 40 min:</strong> posições do jiu-jitsu aliadas a princípios cristãos.</li>
+              <li><strong>Combate — 20 min:</strong> luta controlada sob supervisão técnica.</li>
+              <li><strong>Encerramento — 5 min:</strong> avisos e oração pelas famílias e comunidade.</li>
+            </ul>
+            <p class="small muted" style="margin-bottom:0">
+              Todas as atividades práticas são ministradas e supervisionadas diretamente por Professor Faixa Preta de Jiu-Jitsu,
+              com auxílio de atletas graduados e diretoria.
+            </p>
+          </article>
+
+          <article class="card wide">
+            <div class="card-header">
+              <div>
+                <h2 class="section-title">CONHECENDO O JIU-JITSU</h2>
+                <span class="small muted">Arte Suave</span>
+              </div>
+              <i class="icon-gold" data-lucide="shield"></i>
+            </div>
+
+            <p class="body-text">
+              O Jiu-Jitsu (Arte Suave) nasceu na Índia, passou pelo Japão e foi aperfeiçoado no Brasil.
+              Ele permite que uma pessoa menor e mais leve consiga se defender e dominar um oponente maior
+              usando técnicas de alavanca e equilíbrio, sem necessidade de força bruta.
+            </p>
+
+            <div class="tabs">
+              <button class="tab active" data-tabgroup="jiujitsu" data-tab="gi">🥋 GI</button>
+              <button class="tab" data-tabgroup="jiujitsu" data-tab="nogi">🩳 NO GI</button>
+            </div>
+
+            <div class="tab-pane active" data-tabgroup="jiujitsu" data-pane="gi">
+              <p class="body-text">
+                <strong>GI — Com Kimono:</strong> treino tradicional baseado em pegadas no pano,
+                raspagens e raciocínio estratégico.
+              </p>
+            </div>
+            <div class="tab-pane" data-tabgroup="jiujitsu" data-pane="nogi">
+              <p class="body-text">
+                <strong>NO GI — Sem Kimono:</strong> treino rápido sem kimono, com pegadas diretas nos pulsos e nuca,
+                exigindo agilidade.
+              </p>
+            </div>
+          </article>
+
+          <article class="card tall">
+            <div class="card-header">
+              <div>
+                <h2 class="section-title">COMO VIR TREINAR?</h2>
+                <span class="small muted">Uniforme • Higiene • Nutrição</span>
+              </div>
+              <i class="icon-gold" data-lucide="shirt"></i>
+            </div>
+
+            <div class="tabs">
+              <button class="tab active" data-tabgroup="training" data-tab="uniforme">Uniforme</button>
+              <button class="tab" data-tabgroup="training" data-tab="higiene">Higiene</button>
+              <button class="tab" data-tabgroup="training" data-tab="nutricao">Nutrição</button>
+            </div>
+
+            <div class="tab-pane active" data-tabgroup="training" data-pane="uniforme">
+              <ul class="list small">
+                <li><strong>GI:</strong> kimono trançado oficial limpo + faixa amarrada; usar camiseta justa ou rashguard por baixo.</li>
+                <li><strong>NO GI / primeiras aulas:</strong> camiseta justa/colada ao corpo. Meninas devem usar top de ginástica por baixo.</li>
+                <li><strong>Parte inferior:</strong> bermuda tactel sem bolsos, zíperes ou botões. Meninas podem usar legging justa por baixo.</li>
+              </ul>
+            </div>
+
+            <div class="tab-pane" data-tabgroup="training" data-pane="higiene">
+              <ul class="list small">
+                <li><strong>Adornos:</strong> proibidos brincos, anéis, pulseiras, relógios ou presilhas de cabelo com metal.</li>
+                <li><strong>Unhas:</strong> mãos e pés bem cortados para não arranhar os colegas.</li>
+                <li><strong>Pés:</strong> descalço no tatame; usar chinelo obrigatoriamente ao sair dele.</li>
+              </ul>
+            </div>
+
+            <div class="tab-pane" data-tabgroup="training" data-pane="nutricao">
+              <ul class="list small">
+                <li><strong>Pré-treino:</strong> entre 17h30 e 18h; alimento leve pelo menos 1 hora antes.</li>
+                <li><strong>Opções:</strong> banana com aveia, maçã, batata-doce ou sanduíche de queijo.</li>
+                <li><strong>Evitar:</strong> salgadinhos, frituras, refrigerante ou chocolates.</li>
+                <li><strong>Hidratação:</strong> levar garrafa própria e começar a beber água à tarde.</li>
+                <li><strong>Pós-treino:</strong> jantar/lanche completo e saudável após 20h30.</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="card wide">
+            <div class="card-header">
+              <div>
+                <h2 class="section-title">CAMINHO DAS FAIXAS</h2>
+                <span class="small muted">Graduação</span>
+              </div>
+              <i class="icon-gold" data-lucide="award"></i>
+            </div>
+
+            <div class="tabs">
+              <button class="tab active" data-tabgroup="belts" data-tab="infantil">Infantil até 15 anos</button>
+              <button class="tab" data-tabgroup="belts" data-tab="adulto">Adulto a partir de 16</button>
+            </div>
+
+            <div class="tab-pane active" data-tabgroup="belts" data-pane="infantil">
+              <div class="belt-line">
+                <div class="belt white">BRANCA</div>
+                <div class="belt gray">CINZA</div>
+                <div class="belt yellow">AMARELA</div>
+                <div class="belt orange">LARANJA</div>
+                <div class="belt green">VERDE</div>
+              </div>
+            </div>
+            <div class="tab-pane" data-tabgroup="belts" data-pane="adulto">
+              <div class="belt-line">
+                <div class="belt white">BRANCA</div>
+                <div class="belt blue">AZUL</div>
+                <div class="belt purple">ROXA</div>
+                <div class="belt brown">MARROM</div>
+                <div class="belt black">PRETA</div>
+              </div>
+            </div>
+            <p class="small muted">
+              Cada faixa possui até 4 graus (fitas brancas) colados na ponta preta para premiar frequência e evolução técnica.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div><h2 class="section-title">ENERGIA DO ATLETA</h2><span class="small muted">Saúde</span></div>
+              <i class="icon-gold" data-lucide="heart-pulse"></i>
+            </div>
+            <div class="icon-grid">
+              <div class="icon-tile">
+                <i class="icon-gold" data-lucide="droplets"></i>
+                <h4>Hidratação</h4>
+                <p>Beba água antes, durante e depois dos treinos.</p>
+              </div>
+              <div class="icon-tile">
+                <i class="icon-gold" data-lucide="apple"></i>
+                <h4>Alimentação</h4>
+                <p>Evite comidas pesadas e gordurosas antes do treino.</p>
+              </div>
+              <div class="icon-tile">
+                <i class="icon-gold" data-lucide="moon"></i>
+                <h4>Descanso</h4>
+                <p>Dormir bem ajuda na recuperação muscular e aprendizado.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="card wide gold-border">
+            <div class="card-header">
+              <div>
+                <h2 class="section-title">MISSÃO DE HOJE — TREINO EM CASA</h2>
+                <span class="small muted">Jornada de disciplina</span>
+              </div>
+              <i class="icon-gold" data-lucide="trophy"></i>
+            </div>
+
+            <div class="notice" style="margin-bottom:12px">
+              <strong>⚠️ ATENÇÃO PAIS E ALUNOS:</strong>
+              treine apenas em superfícies macias, como tapetes ou colchões, e sempre sob supervisão
+              de um adulto responsável. O treino em casa serve para praticar e fortalecer o corpo,
+              nunca para aplicar golpes em irmãos ou colegas.
+            </div>
+
+            <div class="list">
+              <label class="task">
+                <input type="checkbox" data-task="plank">
+                <span><strong>🧱 1. Prancha Facial — “A Ponte de Pedra”</strong>
+                  <p>Apoie antebraços e pontas dos pés, mantendo o corpo alinhado. Segure 30 segundos.
+                  Fortalece abdômen e lombar.</p></span>
+              </label>
+              <label class="task">
+                <input type="checkbox" data-task="squat">
+                <span><strong>🪑 2. Agachamento na Parede — “Cadeira Invisível”</strong>
+                  <p>Costas na parede, joelhos a aproximadamente 90 graus. Segure 30 segundos.
+                  Fortalece pernas e estabilidade.</p></span>
+              </label>
+              <label class="task">
+                <input type="checkbox" data-task="boat">
+                <span><strong>🛶 3. Canoa Isométrica — “O Barco Firme”</strong>
+                  <p>Deitado, eleve os pés 15–20 cm e mantenha o abdômen contraído. Segure 20 segundos.</p></span>
+              </label>
+            </div>
+          </article>
+
+          <article class="card wide">
+            <div class="card-header">
+              <div><h2 class="section-title">ALERTAS DO DIA</h2><span class="small muted">Aniversariantes</span></div>
+              <i class="icon-gold" data-lucide="cake"></i>
+            </div>
+            <div id="birthdayToday"></div>
+            <h3 style="font-size:13px;margin:16px 0 8px;color:#ddd">Aniversariantes do mês</h3>
+            <div id="birthdayMonth" class="list small"></div>
+          </article>
+
+          <article class="card wide faith-card">
+            <div class="card-header">
+              <div><h2 class="section-title">FAMÍLIA, A BASE DE TUDO</h2><span class="small muted">Mensagem aos pais</span></div>
+              <i class="icon-gold" data-lucide="house-heart"></i>
+            </div>
+            <div class="body-text">
+              <p><strong>🌱 O Papel dos Pais no Tatame e na Vida</strong></p>
+              <p>
+                O apoio dos pais é o pilar mais importante para a saúde emocional da criança.
+                Quando você incentiva, participa, leva seu filho aos treinos e comemora com ele tanto
+                na derrota quanto na vitória, você constrói autoestima e resiliência.
+              </p>
+              <p>
+                <strong>📖 “Ensina a criança o caminho em que deve andar, e ainda quando for velho não se desviará dele.”
+                (Provérbios 22:6).</strong>
+              </p>
+              <p>
+                O Projeto Sementes não quer cuidar apenas do atleta, quer cuidar do seu lar.
+                Para fortalecer essa caminhada, temos o apoio das nossas Células.
+              </p>
+              <p>
+                Convidamos toda a sua família para congregar e participar dos cultos na IEQ Guaicurus.
+                Venha servir a Deus conosco. Esperamos vocês! Deus abençoe a sua casa. 🌱🥋🙏
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- =====================================================
+           ENROLLMENT
+           ===================================================== -->
+      <section id="enrollmentPage" class="page">
+        <h1 class="page-title">Matrícula e Base Legal</h1>
+        <p class="page-sub">Fluxo em duas etapas: dados e assinatura → validação facial.</p>
+
+        <div class="card">
+          <div class="step">
+            <div id="step1Dot" class="step-dot active">1</div>
+            <div class="step-line"></div>
+            <div id="step2Dot" class="step-dot">2</div>
+          </div>
+
+          <div class="notice" style="margin-bottom:18px">
+            <strong>📢 Passo 1 de 2:</strong>
+            preenchimento dos dados e assinatura digital. A biometria facial será liberada somente
+            após a conclusão e assinatura deste documento.
+          </div>
+
+          <form id="enrollmentForm">
+            <h2 class="section-title">FICHA DE INSCRIÇÃO E AUTORIZAÇÃO DE PARTICIPAÇÃO</h2>
+
+            <div class="form-grid">
+              <div class="field">
+                <label>Nome Completo do Aluno</label>
+                <input id="studentName" class="input" required>
+              </div>
+              <div class="field">
+                <label>Data de Nascimento</label>
+                <input id="studentBirth" class="input" type="date" required>
+              </div>
+              <div class="field">
+                <label>Escola onde Estuda</label>
+                <input id="studentSchool" class="input">
+              </div>
+              <div class="field">
+                <label>Endereço Completo</label>
+                <input id="studentAddress" class="input">
+              </div>
+              <div class="field">
+                <label>Nome Completo do Responsável</label>
+                <input id="guardianName" class="input" required>
+              </div>
+              <div class="field">
+                <label>Grau de Parentesco</label>
+                <select id="guardianRelation" class="select" required>
+                  <option value="">Selecione</option>
+                  <option>Pai</option>
+                  <option>Mãe</option>
+                  <option>Avô/Avó</option>
+                  <option>Tio/Tia</option>
+                  <option>Tutor Legal</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Contato / WhatsApp</label>
+                <input id="guardianPhone" class="input" type="tel" required>
+              </div>
+              <div class="field">
+                <label>CIN / RG</label>
+                <input id="guardianDocument" class="input">
+              </div>
+            </div>
+
+            <div class="card" style="margin:16px 0;background:#151515">
+              <h3 style="font-size:14px;color:var(--gold2)">Termo de Autorização de Prática Esportiva</h3>
+              <p class="body-text small">
+                Eu, acima identificado(a) como responsável legal, AUTORIZO expressamente o menor sob minha tutela
+                a participar de forma gratuita das aulas de Jiu-Jitsu do Projeto Social “Sementes”, promovido por esta
+                Igreja local. Declaro estar ciente de que as atividades envolvem treinos físicos de contato próprio da
+                modalidade e que serão supervisionadas por membros habilitados da comunidade eclesial.
+              </p>
+            </div>
+
+            <h2 class="section-title">DECLARAÇÃO DE APTIDÃO FÍSICA E HISTÓRICO DE SAÚDE</h2>
+            <div class="form-grid">
+              <div class="field full">
+                <label>O menor possui algum problema cardíaco ou de pressão?</label>
+                <div class="choice-row">
+                  <label class="choice"><input type="radio" name="heart" value="SIM" required><span>SIM</span></label>
+                  <label class="choice"><input type="radio" name="heart" value="NÃO"><span>NÃO</span></label>
+                </div>
+              </div>
+              <div class="field full">
+                <label>O menor sofre de asma, bronquite ou problemas respiratórios?</label>
+                <div class="choice-row">
+                  <label class="choice"><input type="radio" name="respiratory" value="SIM" required><span>SIM</span></label>
+                  <label class="choice"><input type="radio" name="respiratory" value="NÃO"><span>NÃO</span></label>
+                </div>
+              </div>
+              <div class="field full">
+                <label>O menor possui alguma lesão óssea, muscular ou articular crônica?</label>
+                <div class="choice-row">
+                  <label class="choice"><input type="radio" name="injury" value="SIM" required><span>SIM</span></label>
+                  <label class="choice"><input type="radio" name="injury" value="NÃO"><span>NÃO</span></label>
+                </div>
+              </div>
+              <div class="field full">
+                <label>O menor faz uso regular de algum medicamento controlado?</label>
+                <div class="choice-row">
+                  <label class="choice"><input type="radio" name="medication" value="SIM" required><span>SIM</span></label>
+                  <label class="choice"><input type="radio" name="medication" value="NÃO"><span>NÃO</span></label>
+                </div>
+              </div>
+              <div class="field full">
+                <label>O menor possui alergia a algum medicamento ou substância?</label>
+                <div class="choice-row">
+                  <label class="choice"><input type="radio" name="allergy" value="SIM" required><span>SIM</span></label>
+                  <label class="choice"><input type="radio" name="allergy" value="NÃO"><span>NÃO</span></label>
+                </div>
+              </div>
+              <div class="field full">
+                <label>O menor já sofreu desmaios ou tonturas durante exercícios físicos?</label>
+                <div class="choice-row">
+                  <label class="choice"><input type="radio" name="fainting" value="SIM" required><span>SIM</span></label>
+                  <label class="choice"><input type="radio" name="fainting" value="NÃO"><span>NÃO</span></label>
+                </div>
+              </div>
+              <div class="field full">
+                <label>Se marcou SIM, especifique detalhadamente. Se não, escreva “NÃO”.</label>
+                <textarea id="healthDetails" class="textarea" required></textarea>
+              </div>
+            </div>
+
+            <div class="card" style="margin:16px 0;background:#151515">
+              <h3 style="font-size:14px;color:var(--gold2)">Declaração de Responsabilidade Sanitária</h3>
+              <p class="body-text small">
+                Declaro, sob as penas da lei, que o menor acima qualificado goza de boa saúde e encontra-se apto
+                para a prática de exercícios físicos e treinos de artes marciais (Jiu-Jitsu). Comprometo-me a informar
+                imediatamente a coordenação do projeto caso ocorra qualquer alteração em seu estado de saúde no decorrer
+                do período letivo.
+              </p>
+            </div>
+
+            <h2 class="section-title">TERMO DE AUTORIZAÇÃO DE USO DE IMAGEM E VOZ</h2>
+            <div class="card" style="margin-bottom:16px;background:#151515">
+              <p class="body-text small">
+                Em conformidade com o Art. 5º, X da CF e Art. 20 do Código Civil, eu, responsável legal pelo menor
+                matriculado, AUTORIZO de forma inteiramente gratuita, definitiva e irrevogável, a Igreja do Evangelho
+                Quadrangular a utilizar a imagem e voz do referido menor, capturadas em fotos ou vídeos durante as
+                atividades do projeto “Sementes”.
+              </p>
+              <p class="body-text small">
+                Esta autorização é concedida exclusivamente para fins de divulgação institucional, pedagógica e prestação
+                de contas das ações da igreja junto à comunidade, podendo ser veiculada em boletins internos, redes sociais
+                oficiais da igreja, murais e apresentações em cultos locais, sendo vedada qualquer forma de exploração
+                comercial ou fins lucrativos.
+              </p>
+              <label class="choice">
+                <input type="checkbox" id="imageConsent" required>
+                <span>Li e concordo com o termo de autorização de imagem e voz.</span>
+              </label>
+            </div>
+
+            <h2 class="section-title">ASSINATURA NA TELA TOUCH</h2>
+            <p class="small muted">
+              Localidade e data geradas automaticamente: <strong id="enrollmentDate"></strong>
+            </p>
+
+            <canvas id="signaturePad" class="signature-pad"></canvas>
+            <div class="signature-tools">
+              <button class="btn" type="button" id="clearSignature">🔄 Apagar e Refazer</button>
+              <button class="btn btn-gold" type="submit">💾 Finalizar e Enviar Documento</button>
+            </div>
+          </form>
+
+          <div id="enrollmentSuccess" class="success-notice hidden" style="margin-top:16px">
+            Documento registrado neste dispositivo. Em uma implantação com backend, o PDF deve ser enviado
+            ao responsável e ao Mestre London e os dados devem ser gravados no banco seguro.
+          </div>
+
+          <div id="biometricSection" class="hidden" style="margin-top:22px">
+            <div class="notice">
+              <strong>Passo 2 de 2 — Validação Biométrica.</strong>
+              Posicione o rosto do aluno dentro da moldura em local iluminado.
+            </div>
+
+            <div class="camera-box" style="margin-top:12px">
+              <video id="cameraVideo" autoplay playsinline muted></video>
+              <div class="face-guide"></div>
+            </div>
+
+            <div class="action-row" style="margin-top:10px">
+              <button class="btn btn-gold" type="button" id="startCamera">Abrir câmera</button>
+              <button class="btn" type="button" id="captureFace">Capturar Face</button>
+            </div>
+
+            <canvas id="faceCanvas" class="hidden"></canvas>
+            <img id="facePreview" class="hidden" alt="Prévia facial"
+                 style="width:130px;height:130px;object-fit:cover;border-radius:50%;margin-top:12px;border:2px solid var(--gold)">
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================
+           STUDENTS
+           ===================================================== -->
+      <section id="studentsPage" class="page">
+        <h1 class="page-title">Alunos Cadastrados</h1>
+        <p class="page-sub">Pendências em vermelho primeiro; cadastros completos em verde por ordem alfabética.</p>
+
+        <div class="card" style="margin-bottom:14px">
+          <div class="form-grid">
+            <div class="field">
+              <label>Pesquisar aluno</label>
+              <input id="studentSearch" class="input" placeholder="Nome do aluno">
+            </div>
+            <div class="field">
+              <label>Filtro de status</label>
+              <select id="studentFilter" class="select">
+                <option value="all">Todos</option>
+                <option value="pending">🔴 Pendentes</option>
+                <option value="complete">🟢 Completos</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div id="studentList" class="student-list"></div>
+      </section>
+
+      <!-- =====================================================
+           TATAME
+           ===================================================== -->
+      <section id="tatamePage" class="page">
+        <h1 class="page-title">Tatame</h1>
+        <p class="page-sub">Painel operacional de chamada • Terça e quinta • 19h às 20h30.</p>
+
+        <div class="card">
+          <div class="stats" style="margin-bottom:16px">
+            <div class="stat"><span>Data</span><strong id="tatameDate">--/--/----</strong></div>
+            <div class="stat"><span>Treino</span><strong>19h</strong></div>
+            <div class="stat"><span>Duração</span><strong>90</strong><span>minutos</span></div>
+            <div class="stat"><span>Presentes</span><strong id="presentCount">0</strong></div>
+          </div>
+
+          <div class="tabs">
+            <button class="tab active" data-tabgroup="tatame" data-tab="quick">Chamada rápida</button>
+            <button class="tab" data-tabgroup="tatame" data-tab="photo">Foto da turma</button>
+            <button class="tab" data-tabgroup="tatame" data-tab="new">Aluno não cadastrado</button>
+          </div>
+
+          <div class="tab-pane active" data-tabgroup="tatame" data-pane="quick">
+            <div id="attendanceGrid" class="attendance-grid"></div>
+          </div>
+
+          <div class="tab-pane" data-tabgroup="tatame" data-pane="photo">
+            <div class="card" style="background:#151515">
+              <h3 style="font-size:14px;color:var(--gold2)">📷 Bater Foto da Turma</h3>
+              <p class="small muted">
+                A especificação prevê reconhecimento facial coletivo cruzando a foto com as biometria cadastradas.
+                Esta versão de HTML captura a foto; o reconhecimento automático deve ser ligado a um serviço seguro
+                apropriado para dados biométricos.
+              </p>
+              <button class="btn btn-gold" type="button" id="openClassCamera">Abrir câmera da turma</button>
+              <div class="camera-box hidden" id="classCameraBox" style="margin-top:12px">
+                <video id="classVideo" autoplay playsinline muted></video>
+              </div>
+              <button class="btn hidden" type="button" id="captureClassPhoto" style="margin-top:8px">Capturar foto</button>
+            </div>
+          </div>
+
+          <div class="tab-pane" data-tabgroup="tatame" data-pane="new">
+            <form id="quickStudentForm">
+              <div class="form-grid">
+                <div class="field">
+                  <label>Nome Completo do Aluno *</label>
+                  <input id="quickName" class="input" required>
+                </div>
+                <div class="field">
+                  <label>Nome Completo do Responsável *</label>
+                  <input id="quickGuardian" class="input" required>
+                </div>
+                <div class="field">
+                  <label>Contato do Responsável</label>
+                  <input id="quickPhone" class="input" type="tel">
+                </div>
+              </div>
+              <button class="btn btn-gold" type="submit">💾 Salvar e Lançar Presença Avulsa</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================
+           FREQUENCY
+           ===================================================== -->
+      <section id="frequencyPage" class="page">
+        <h1 class="page-title">Frequência</h1>
+        <p class="page-sub">Histórico consolidado de presenças do projeto.</p>
+
+        <div class="card">
+          <div class="action-row" style="margin-bottom:14px">
+            <button class="btn" id="frequencyExport">Exportar CSV</button>
+            <button class="btn" id="frequencyRefresh">Atualizar</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Data</th><th>Aluno</th><th>Origem</th><th>Status</th></tr>
+              </thead>
+              <tbody id="frequencyTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================
+           FAITH
+           ===================================================== -->
+      <section id="faithPage" class="page">
+        <h1 class="page-title">Fé</h1>
+        <p class="page-sub">Células, cuidado pastoral, cultos e decisão espiritual.</p>
+
+        <div class="bento">
+          <article class="card wide faith-card">
+            <div class="card-header">
+              <div><h2 class="section-title">NOSSAS CÉLULAS</h2><span class="small muted">5 opções</span></div>
+              <i class="icon-gold" data-lucide="users-round"></i>
+            </div>
+            <div id="cellsGrid" class="cell-grid"></div>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div><h2 class="section-title">CLAMOR E CUIDADO PASTORAL</h2><span class="small muted">Pedido de oração</span></div>
+              <i class="icon-gold" data-lucide="hand-heart"></i>
+            </div>
+            <textarea id="prayerRequest" class="textarea" placeholder="Escreva seu pedido de oração..."></textarea>
+            <button class="btn btn-gold btn-full" id="sendPrayer" style="margin-top:9px">Enviar Pedido de Oração</button>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div><h2 class="section-title">CULTO — IEQ GUAICURUS</h2><span class="small muted">Convite permanente</span></div>
+              <i class="icon-gold" data-lucide="church"></i>
+            </div>
+            <p class="body-text"><strong>📅 Domingo às 18h</strong></p>
+            <p class="small muted">Sua presença é muito importante para nós! Venha cultuar ao Senhor conosco.</p>
+          </article>
+
+          <article class="card wide gold-border">
+            <div class="card-header">
+              <div><h2 class="section-title">QUERO SER BATIZADO</h2><span class="small muted">Salvação e decisão</span></div>
+              <i class="icon-gold" data-lucide="waves"></i>
+            </div>
+            <p class="body-text">
+              <strong>📖 “E aquele que não foi achado escrito no Livro da Vida foi lançado no lago de fogo.”
+              (Apocalipse 20:15)</strong>
+            </p>
+            <p class="body-text">
+              O batismo nas águas é o passo público de fé, obediência e salvação, confirmando que a sua vida
+              agora pertence a Jesus Cristo.
+            </p>
+            <button class="btn btn-gold" id="baptismBtn">🌊 QUERO SER BATIZADO</button>
+          </article>
+        </div>
+      </section>
+
+      <!-- =====================================================
+           GAME GOSPEL
+           ===================================================== -->
+      <section id="gamePage" class="page">
+        <h1 class="page-title">Game Gospel — Jornada da Sabedoria</h1>
+        <p class="page-sub">Mapa bíblico de 8 Eras com XP, Azeite, moedas, desafios e cards.</p>
+
+        <div class="resource-row">
+          <div class="resource"><strong id="oilValue">5</strong><span>🏺 Gotas de Azeite</span></div>
+          <div class="resource"><strong id="coinValue">0</strong><span>💰 Moedas de Ouro</span></div>
+          <div class="resource"><strong id="streakValue">0</strong><span>🔥 Dias de Ofensiva</span></div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-header">
+            <div><h2 class="section-title">JORNADA</h2><span class="small muted">O livro ativo brilha em dourado; os bloqueados têm cadeado.</span></div>
+            <i class="icon-gold" data-lucide="map"></i>
+          </div>
+          <div id="gameMap" class="game-map"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div><h2 class="section-title">QUIZ DA ERA 1</h2><span class="small muted">Nível adolescente/jovem</span></div>
+            <i class="icon-gold" data-lucide="brain"></i>
+          </div>
+          <div id="quizBox"></div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="card-header">
+            <div><h2 class="section-title">ÁLBUM DE CARDS</h2><span class="small muted">Recompensas colecionáveis</span></div>
+            <i class="icon-gold" data-lucide="layers"></i>
+          </div>
+          <div id="cardsAlbum" class="cell-grid"></div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="card-header">
+            <div><h2 class="section-title">LIGA DE LÍDERES</h2><span class="small muted">Ranking semanal</span></div>
+            <i class="icon-gold" data-lucide="trophy"></i>
+          </div>
+          <p class="small muted">
+            O ranking zera automaticamente todo domingo às 23h59 e contabiliza o XP da semana corrente.
+          </p>
+          <div id="leagueList" class="list"></div>
+        </div>
+      </section>
+
+      <!-- =====================================================
+           SECRETARY
+           ===================================================== -->
+      <section id="secretaryPage" class="page">
+        <h1 class="page-title">Secretaria</h1>
+        <p class="page-sub">Painel administrativo, governança, indicadores, impacto e relatórios.</p>
+
+        <div class="notice" style="margin-bottom:14px">
+          A especificação define esta aba como exclusiva para Mestre London e Pastor Joel.
+          Em produção, essa permissão deve ser validada no backend, nunca apenas no HTML.
+        </div>
+
+        <div class="stats" style="margin-bottom:14px">
+          <div class="card stat"><span>Alunos ativos</span><strong id="kpiStudents">0</strong></div>
+          <div class="card stat"><span>Presenças</span><strong id="kpiAttendance">0</strong></div>
+          <div class="card stat"><span>Pendências</span><strong id="kpiPending">0</strong></div>
+          <div class="card stat"><span>Famílias estimadas</span><strong id="kpiFamilies">0</strong></div>
+        </div>
+
+        <div class="bento">
+          <article class="card wide">
+            <div class="card-header">
+              <div><h2 class="section-title">ESTRUTURA ORGANIZACIONAL E DIRETORIA</h2><span class="small muted">5 integrantes fixos</span></div>
+              <i class="icon-gold" data-lucide="building-2"></i>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Nome</th><th>Função</th><th>WhatsApp</th><th>Endereço</th></tr></thead>
+                <tbody id="directorsTable"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div><h2 class="section-title">CONTROLE DE ACESSOS</h2><span class="small muted">Credenciais</span></div>
+              <i class="icon-gold" data-lucide="key-round"></i>
+            </div>
+            <button class="btn btn-gold btn-full" id="generateAccess">➕ Gerar Novo Acesso</button>
+            <p class="small muted" style="margin-top:10px">
+              Definição de login (CPF/celular) e senha provisória. Em produção, a senha deve ser gerada
+              e armazenada pelo provedor de autenticação.
+            </p>
+          </article>
+
+          <article class="card wide">
+            <div class="card-header">
+              <div><h2 class="section-title">DASHBOARD GERENCIAL JIU-JITSU</h2><span class="small muted">Indicadores</span></div>
+              <i class="icon-gold" data-lucide="chart-no-axes-combined"></i>
+            </div>
+            <div class="bars">
+              <div class="bar-row"><span>Alunos ativos</span><div class="bar"><i id="barStudents" style="width:0%"></i></div><b id="barStudentsText">0%</b></div>
+              <div class="bar-row"><span>Frequência</span><div class="bar"><i id="barFrequency" style="width:0%"></i></div><b id="barFrequencyText">0%</b></div>
+              <div class="bar-row"><span>Cadastros completos</span><div class="bar"><i id="barComplete" style="width:0%"></i></div><b id="barCompleteText">0%</b></div>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div><h2 class="section-title">IMPACTO SOCIAL E TERRITORIAL</h2><span class="small muted">Corumbá-MS</span></div>
+              <i class="icon-gold" data-lucide="map-pin"></i>
+            </div>
+            <p class="small muted">
+              O documento prevê mapa térmico por zonas de concentração e comparação entre crianças atendidas
+              e famílias alcançadas indiretamente.
+            </p>
+            <div class="card" style="background:#151515;margin-top:10px">
+              <strong style="font-family:'Bebas Neue';font-size:28px;color:var(--gold2)">CORUMBÁ/MS</strong>
+              <p class="small muted">Mapa territorial preparado para integração futura com mapa real.</p>
+            </div>
+          </article>
+
+          <article class="card wide">
+            <div class="card-header">
+              <div><h2 class="section-title">CENTRAL AUTÔNOMA DE RELATÓRIOS</h2><span class="small muted">PDF e CSV</span></div>
+              <i class="icon-gold" data-lucide="file-down"></i>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label>Aba para auditar</label>
+                <select id="reportType" class="select">
+                  <option>Início</option>
+                  <option>Matrícula</option>
+                  <option>Alunos Cadastrados</option>
+                  <option>Tatame</option>
+                  <option>Frequência</option>
+                  <option>Fé</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Formato</label>
+                <select id="reportFormat" class="select">
+                  <option value="csv">CSV</option>
+                  <option value="pdf">PDF / impressão</option>
+                </select>
+              </div>
+            </div>
+            <div class="action-row">
+              <button class="btn btn-gold" id="generateReport">Compilar e Exportar Relatório</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+    </main>
+
+    <footer>
+      Projeto Sementes • IEQ Guaicurus • Jiu-Jitsu • Corumbá/MS<br>
+      Interface baseada na especificação fornecida para o projeto.
+    </footer>
+  </section>
 </div>
 
-<!-- APPLICATION JAVASCRIPT LOGIC -->
+<!-- MODAL -->
+<div id="modalBackdrop" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle" class="section-title" style="margin:0">Aviso</h2>
+      <button class="close" id="modalClose" type="button">×</button>
+    </div>
+    <div id="modalBody" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
 <script>
-    // --- GLOBAL APP STATE ---
-    let currentUser = {
-        role: 'master', // 'master', 'parent', 'director'
-        name: 'Mestre London',
-        phone: '67998513404',
-        studentName: 'Lucas Silva'
+/* ============================================================
+   PROJETO SEMENTES — SINGLE FILE APPLICATION
+   ============================================================
+   Este arquivo é uma implementação front-end em HTML/CSS/JS.
+   Para produção com dados de menores, use autenticação, banco,
+   storage, regras de segurança e processamento biométrico no
+   backend/provedor apropriado.
+   ============================================================ */
+
+"use strict";
+
+/* -----------------------------
+   CONFIGURAÇÃO
+   ----------------------------- */
+const APP_CONFIG = {
+  projectName: "Projeto Sementes",
+  city: "Corumbá - MS",
+  church: "IEQ Guaicurus",
+  masterName: "Mestre London",
+  masterEmail: "londonjanssenbjj@gmail.com",
+  masterWhatsapp: "5567998513404",
+  classTime: "19h às 20h30",
+
+  /*
+    Credencial DEMONSTRATIVA fornecida na especificação.
+    NÃO publique senha real em produção.
+    Em produção, substitua este mecanismo por Firebase Auth,
+    Supabase Auth ou outro provedor seguro.
+  */
+  demoMasterLogin: "londonjanssenbjj@gmail.com",
+  demoMasterPassword: "12381314*Lj",
+
+  logo: "logo_projeto_sementes.png"
+};
+
+const STORAGE_KEYS = {
+  session: "sementes_session",
+  students: "sementes_students",
+  attendance: "sementes_attendance",
+  enrollment: "sementes_enrollment",
+  game: "sementes_game",
+  tasks: "sementes_tasks"
+};
+
+/* -----------------------------
+   ESTADO
+   ----------------------------- */
+let state = {
+  user: null,
+  students: [],
+  attendance: [],
+  enrollment: null,
+  game: {
+    oil: 5,
+    coins: 0,
+    streak: 0,
+    xp: 0,
+    unlockedEra: 1,
+    cards: ["Adão"],
+    lastDay: ""
+  }
+};
+
+/* -----------------------------
+   DADOS INICIAIS
+   ----------------------------- */
+const defaultStudents = [
+  {
+    id: "seed-001",
+    name: "Aluno de Demonstração",
+    birth: "2015-04-10",
+    guardian: "Responsável de Demonstração",
+    phone: "",
+    belt: "Branca",
+    degrees: 0,
+    status: "complete",
+    startDate: "2026-09-18",
+    face: "",
+    health: {
+      heart: "NÃO",
+      respiratory: "NÃO",
+      injury: "NÃO",
+      medication: "NÃO",
+      allergy: "NÃO",
+      fainting: "NÃO",
+      details: "NÃO"
+    }
+  }
+];
+
+const directors = [
+  {name:"Pastor Joel", role:"Pastor Joel", phone:"", address:"Restrito"},
+  {name:"Diretor 2", role:"Diretoria", phone:"", address:"Restrito"},
+  {name:"Diretor 3", role:"Diretoria", phone:"", address:"Restrito"},
+  {name:"Diretor 4", role:"Diretoria", phone:"", address:"Restrito"},
+  {name:"Diretor 5", role:"Diretoria", phone:"", address:"Restrito"}
+];
+
+const cells = [
+  {name:"Célula Videira", leader:"Líder Marcos", phone:""},
+  {name:"Célula 2", leader:"Líder Responsável", phone:""},
+  {name:"Célula 3", leader:"Líder Responsável", phone:""},
+  {name:"Célula 4", leader:"Líder Responsável", phone:""},
+  {name:"Célula 5", leader:"Líder Responsável", phone:""}
+];
+
+const eras = [
+  {
+    id:1,
+    title:"Era 1: Origens e Patriarcas",
+    books:"Gênesis, Jó",
+    icon:"🌍",
+    boss:"José do Egito",
+    card:"Adão",
+    locked:false
+  },
+  {
+    id:2,
+    title:"Era 2: A Lei e a Libertação",
+    books:"Êxodo, Levítico, Números, Deuteronômio",
+    icon:"⚡",
+    boss:"Moisés",
+    card:"Moisés",
+    locked:true
+  },
+  {
+    id:3,
+    title:"Era 3: Conquistas e Juízes",
+    books:"Josué, Juízes, Rute",
+    icon:"⚔️",
+    boss:"Josué",
+    card:"Josué",
+    locked:true
+  },
+  {
+    id:4,
+    title:"Era 4: O Reino e a Sabedoria",
+    books:"1 e 2 Samuel, 1 e 2 Reis, 1 e 2 Crônicas, Salmos, Provérbios, Eclesiastes, Cânticos",
+    icon:"👑",
+    boss:"Davi",
+    card:"Davi",
+    locked:true
+  },
+  {
+    id:5,
+    title:"Era 5: Exílio e Profetas",
+    books:"Isaías, Jeremias, Lamentações, Ezequiel, Daniel + 12 Profetas Menores",
+    icon:"📜",
+    boss:"Daniel",
+    card:"Daniel",
+    locked:true
+  },
+  {
+    id:6,
+    title:"Era 6: Os Evangelhos",
+    books:"Mateus, Marcos, Lucas, João",
+    icon:"✝️",
+    boss:"Jesus",
+    card:"Jesus",
+    locked:true
+  },
+  {
+    id:7,
+    title:"Era 7: A Igreja Primitiva",
+    books:"Atos até Judas",
+    icon:"🔥",
+    boss:"Igreja Primitiva",
+    card:"Pedro",
+    locked:true
+  },
+  {
+    id:8,
+    title:"Era 8: As Últimas Coisas",
+    books:"Apocalipse",
+    icon:"👁️",
+    boss:"As Últimas Coisas",
+    card:"João",
+    locked:true
+  }
+];
+
+const quizQuestions = [
+  {
+    id:1,
+    level:"Fácil",
+    question:"O que Deus criou no primeiro dia, de acordo com Gênesis 1?",
+    options:[
+      "O Sol e a Lua",
+      "Os animais marinhos",
+      "A luz e a separação das trevas",
+      "O homem e a mulher"
+    ],
+    correct:2
+  },
+  {
+    id:2,
+    level:"Médio",
+    question:"Qual era o nome dos quatro rios que se dividiam a partir do rio que saía do Éden?",
+    options:[
+      "Nilo, Eufrates, Tigre e Jordão",
+      "Pison, Gion, Tigre e Eufrates",
+      "Jordão, Jaboque, Arnom e Quidron",
+      "Pisom, Nilo, Eufrates e Amazonas"
+    ],
+    correct:1
+  },
+  {
+    id:3,
+    level:"Difícil / Chefe",
+    question:"Quantos anos tinha Abraão quando seu filho Isaque nasceu?",
+    options:[
+      "75 anos",
+      "90 anos",
+      "100 anos",
+      "120 anos"
+    ],
+    correct:2
+  }
+];
+
+const collectibleCards = [
+  {
+    name:"Adão",
+    rarity:"Comum / Estilo Rústico",
+    unlock:"Concluir a fase 1 de Gênesis.",
+    text:"Criado do pó da terra, recebeu o sopro da vida.",
+    reference:"Gênesis 2:7"
+  },
+  {
+    name:"Abraão",
+    rarity:"Raro / Estilo Bronze",
+    unlock:"Concluir o Quiz intermediário da Era 1.",
+    text:"O Pai da Fé. Saiu de sua terra sem saber para onde ia, confiando na promessa.",
+    reference:"Gênesis 12:1-3"
+  },
+  {
+    name:"José do Egito",
+    rarity:"Épico / Estilo Ouro",
+    unlock:"Vencer o Chefe da Era 1.",
+    text:"O governador do Egito. O que homens intentaram para o mal, Deus transformou em bem.",
+    reference:"Gênesis 50:20"
+  }
+];
+
+/* -----------------------------
+   HELPERS
+   ----------------------------- */
+function $(id){return document.getElementById(id)}
+
+function escapeHTML(value){
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function todayISO(){
+  const d = new Date();
+  return [
+    d.getFullYear(),
+    String(d.getMonth()+1).padStart(2,"0"),
+    String(d.getDate()).padStart(2,"0")
+  ].join("-");
+}
+
+function formatDate(date){
+  if(!date) return "";
+  const d = new Date(date + "T00:00:00");
+  return d.toLocaleDateString("pt-BR");
+}
+
+function toast(message){
+  const el = $("toast");
+  el.textContent = message;
+  el.classList.add("show");
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>el.classList.remove("show"),3500);
+}
+
+function modal(title, body){
+  $("modalTitle").textContent = title;
+  $("modalBody").innerHTML = body;
+  $("modalBackdrop").classList.remove("hidden");
+}
+
+function closeModal(){
+  $("modalBackdrop").classList.add("hidden");
+}
+
+function saveState(){
+  localStorage.setItem(STORAGE_KEYS.students, JSON.stringify(state.students));
+  localStorage.setItem(STORAGE_KEYS.attendance, JSON.stringify(state.attendance));
+  localStorage.setItem(STORAGE_KEYS.enrollment, JSON.stringify(state.enrollment));
+  localStorage.setItem(STORAGE_KEYS.game, JSON.stringify(state.game));
+}
+
+function loadState(){
+  try{
+    const students = JSON.parse(localStorage.getItem(STORAGE_KEYS.students));
+    const attendance = JSON.parse(localStorage.getItem(STORAGE_KEYS.attendance));
+    const enrollment = JSON.parse(localStorage.getItem(STORAGE_KEYS.enrollment));
+    const game = JSON.parse(localStorage.getItem(STORAGE_KEYS.game));
+
+    state.students = Array.isArray(students) ? students : [...defaultStudents];
+    state.attendance = Array.isArray(attendance) ? attendance : [];
+    state.enrollment = enrollment || null;
+    state.game = game && typeof game === "object"
+      ? {...state.game,...game}
+      : state.game;
+  }catch(error){
+    console.error(error);
+    state.students = [...defaultStudents];
+  }
+}
+
+function seedState(){
+  if(!localStorage.getItem(STORAGE_KEYS.students)){
+    state.students = [...defaultStudents];
+    saveState();
+  }
+}
+
+function roleLabel(role){
+  const map = {
+    master:"Mestre London",
+    pastor:"Pastor Joel",
+    director:"Diretoria",
+    guardian:"Responsável"
+  };
+  return map[role] || role || "Usuário";
+}
+
+function canSeeSecretary(){
+  return ["master","pastor"].includes(state.user?.role);
+}
+
+function canOperateTatame(){
+  return ["master","pastor","director"].includes(state.user?.role);
+}
+
+function canEditStudent(){
+  return state.user?.role === "master";
+}
+
+/* -----------------------------
+   AUTH DEMO
+   ----------------------------- */
+function loginDemo(login,password){
+  const normalized = login.trim().toLowerCase();
+
+  if(
+    normalized === APP_CONFIG.demoMasterLogin.toLowerCase() &&
+    password === APP_CONFIG.demoMasterPassword
+  ){
+    state.user = {
+      id:"master-demo",
+      name:APP_CONFIG.masterName,
+      email:APP_CONFIG.masterEmail,
+      role:"master"
+    };
+    localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    return true;
+  }
+
+  /*
+    Usuários demonstrativos adicionais.
+    Em produção, devem ser substituídos pelo backend.
+  */
+  if(normalized === "pastor@sementes.local" && password === "demo"){
+    state.user = {id:"pastor-demo",name:"Pastor Joel",role:"pastor"};
+    localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    return true;
+  }
+
+  if(normalized === "diretoria@sementes.local" && password === "demo"){
+    state.user = {id:"director-demo",name:"Diretoria",role:"director"};
+    localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    return true;
+  }
+
+  if(normalized === "responsavel@sementes.local" && password === "demo"){
+    state.user = {id:"guardian-demo",name:"Responsável",role:"guardian",studentId:state.students[0]?.id};
+    localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    return true;
+  }
+
+  return false;
+}
+
+function restoreSession(){
+  try{
+    const session = JSON.parse(localStorage.getItem(STORAGE_KEYS.session));
+    if(session && session.role){
+      state.user = session;
+      showApp();
+      return;
+    }
+  }catch(error){}
+  showLogin();
+}
+
+function showLogin(){
+  $("loginScreen").style.display="flex";
+  $("mainScreen").style.display="none";
+}
+
+function showApp(){
+  $("loginScreen").style.display="none";
+  $("mainScreen").style.display="block";
+  $("userChip").textContent = `${state.user.name} • ${roleLabel(state.user.role)}`;
+
+  const secretaryBtn = document.querySelector('[data-page="secretaryPage"]');
+  if(secretaryBtn) secretaryBtn.style.display = canSeeSecretary() ? "" : "none";
+
+  const tatameBtn = document.querySelector('[data-page="tatamePage"]');
+  if(tatameBtn) tatameBtn.style.display = canOperateTatame() ? "" : "none";
+
+  renderAll();
+}
+
+function logout(){
+  localStorage.removeItem(STORAGE_KEYS.session);
+  state.user = null;
+  showLogin();
+  toast("Sessão encerrada.");
+}
+
+/* -----------------------------
+   NAVIGATION
+   ----------------------------- */
+function openPage(pageId){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  const page = $(pageId);
+  if(page) page.classList.add("active");
+
+  document.querySelectorAll("#mainNav button").forEach(btn=>{
+    btn.classList.toggle("active",btn.dataset.page===pageId);
+  });
+
+  if(pageId==="secretaryPage" && !canSeeSecretary()){
+    toast("Acesso restrito ao Mestre London e Pastor Joel.");
+    openPage("homePage");
+    return;
+  }
+
+  if(pageId==="tatamePage" && !canOperateTatame()){
+    toast("Acesso restrito ao Mestre London e Diretoria.");
+    openPage("homePage");
+    return;
+  }
+
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* -----------------------------
+   TABS
+   ----------------------------- */
+function initTabs(){
+  document.querySelectorAll(".tab").forEach(tab=>{
+    tab.addEventListener("click",()=>{
+      const group = tab.dataset.tabgroup;
+      const target = tab.dataset.tab;
+
+      document.querySelectorAll(`.tab[data-tabgroup="${group}"]`)
+        .forEach(t=>t.classList.toggle("active",t===tab));
+
+      document.querySelectorAll(`.tab-pane[data-tabgroup="${group}"]`)
+        .forEach(p=>p.classList.toggle("active",p.dataset.pane===target));
+    });
+  });
+}
+
+/* -----------------------------
+   HOME
+   ----------------------------- */
+function renderBirthdays(){
+  const today = new Date();
+  const month = today.getMonth();
+  const day = today.getDate();
+
+  const todayStudents = state.students.filter(s=>{
+    if(!s.birth) return false;
+    const d = new Date(s.birth + "T00:00:00");
+    return d.getMonth()===month && d.getDate()===day;
+  });
+
+  if(todayStudents.length){
+    $("birthdayToday").innerHTML = todayStudents.map(s=>`
+      <div class="success-notice">
+        🎂 <strong>${escapeHTML(s.name)}</strong> está completando mais um ano de vida hoje! 🎉
+        <div class="action-row" style="margin-top:8px">
+          <button class="btn btn-success" onclick="whatsappBirthday('${encodeURIComponent(s.name)}')">💬 Parabenizar no WhatsApp</button>
+          <button class="btn btn-blue" onclick="toast('Notificação push: integrar com Firebase Cloud Messaging.')">🔔 Enviar Notificação Push</button>
+        </div>
+      </div>
+    `).join("");
+  }else{
+    $("birthdayToday").innerHTML = `<div class="small muted">Nenhum aniversariante hoje.</div>`;
+  }
+
+  const monthStudents = state.students
+    .filter(s=>{
+      if(!s.birth) return false;
+      return new Date(s.birth+"T00:00:00").getMonth()===month;
+    })
+    .sort((a,b)=>new Date(a.birth)-new Date(b.birth));
+
+  $("birthdayMonth").innerHTML = monthStudents.length
+    ? monthStudents.map(s=>`
+      <div>
+        <strong>${escapeHTML(s.name)}</strong> — ${formatDate(s.birth)}
+        <button class="link-btn" onclick="whatsappBirthday('${encodeURIComponent(s.name)}')">💬 WhatsApp</button>
+      </div>
+    `).join("")
+    : `<div class="muted">Nenhum aniversariante cadastrado neste mês.</div>`;
+}
+
+function whatsappBirthday(encodedName){
+  const name = decodeURIComponent(encodedName);
+  const text = encodeURIComponent(`Olá! Feliz aniversário, ${name}! 🎉🌱 Que Deus abençoe sua vida e sua família!`);
+  window.open(`https://wa.me/?text=${text}`,"_blank");
+}
+
+/* -----------------------------
+   SIGNATURE
+   ----------------------------- */
+let signatureCtx = null;
+let drawing = false;
+
+function setupSignature(){
+  const canvas = $("signaturePad");
+  if(!canvas) return;
+
+  const resize = ()=>{
+    const ratio = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    signatureCtx = canvas.getContext("2d");
+    signatureCtx.scale(ratio,ratio);
+    signatureCtx.lineWidth = 2.2;
+    signatureCtx.lineCap = "round";
+    signatureCtx.strokeStyle = "#111";
+  };
+
+  resize();
+  window.addEventListener("resize",resize);
+
+  const point = e=>{
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {x:clientX-rect.left,y:clientY-rect.top};
+  };
+
+  const start=e=>{
+    e.preventDefault();
+    drawing=true;
+    const p=point(e);
+    signatureCtx.beginPath();
+    signatureCtx.moveTo(p.x,p.y);
+  };
+
+  const move=e=>{
+    if(!drawing) return;
+    e.preventDefault();
+    const p=point(e);
+    signatureCtx.lineTo(p.x,p.y);
+    signatureCtx.stroke();
+  };
+
+  const end=()=>drawing=false;
+
+  canvas.addEventListener("mousedown",start);
+  canvas.addEventListener("mousemove",move);
+  window.addEventListener("mouseup",end);
+
+  canvas.addEventListener("touchstart",start,{passive:false});
+  canvas.addEventListener("touchmove",move,{passive:false});
+  canvas.addEventListener("touchend",end);
+}
+
+function clearSignature(){
+  const canvas = $("signaturePad");
+  if(signatureCtx){
+    signatureCtx.clearRect(0,0,canvas.width,canvas.height);
+  }
+}
+
+function signatureIsEmpty(){
+  const canvas=$("signaturePad");
+  const ctx=canvas.getContext("2d");
+  const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  for(let i=3;i<pixels.length;i+=4){
+    if(pixels[i]!==0) return false;
+  }
+  return true;
+}
+
+/* -----------------------------
+   ENROLLMENT
+   ----------------------------- */
+function initEnrollment(){
+  $("enrollmentDate").textContent = `${APP_CONFIG.city}, ${formatDate(todayISO())}`;
+
+  $("enrollmentForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+
+    if(signatureIsEmpty()){
+      toast("Faça a assinatura no painel antes de finalizar.");
+      return;
+    }
+
+    if(!$("imageConsent").checked){
+      toast("É necessário confirmar o termo de imagem.");
+      return;
+    }
+
+    const health = {
+      heart: document.querySelector('input[name="heart"]:checked')?.value || "",
+      respiratory: document.querySelector('input[name="respiratory"]:checked')?.value || "",
+      injury: document.querySelector('input[name="injury"]:checked')?.value || "",
+      medication: document.querySelector('input[name="medication"]:checked')?.value || "",
+      allergy: document.querySelector('input[name="allergy"]:checked')?.value || "",
+      fainting: document.querySelector('input[name="fainting"]:checked')?.value || "",
+      details: $("healthDetails").value.trim()
     };
 
-    let activeTab = 'home';
-    let storyExpanded = false;
-    let activeBentoTab = 'propósito';
-    let activeJiuModalidade = 'gi';
-    let gameDrops = 5;
-    let gameCoins = 120;
-    let streakDays = 4;
+    const signature = $("signaturePad").toDataURL("image/png");
 
-    let studentsList = [
-        { id: 1, name: 'Kauã Gabriel Santos', faixa: 'Cinza', graus: 2, status: 'green', birth: '2014-05-12', phone: '67991112233', health: { cardio: 'Não', asma: 'Não', alergia: 'Não' } },
-        { id: 2, name: 'Ana Beatriz Souza', faixa: 'Branca', graus: 1, status: 'green', birth: '2016-08-20', phone: '67992223344', health: { cardio: 'Não', asma: 'Sim (Controlada)', alergia: 'Não' } },
-        { id: 3, name: 'Enzo Gabriel Oliveira', faixa: 'Amarela', graus: 3, status: 'red', birth: '2013-02-10', phone: '67993334455', health: null },
-        { id: 4, name: 'Maria Eduarda Lima', faixa: 'Branca', graus: 0, status: 'red', birth: '2015-11-05', phone: '67994445566', health: null }
+    state.enrollment = {
+      id:"enrollment-"+Date.now(),
+      date:todayISO(),
+      city:APP_CONFIG.city,
+      student:{
+        name:$("studentName").value.trim(),
+        birth:$("studentBirth").value,
+        school:$("studentSchool").value.trim(),
+        address:$("studentAddress").value.trim()
+      },
+      guardian:{
+        name:$("guardianName").value.trim(),
+        relation:$("guardianRelation").value,
+        phone:$("guardianPhone").value.trim(),
+        document:$("guardianDocument").value.trim()
+      },
+      health,
+      imageConsent:true,
+      signature
+    };
+
+    let student = state.students.find(s=>s.name.toLowerCase()===state.enrollment.student.name.toLowerCase());
+
+    if(!student){
+      student = {
+        id:"student-"+Date.now(),
+        name:state.enrollment.student.name,
+        birth:state.enrollment.student.birth,
+        guardian:state.enrollment.guardian.name,
+        phone:state.enrollment.guardian.phone,
+        belt:"Branca",
+        degrees:0,
+        status:"complete",
+        startDate:todayISO(),
+        face:"",
+        health
+      };
+      state.students.push(student);
+    }else{
+      student.status="complete";
+      student.health=health;
+      student.guardian=state.enrollment.guardian.name;
+      student.phone=state.enrollment.guardian.phone;
+    }
+
+    saveState();
+
+    $("enrollmentSuccess").classList.remove("hidden");
+    $("biometricSection").classList.remove("hidden");
+    $("step2Dot").classList.add("active");
+
+    toast("Documento finalizado. A biometria foi liberada.");
+    renderStudents();
+    updateKPIs();
+
+    /*
+      PDF real:
+      Em produção, envie os dados e a assinatura para um backend
+      que gere o PDF e encaminhe aos números/e-mails autorizados.
+    */
+  });
+
+  $("clearSignature").addEventListener("click",clearSignature);
+}
+
+/* -----------------------------
+   CAMERA / FACE
+   ----------------------------- */
+let faceStream=null;
+let classStream=null;
+
+async function startCamera(){
+  try{
+    if(faceStream) faceStream.getTracks().forEach(t=>t.stop());
+    faceStream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:"user"},
+      audio:false
+    });
+    $("cameraVideo").srcObject=faceStream;
+    toast("Câmera aberta.");
+  }catch(error){
+    console.error(error);
+    toast("Não foi possível abrir a câmera. Verifique a permissão do navegador.");
+  }
+}
+
+function captureFace(){
+  const video=$("cameraVideo");
+  if(!video.srcObject){
+    toast("Abra a câmera primeiro.");
+    return;
+  }
+
+  const canvas=$("faceCanvas");
+  canvas.width=video.videoWidth || 640;
+  canvas.height=video.videoHeight || 480;
+  const ctx=canvas.getContext("2d");
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+
+  const data=canvas.toDataURL("image/jpeg",.85);
+  $("facePreview").src=data;
+  $("facePreview").classList.remove("hidden");
+
+  const name=$("studentName").value.trim();
+  const student=state.students.find(s=>s.name.toLowerCase()===name.toLowerCase());
+
+  if(student){
+    student.face=data;
+    student.status="complete";
+    saveState();
+  }
+
+  if(faceStream){
+    faceStream.getTracks().forEach(t=>t.stop());
+    faceStream=null;
+  }
+
+  toast("Face capturada e vinculada ao cadastro local.");
+  renderStudents();
+}
+
+async function openClassCamera(){
+  try{
+    if(classStream) classStream.getTracks().forEach(t=>t.stop());
+
+    classStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:"environment"},
+      audio:false
+    });
+
+    $("classCameraBox").classList.remove("hidden");
+    $("captureClassPhoto").classList.remove("hidden");
+    $("classVideo").srcObject=classStream;
+  }catch(error){
+    console.error(error);
+    toast("Não foi possível abrir a câmera da turma.");
+  }
+}
+
+function captureClassPhoto(){
+  const video=$("classVideo");
+  const canvas=document.createElement("canvas");
+  canvas.width=video.videoWidth||1280;
+  canvas.height=video.videoHeight||720;
+  canvas.getContext("2d").drawImage(video,0,0,canvas.width,canvas.height);
+
+  const photo=canvas.toDataURL("image/jpeg",.85);
+
+  if(classStream){
+    classStream.getTracks().forEach(t=>t.stop());
+    classStream=null;
+  }
+
+  modal(
+    "Foto da turma capturada",
+    `<p class="small muted">A foto foi capturada neste dispositivo.</p>
+     <img src="${photo}" style="width:100%;border-radius:14px;border:1px solid #333">
+     <p class="notice" style="margin-top:10px">
+       O reconhecimento facial coletivo descrito na especificação requer integração segura com serviço
+       apropriado para biometria. Esta versão não cria vetores biométricos.
+     </p>`
+  );
+}
+
+/* -----------------------------
+   STUDENTS
+   ----------------------------- */
+function sortedStudents(){
+  return [...state.students].sort((a,b)=>{
+    if(a.status!==b.status){
+      return a.status==="pending" ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name,"pt-BR");
+  });
+}
+
+function renderStudents(){
+  const search=($("studentSearch")?.value||"").toLowerCase().trim();
+  const filter=$("studentFilter")?.value||"all";
+
+  let list=sortedStudents();
+
+  if(state.user?.role==="guardian" && state.user.studentId){
+    list=list.filter(s=>s.id===state.user.studentId);
+  }
+
+  list=list.filter(s=>{
+    const matches=s.name.toLowerCase().includes(search);
+    const statusMatch =
+      filter==="all" ||
+      (filter==="pending" && s.status==="pending") ||
+      (filter==="complete" && s.status==="complete");
+    return matches && statusMatch;
+  });
+
+  $("studentList").innerHTML=list.length
+    ? list.map(studentRowHTML).join("")
+    : `<div class="card"><p class="muted">Nenhum aluno encontrado.</p></div>`;
+}
+
+function studentRowHTML(s){
+  const avatar=s.face || APP_CONFIG.logo;
+  const statusClass=s.status==="complete"?"green":"red";
+  const statusText=s.status==="complete"?"Cadastro Completo":"Pré-Cadastro Pendente";
+
+  return `
+    <div class="student-row">
+      <img class="avatar" src="${avatar}" alt="${escapeHTML(s.name)}">
+      <span class="dot ${statusClass}" title="${statusText}"></span>
+      <div>
+        <strong>${escapeHTML(s.name)}</strong>
+        <span>${escapeHTML(s.belt||"Branca")} — ${Number(s.degrees||0)} ${Number(s.degrees||0)===1?"Grau":"Graus"}</span>
+      </div>
+      <div class="action-row">
+        <button class="btn" onclick="openStudent('${s.id}')">Ver perfil</button>
+      </div>
+    </div>
+  `;
+}
+
+function openStudent(id){
+  const s=state.students.find(x=>x.id===id);
+  if(!s) return;
+
+  const editable=canEditStudent();
+
+  modal(
+    `Perfil — ${escapeHTML(s.name)}`,
+    `
+      <div class="form-grid">
+        <div class="field">
+          <label>Início dos Treinos</label>
+          <input id="profileStart" class="input" type="date" value="${s.startDate||""}" ${editable?"":"disabled"}>
+        </div>
+        <div class="field">
+          <label>Faixa atual</label>
+          <select id="profileBelt" class="select" ${editable?"":"disabled"}>
+            ${["Branca","Cinza","Amarela","Laranja","Verde","Azul","Roxa","Marrom","Preta"]
+              .map(b=>`<option ${s.belt===b?"selected":""}>${b}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label>Graus</label>
+          <select id="profileDegrees" class="select" ${editable?"":"disabled"}>
+            ${[0,1,2,3,4,5,6].map(n=>`<option value="${n}" ${Number(s.degrees)===n?"selected":""}>${n} ${n===1?"Grau":"Graus"}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <input class="input" value="${s.status==="complete"?"🟢 Completo":"🔴 Pendente"}" disabled>
+        </div>
+      </div>
+
+      <div class="card" style="background:#151515;margin-top:14px">
+        <h3 style="font-size:13px;color:var(--gold2)">🩺 Ficha de Saúde / Restrições</h3>
+        ${
+          s.status==="complete" && s.health
+          ? `<ul class="list small">
+              <li>Problema cardíaco/pressão: <strong>${escapeHTML(s.health.heart)}</strong></li>
+              <li>Asma/respiratório: <strong>${escapeHTML(s.health.respiratory)}</strong></li>
+              <li>Lesão crônica: <strong>${escapeHTML(s.health.injury)}</strong></li>
+              <li>Medicamento controlado: <strong>${escapeHTML(s.health.medication)}</strong></li>
+              <li>Alergia: <strong>${escapeHTML(s.health.allergy)}</strong></li>
+              <li>Desmaios/tonturas: <strong>${escapeHTML(s.health.fainting)}</strong></li>
+              <li>Detalhes: <strong>${escapeHTML(s.health.details)}</strong></li>
+            </ul>`
+          : `<div class="notice">⚠️ Aluno sem Ficha de Saúde cadastrada.</div>`
+        }
+      </div>
+
+      ${editable ? `
+        <div class="action-row" style="margin-top:14px">
+          <button class="btn btn-gold" onclick="saveStudentProfile('${s.id}')">Salvar alterações</button>
+        </div>
+      ` : `
+        <p class="small muted" style="margin-top:12px">
+          Este perfil está em modo somente leitura para o seu nível de acesso.
+        </p>
+      `}
+    `
+  );
+}
+
+function saveStudentProfile(id){
+  if(!canEditStudent()){
+    toast("Somente o Mestre London pode alterar graduação e início de treino.");
+    return;
+  }
+
+  const s=state.students.find(x=>x.id===id);
+  if(!s) return;
+
+  const belt=$("profileBelt").value;
+  let degrees=Number($("profileDegrees").value);
+
+  if(belt!=="Preta" && degrees>4){
+    toast("Faixas Branca até Marrom podem ter no máximo 4 graus.");
+    return;
+  }
+
+  s.belt=belt;
+  s.degrees=degrees;
+  s.startDate=$("profileStart").value;
+
+  saveState();
+  closeModal();
+  renderStudents();
+  updateKPIs();
+  toast("Perfil atualizado.");
+}
+
+/* -----------------------------
+   TATAME / ATTENDANCE
+   ----------------------------- */
+function renderTatame(){
+  $("tatameDate").textContent=formatDate(todayISO());
+
+  const grid=$("attendanceGrid");
+
+  if(!canOperateTatame()){
+    grid.innerHTML=`<div class="notice">Acesso restrito ao Mestre London e Diretoria.</div>`;
+    return;
+  }
+
+  grid.innerHTML=sortedStudents().map(s=>{
+    const present=state.attendance.some(a=>a.date===todayISO()&&a.studentId===s.id);
+    return `
+      <button class="athlete ${present?"present":""}" onclick="toggleAttendance('${s.id}')">
+        <img src="${s.face||APP_CONFIG.logo}" alt="">
+        <strong>${escapeHTML(s.name)}</strong>
+        <small>${s.status==="complete"?"🟢":"🔴"} ${escapeHTML(s.belt||"Branca")}</small>
+      </button>
+    `;
+  }).join("");
+
+  updatePresentCount();
+}
+
+function toggleAttendance(studentId){
+  if(!canOperateTatame()){
+    toast("Sem permissão.");
+    return;
+  }
+
+  const idx=state.attendance.findIndex(a=>a.date===todayISO()&&a.studentId===studentId);
+
+  if(idx>=0){
+    state.attendance.splice(idx,1);
+  }else{
+    const s=state.students.find(x=>x.id===studentId);
+    state.attendance.push({
+      id:"attendance-"+Date.now()+"-"+studentId,
+      date:todayISO(),
+      studentId,
+      studentName:s?.name||"",
+      source:"Chamada rápida"
+    });
+  }
+
+  saveState();
+  renderTatame();
+  renderFrequency();
+  updateKPIs();
+}
+
+function updatePresentCount(){
+  const count=state.attendance.filter(a=>a.date===todayISO()).length;
+  $("presentCount").textContent=count;
+}
+
+function addQuickStudent(e){
+  e.preventDefault();
+
+  if(!canOperateTatame()){
+    toast("Sem permissão.");
+    return;
+  }
+
+  const name=$("quickName").value.trim();
+  const guardian=$("quickGuardian").value.trim();
+  const phone=$("quickPhone").value.trim();
+
+  if(!name || !guardian) return;
+
+  const student={
+    id:"student-"+Date.now(),
+    name,
+    guardian,
+    phone,
+    belt:"Branca",
+    degrees:0,
+    status:"pending",
+    startDate:todayISO(),
+    face:"",
+    health:null
+  };
+
+  state.students.push(student);
+
+  state.attendance.push({
+    id:"attendance-"+Date.now(),
+    date:todayISO(),
+    studentId:student.id,
+    studentName:student.name,
+    source:"Aluno não cadastrado"
+  });
+
+  saveState();
+  e.target.reset();
+  renderStudents();
+  renderTatame();
+  renderFrequency();
+  updateKPIs();
+
+  toast("Aluno pré-cadastrado com 🔴 pendência e presença lançada.");
+}
+
+/* -----------------------------
+   FREQUENCY
+   ----------------------------- */
+function renderFrequency(){
+  const rows=[...state.attendance].sort((a,b)=>b.date.localeCompare(a.date));
+
+  $("frequencyTable").innerHTML=rows.length
+    ? rows.map(a=>{
+      const s=state.students.find(x=>x.id===a.studentId);
+      return `
+        <tr>
+          <td>${formatDate(a.date)}</td>
+          <td>${escapeHTML(a.studentName||s?.name||"")}</td>
+          <td>${escapeHTML(a.source||"")}</td>
+          <td>${s?.status==="complete"?"🟢":"🔴"}</td>
+        </tr>
+      `;
+    }).join("")
+    : `<tr><td colspan="4" class="muted">Nenhuma presença registrada.</td></tr>`;
+}
+
+function exportFrequencyCSV(){
+  const header=["Data","Aluno","Origem","Status"];
+  const rows=state.attendance.map(a=>{
+    const s=state.students.find(x=>x.id===a.studentId);
+    return [
+      formatDate(a.date),
+      a.studentName||s?.name||"",
+      a.source||"",
+      s?.status==="complete"?"Completo":"Pendente"
+    ];
+  });
+
+  downloadCSV("frequencia-projeto-sementes.csv",[header,...rows]);
+}
+
+function downloadCSV(filename,rows){
+  const csv=rows.map(row=>row.map(value=>{
+    const v=String(value??"").replaceAll('"','""');
+    return `"${v}"`;
+  }).join(",")).join("\n");
+
+  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* -----------------------------
+   FAITH
+   ----------------------------- */
+function renderCells(){
+  $("cellsGrid").innerHTML=cells.map(cell=>`
+    <div class="cell-item">
+      <h4>${escapeHTML(cell.name)}</h4>
+      <p class="small muted">${escapeHTML(cell.leader)}</p>
+      <button class="btn btn-gold btn-full"
+              onclick="joinCell('${encodeURIComponent(cell.name)}','${encodeURIComponent(cell.phone)}')">
+        🌱 Eu quero participar dessa célula!
+      </button>
+    </div>
+  `).join("");
+}
+
+function joinCell(nameEncoded,phoneEncoded){
+  const name=decodeURIComponent(nameEncoded);
+  const phone=decodeURIComponent(phoneEncoded);
+
+  const text=encodeURIComponent(
+    "Olá, líder! Faço parte do Projeto Sementes e eu quero participar da sua célula. Como faço para começar?"
+  );
+
+  if(phone){
+    window.open(`https://wa.me/${phone.replace(/\D/g,"")}?text=${text}`,"_blank");
+  }else{
+    modal(
+      "Célula selecionada",
+      `<p class="body-text">Você selecionou <strong>${escapeHTML(name)}</strong>.</p>
+       <p class="small muted">
+       O número do líder deve ser configurado pela Secretaria para que o WhatsApp seja aberto automaticamente.
+       </p>`
+    );
+  }
+}
+
+function sendPrayer(){
+  const text=$("prayerRequest").value.trim();
+  if(!text){
+    toast("Digite seu pedido de oração.");
+    return;
+  }
+
+  const message=encodeURIComponent(
+    `Graça e Paz, Pastor Joel! Aqui é um irmão do Projeto Sementes. Gostaria de pedir oração pelo seguinte motivo: ${text}`
+  );
+
+  if(APP_CONFIG.masterWhatsapp){
+    window.open(`https://wa.me/${APP_CONFIG.masterWhatsapp}?text=${message}`,"_blank");
+    toast("Mensagem preparada para o WhatsApp.");
+  }else{
+    toast("Configure o WhatsApp do Pastor Joel na Secretaria.");
+  }
+}
+
+function baptism(){
+  const message=encodeURIComponent(
+    "Pastor Joel, li a mensagem na Aba Fé do aplicativo e tomei a minha decisão: Eu quero ser batizado e selar o meu compromisso com Deus! Como posso fazer?"
+  );
+
+  if(APP_CONFIG.masterWhatsapp){
+    window.open(`https://wa.me/${APP_CONFIG.masterWhatsapp}?text=${message}`,"_blank");
+  }else{
+    toast("Configure o WhatsApp do Pastor Joel.");
+  }
+}
+
+/* -----------------------------
+   GAME GOSPEL
+   ----------------------------- */
+function saveGame(){
+  localStorage.setItem(STORAGE_KEYS.game,JSON.stringify(state.game));
+}
+
+function restoreGame(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(STORAGE_KEYS.game));
+    if(saved) state.game={...state.game,...saved};
+  }catch(error){}
+}
+
+function updateGameResources(){
+  $("oilValue").textContent=state.game.oil;
+  $("coinValue").textContent=state.game.coins;
+  $("streakValue").textContent=state.game.streak;
+}
+
+function renderGameMap(){
+  $("gameMap").innerHTML=eras.map(era=>{
+    const locked=era.id>state.game.unlockedEra;
+    return `
+      <article class="era ${locked?"locked":""}">
+        <div class="era-head">
+          <div>
+            <h3>${era.icon} ${escapeHTML(era.title)}</h3>
+            <div class="small muted">${escapeHTML(era.books)}</div>
+          </div>
+          <div>${locked?"🔒":"📖"}</div>
+        </div>
+        <div class="nodes">
+          <div class="node">🧩 Nó 1<br><strong>Minijogo de Contexto</strong></div>
+          <div class="node">🔍 Nó 2<br><strong>Quiz Multiplayer/Solo</strong></div>
+          <div class="node">⚔️ Nó 3<br><strong>Boss: ${escapeHTML(era.boss)}</strong></div>
+        </div>
+        ${!locked ? `<button class="btn btn-gold" style="margin-top:10px" onclick="playEra(${era.id})">Jogar Era ${era.id}</button>` : ""}
+      </article>
+    `;
+  }).join("");
+}
+
+function playEra(eraId){
+  if(eraId>state.game.unlockedEra){
+    toast("Essa Era está bloqueada.");
+    return;
+  }
+
+  if(state.game.oil<=0){
+    refillWord();
+    return;
+  }
+
+  state.game.oil--;
+  state.game.xp += 10;
+  state.game.coins += 2;
+  saveGame();
+  updateGameResources();
+
+  modal(
+    `Era ${eraId} iniciada`,
+    `<p class="body-text">Você gastou 1 gota de Azeite e ganhou 10 XP + 2 moedas.</p>
+     <p class="small muted">Cada Era possui 3 nós: contexto, quiz e Boss Battle.</p>
+     <button class="btn btn-gold" onclick="closeModal();openQuiz()">Abrir Quiz</button>`
+  );
+}
+
+function refillWord(){
+  modal(
+    "Recarga da Palavra",
+    `<p class="body-text">
+      O Azeite chegou a zero. A recarga ativa apresenta um texto bíblico curto
+      baseado na Era atual e uma pergunta interpretativa.
+    </p>
+    <p class="body-text"><strong>Pergunta:</strong> Qual é a importância de buscar sabedoria antes de agir?</p>
+    <button class="btn btn-gold" onclick="answerRefill(true)">Responder e recarregar</button>`
+  );
+}
+
+function answerRefill(correct){
+  if(correct){
+    state.game.oil=Math.min(5,state.game.oil+2);
+    saveGame();
+    updateGameResources();
+    closeModal();
+    toast("Resposta registrada. +2 gotas de Azeite.");
+  }
+}
+
+function renderQuiz(){
+  const q=quizQuestions[0];
+
+  $("quizBox").innerHTML=`
+    <div class="timer" id="quizTimer">20</div>
+    <p class="body-text"><strong>${escapeHTML(q.question)}</strong></p>
+    <div>
+      ${q.options.map((opt,i)=>`
+        <button class="btn quiz-option" onclick="answerQuiz(0,${i})">${String.fromCharCode(65+i)}) ${escapeHTML(opt)}</button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function openQuiz(){
+  renderQuiz();
+  closeModal();
+  openPage("gamePage");
+
+  let seconds=20;
+  clearInterval(window.__quizTimer);
+  window.__quizTimer=setInterval(()=>{
+    seconds--;
+    const timer=$("quizTimer");
+    if(timer) timer.textContent=seconds;
+    if(seconds<=0){
+      clearInterval(window.__quizTimer);
+      toast("Tempo encerrado.");
+    }
+  },1000);
+}
+
+function answerQuiz(qIndex,answer){
+  clearInterval(window.__quizTimer);
+
+  const q=quizQuestions[qIndex];
+
+  if(answer===q.correct){
+    state.game.xp += 25;
+    state.game.coins += 5;
+
+    if(qIndex===2){
+      state.game.unlockedEra=Math.max(state.game.unlockedEra,2);
+      state.game.cards.push("José do Egito");
+    }
+
+    saveGame();
+    renderGame();
+    toast("Resposta correta! XP e moedas recebidos.");
+  }else{
+    toast("Resposta incorreta. Continue estudando a Palavra.");
+  }
+}
+
+function renderCardsAlbum(){
+  $("cardsAlbum").innerHTML=collectibleCards.map(card=>{
+    const unlocked=state.game.cards.includes(card.name);
+    return `
+      <div class="cell-item" style="${unlocked?"":"opacity:.45"}">
+        <h4>${unlocked?"👑":"🔒"} ${escapeHTML(card.name)}</h4>
+        <p class="small muted">Raridade: ${escapeHTML(card.rarity)}</p>
+        <p class="small">${unlocked?escapeHTML(card.text):"Card bloqueado."}</p>
+        <p class="small muted">${unlocked?escapeHTML(card.reference):"Como desbloquear: "+escapeHTML(card.unlock)}</p>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderLeagues(){
+  const leagues=[
+    ["Liga de Bronze","Entrada • Top 15 sobem"],
+    ["Liga de Prata","Multiplicadores leves de moedas • Top 10 sobem"],
+    ["Liga de Ouro","Disputa de XP • Top 5 sobem"],
+    ["Liga de Diamante","Alta consistência diária • Top 3 sobem"],
+    ["Liga dos Embaixadores","Elite • 1º recebe a insígnia Mestre da Palavra"]
+  ];
+
+  $("leagueList").innerHTML=leagues.map((x,i)=>`
+    <div>
+      <strong>${i+1}. ${escapeHTML(x[0])}</strong>
+      <div class="small muted">${escapeHTML(x[1])}</div>
+    </div>
+  `).join("");
+}
+
+function renderGame(){
+  restoreGame();
+  updateGameResources();
+  renderGameMap();
+  renderQuiz();
+  renderCardsAlbum();
+  renderLeagues();
+}
+
+/* -----------------------------
+   SECRETARIA
+   ----------------------------- */
+function renderDirectors(){
+  $("directorsTable").innerHTML=directors.map(d=>`
+    <tr>
+      <td>${escapeHTML(d.name)}</td>
+      <td>${escapeHTML(d.role)}</td>
+      <td>${escapeHTML(d.phone||"Não configurado")}</td>
+      <td>${escapeHTML(d.address)}</td>
+    </tr>
+  `).join("");
+}
+
+function updateKPIs(){
+  const total=state.students.length;
+  const complete=state.students.filter(s=>s.status==="complete").length;
+  const pending=state.students.filter(s=>s.status==="pending").length;
+  const attendance=state.attendance.length;
+
+  $("kpiStudents").textContent=total;
+  $("kpiAttendance").textContent=attendance;
+  $("kpiPending").textContent=pending;
+  $("kpiFamilies").textContent=total*3;
+
+  const pctTotal=total?100:0;
+  const pctComplete=total?Math.round(complete/total*100):0;
+  const pctFreq=total?Math.min(100,Math.round(attendance/(total*8)*100)):0;
+
+  $("barStudents").style.width=pctTotal+"%";
+  $("barStudentsText").textContent=pctTotal+"%";
+  $("barFrequency").style.width=pctFreq+"%";
+  $("barFrequencyText").textContent=pctFreq+"%";
+  $("barComplete").style.width=pctComplete+"%";
+  $("barCompleteText").textContent=pctComplete+"%";
+}
+
+function generateAccess(){
+  if(!canSeeSecretary()){
+    toast("Acesso restrito.");
+    return;
+  }
+
+  modal(
+    "Gerar Novo Acesso",
+    `
+      <form id="accessForm">
+        <div class="form-grid">
+          <div class="field">
+            <label>Nome</label>
+            <input id="newAccessName" class="input" required>
+          </div>
+          <div class="field">
+            <label>Login (CPF ou celular)</label>
+            <input id="newAccessLogin" class="input" required>
+          </div>
+          <div class="field">
+            <label>Nível</label>
+            <select id="newAccessRole" class="select">
+              <option value="guardian">Responsável</option>
+              <option value="director">Diretoria</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Senha provisória</label>
+            <input id="newAccessPassword" class="input" required>
+          </div>
+        </div>
+        <button class="btn btn-gold" type="submit">Criar acesso</button>
+      </form>
+    `
+  );
+
+  setTimeout(()=>{
+    $("accessForm")?.addEventListener("submit",e=>{
+      e.preventDefault();
+      closeModal();
+      toast("Acesso demonstrativo criado. Em produção, use o provedor de autenticação.");
+    });
+  },0);
+}
+
+function generateReport(){
+  if(!canSeeSecretary()){
+    toast("Somente Mestre London e Pastor Joel podem exportar relatórios.");
+    return;
+  }
+
+  const format=$("reportFormat").value;
+  const type=$("reportType").value;
+
+  if(format==="csv"){
+    const rows=[
+      ["Projeto","Projeto Sementes"],
+      ["Relatório",type],
+      ["Gerado em",new Date().toLocaleString("pt-BR")],
+      [],
+      ["Alunos","Status","Faixa","Graus","Início"],
+      ...state.students.map(s=>[
+        s.name,
+        s.status,
+        s.belt,
+        s.degrees,
+        formatDate(s.startDate)
+      ])
     ];
 
-    // --- AUTH FUNCTIONS ---
-    function handleLogin(e) {
+    downloadCSV(`relatorio-${type.toLowerCase().replaceAll(" ","-")}.csv`,rows);
+    toast("Relatório CSV exportado.");
+  }else{
+    const printWindow=window.open("","_blank");
+    if(!printWindow){
+      toast("Permita pop-ups para gerar o relatório.");
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>Relatório Projeto Sementes</title>
+        <style>
+          body{font-family:Arial;padding:30px}
+          h1{color:#8c6a15}
+          table{border-collapse:collapse;width:100%}
+          th,td{border:1px solid #ccc;padding:8px;text-align:left}
+        </style>
+      </head>
+      <body>
+        <h1>Projeto Sementes — ${escapeHTML(type)}</h1>
+        <p>Gerado em ${new Date().toLocaleString("pt-BR")}</p>
+        <table>
+          <tr><th>Aluno</th><th>Status</th><th>Faixa</th><th>Graus</th><th>Início</th></tr>
+          ${state.students.map(s=>`
+            <tr>
+              <td>${escapeHTML(s.name)}</td>
+              <td>${s.status==="complete"?"Completo":"Pendente"}</td>
+              <td>${escapeHTML(s.belt)}</td>
+              <td>${s.degrees}</td>
+              <td>${formatDate(s.startDate)}</td>
+            </tr>
+          `).join("")}
+        </table>
+        <script>window.print();<\/script>
+      </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+  }
+}
+
+/* -----------------------------
+   EVENTOS
+   ----------------------------- */
+function initEvents(){
+
+  $("loginForm").addEventListener("submit",e=>{
+    e.preventDefault();
+
+    const ok=loginDemo($("login").value,$("password").value);
+
+    if(!ok){
+      toast("Login ou senha inválidos.");
+      return;
+    }
+
+    showApp();
+    toast("Bem-vindo ao Projeto Sementes.");
+  });
+
+  $("forgotBtn").addEventListener("click",()=>{
+    modal(
+      "Esqueci minha senha",
+      `
+        <p class="body-text">
+          Digite o e-mail cadastrado para receber as instruções de redefinição.
+        </p>
+        <form id="forgotForm">
+          <div class="field">
+            <label>E-mail</label>
+            <input id="forgotEmail" class="input" type="email" value="${APP_CONFIG.masterEmail}" required>
+          </div>
+          <button class="btn btn-gold" type="submit">Enviar código/link de redefinição</button>
+        </form>
+        <p class="small muted" style="margin-top:12px">
+          No HTML puro, o envio real não pode ser feito com segurança.
+          Conecte este formulário ao Firebase Authentication ou outro provedor.
+        </p>
+      `
+    );
+
+    setTimeout(()=>{
+      $("forgotForm")?.addEventListener("submit",e=>{
         e.preventDefault();
-        const userVal = document.getElementById('login-user').value.toLowerCase();
-        const passVal = document.getElementById('login-pass').value;
+        closeModal();
+        toast("Solicitação registrada. Configure o provedor de e-mail para envio real.");
+      });
+    },0);
+  });
 
-        if (userVal.includes('mestre') || userVal === '67998513404') {
-            currentUser = { role: 'master', name: 'Mestre London', phone: '67998513404' };
-        } else if (userVal.includes('pastor') || userVal.includes('diretor')) {
-            currentUser = { role: 'director', name: 'Pastor Joel Amorim', phone: '67998513400' };
-        } else {
-            currentUser = { role: 'parent', name: 'Responsável', phone: userVal, studentName: 'Kauã Gabriel Santos' };
-        }
+  $("demoBtn").addEventListener("click",()=>{
+    $("login").value=APP_CONFIG.demoMasterLogin;
+    $("password").value=APP_CONFIG.demoMasterPassword;
+    toast("Credenciais demonstrativas preenchidas.");
+  });
 
-        document.getElementById('screen-login').classList.add('hidden');
-        document.getElementById('screen-app').classList.remove('hidden');
-        
-        updateRoleBadge();
-        switchTab('home');
-        lucide.createIcons();
-    }
+  $("logoutBtn").addEventListener("click",logout);
 
-    function fillDemoLogin(type) {
-        if (type === 'master') {
-            document.getElementById('login-user').value = 'Mestre London';
-            document.getElementById('login-pass').value = '123456';
-        } else {
-            document.getElementById('login-user').value = '(67) 99111-2233';
-            document.getElementById('login-pass').value = '123456';
-        }
-    }
+  document.querySelectorAll("#mainNav button").forEach(btn=>{
+    btn.addEventListener("click",()=>openPage(btn.dataset.page));
+  });
 
-    function logout() {
-        document.getElementById('screen-app').classList.add('hidden');
-        document.getElementById('screen-login').classList.remove('hidden');
-    }
+  $("historyToggle").addEventListener("click",()=>{
+    const content=$("historyFull");
+    const open=content.classList.toggle("open");
+    $("historyToggle").textContent=open?"Recolher":"Ler mais...";
+  });
 
-    function updateRoleBadge() {
-        const badge = document.getElementById('user-role-badge');
-        if (currentUser.role === 'master') badge.textContent = 'Mestre Master (Acesso Total)';
-        else if (currentUser.role === 'director') badge.textContent = 'Diretoria / Pastor';
-        else badge.textContent = 'Responsável (Pais)';
-    }
+  $("studentSearch").addEventListener("input",renderStudents);
+  $("studentFilter").addEventListener("change",renderStudents);
 
-    // --- TAB NAVIGATION ---
-    function switchTab(tab) {
-        activeTab = tab;
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            if (btn.getAttribute('data-tab') === tab) {
-                btn.classList.remove('text-gray-400');
-                btn.classList.add('text-amber-500');
-            } else {
-                btn.classList.remove('text-amber-500');
-                btn.classList.add('text-gray-400');
-            }
-        });
+  $("quickStudentForm").addEventListener("submit",addQuickStudent);
 
-        renderTabContent();
-        lucide.createIcons();
-    }
+  $("frequencyExport").addEventListener("click",exportFrequencyCSV);
+  $("frequencyRefresh").addEventListener("click",renderFrequency);
 
-    function renderTabContent() {
-        const container = document.getElementById('main-content');
-        if (activeTab === 'home') container.innerHTML = renderHomeTab();
-        else if (activeTab === 'matricula') container.innerHTML = renderMatriculaTab();
-        else if (activeTab === 'tatame') container.innerHTML = renderTatameTab();
-        else if (activeTab === 'game') container.innerHTML = renderGameTab();
-        else if (activeTab === 'fe') container.innerHTML = renderFeTab();
-        else if (activeTab === 'secretaria') container.innerHTML = renderSecretariaTab();
-        lucide.createIcons();
-    }
+  $("sendPrayer").addEventListener("click",sendPrayer);
+  $("baptismBtn").addEventListener("click",baptism);
 
-    // --- TAB 1: HOME (BENTO GRID & WELCOME) ---
-    function renderHomeTab() {
-        return `
-            <div class="p-4 space-y-4">
-                <!-- BENTO CARD 1: HISTÓRIA DO PROJETO -->
-                <div class="bg-darkcard border border-amber-500/30 rounded-2xl p-4 gold-glow relative">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="text-amber-500 text-xl">🌱</span>
-                        <h2 class="font-bebas text-xl text-amber-500 tracking-wider">A HISTÓRIA DO PROJETO SEMENTES</h2>
-                    </div>
-                    <p class="text-sm text-gray-300 italic mb-2">"A Paz seja convosco! O Projeto Sementes nasceu no coração de Deus..."</p>
-                    <div id="story-text" class="${storyExpanded ? '' : 'line-clamp-3'} text-xs text-gray-400 space-y-2">
-                        <p>Compartilhado com o Pastor Joel Amorim e toda IEQ Guaicurus, foram dias de oração buscando estruturar o projeto para acolher crianças das comunidades próximas.</p>
-                        <p>Em uma noite de culto, o mover de Deus quebrantou os corações da membresia e, por meio de ofertas voluntárias, adquirimos nosso dojo. Desde então, unimos o Jiu-Jitsu a palestras socioeducativas e valores cristãos.</p>
-                        <p>Acreditamos que quando alcançamos uma criança, alcançamos seu lar. Sejam bem-vindos a esta família! 🥋</p>
-                    </div>
-                    <button onclick="toggleStory()" class="text-xs text-amber-400 font-medium mt-2 flex items-center gap-1">
-                        <span id="story-btn-text">${storyExpanded ? 'Recolher texto' : 'Ler mais...'}</span>
-                        <i data-lucide="${storyExpanded ? 'chevron-up' : 'chevron-down'}" class="w-3.5 h-3.5"></i>
-                    </button>
-                </div>
+  $("startCamera").addEventListener("click",startCamera);
+  $("captureFace").addEventListener("click",captureFace);
 
-                <!-- BENTO CARD 2: PROPÓSITO, AGENDA E REQUISITOS -->
-                <div class="bg-darkcard border border-darkborder rounded-2xl p-4">
-                    <div class="flex border-b border-darkborder mb-3 pb-2 gap-2 overflow-x-auto">
-                        <button onclick="setBentoTab('propósito')" class="px-3 py-1 text-xs rounded-lg font-medium whitespace-nowrap transition ${activeBentoTab === 'propósito' ? 'bg-amber-500 text-black font-semibold' : 'bg-darkbase text-gray-400 hover:text-white'}">O Propósito</button>
-                        <button onclick="setBentoTab('agenda')" class="px-3 py-1 text-xs rounded-lg font-medium whitespace-nowrap transition ${activeBentoTab === 'agenda' ? 'bg-amber-500 text-black font-semibold' : 'bg-darkbase text-gray-400 hover:text-white'}">Agenda & Aulas</button>
-                        <button onclick="setBentoTab('legal')" class="px-3 py-1 text-xs rounded-lg font-medium whitespace-nowrap transition ${activeBentoTab === 'legal' ? 'bg-amber-500 text-black font-semibold' : 'bg-darkbase text-gray-400 hover:text-white'}">Base Legal</button>
-                    </div>
-                    
-                    <div id="bento-tab-content" class="text-xs text-gray-300">
-                        ${renderBentoTabContent()}
-                    </div>
-                </div>
+  $("openClassCamera").addEventListener("click",openClassCamera);
+  $("captureClassPhoto").addEventListener("click",captureClassPhoto);
 
-                <!-- BENTO GRID 2-COLUMNS: JIU-JITSU & UNIFORMES -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-darkcard border border-darkborder rounded-2xl p-3">
-                        <h3 class="font-bebas text-amber-400 text-base mb-1">🥋 O JIU-JITSU</h3>
-                        <div class="flex gap-1 mb-2">
-                            <button onclick="setJiuModalidade('gi')" class="px-2 py-0.5 text-[10px] rounded ${activeJiuModalidade === 'gi' ? 'bg-amber-600 text-white' : 'bg-darkbase text-gray-400'}">GI (Kimono)</button>
-                            <button onclick="setJiuModalidade('nogi')" class="px-2 py-0.5 text-[10px] rounded ${activeJiuModalidade === 'nogi' ? 'bg-amber-600 text-white' : 'bg-darkbase text-gray-400'}">NO GI</button>
-                        </div>
-                        <p class="text-[11px] text-gray-400">
-                            ${activeJiuModalidade === 'gi' ? 'Treino tradicional com pegadas no tecido, raspagens e raciocínio estratégico.' : 'Treino rápido sem kimono. Pegadas diretas nos pulsos e nuca, exigindo agilidade.'}
-                        </p>
-                    </div>
-                    <div class="bg-darkcard border border-darkborder rounded-2xl p-3">
-                        <h3 class="font-bebas text-amber-400 text-base mb-1">🍎 NUTRIÇÃO</h3>
-                        <p class="text-[11px] text-gray-400 mb-1"><strong>Pré-Treino (17h30):</strong> Banana com aveia ou maçã 1h antes.</p>
-                        <p class="text-[11px] text-gray-400"><strong>Hidratação:</strong> Garrafa de água obrigatória para não parar o treino.</p>
-                    </div>
-                </div>
+  $("generateAccess").addEventListener("click",generateAccess);
+  $("generateReport").addEventListener("click",generateReport);
 
-                <!-- BENTO CARD: MISSÃO DE HOJE (TREINO EM CASA) -->
-                <div class="bg-darkcard border border-amber-500/20 rounded-2xl p-4">
-                    <div class="bg-red-950/60 border border-red-800/60 p-2 rounded-lg mb-3 flex items-start gap-2">
-                        <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5"></i>
-                        <p class="text-[11px] text-red-300">Treine apenas em superfícies macias e sob supervisão de um adulto responsável!</p>
-                    </div>
-                    <h3 class="font-bebas text-lg text-amber-500 mb-2">🐊 MISSÃO DE HOJE (TREINO EM CASA)</h3>
-                    <div class="space-y-2">
-                        <label class="flex items-start gap-2 text-xs text-gray-300 bg-darkbase p-2.5 rounded-xl border border-darkborder cursor-pointer">
-                            <input type="checkbox" class="mt-0.5 accent-amber-500">
-                            <div><strong>1. Prancha Facial ("Ponte de Pedra"):</strong> Antebraços e pés no chão, corpo alinhado por 30s. Fortalece o core.</div>
-                        </label>
-                        <label class="flex items-start gap-2 text-xs text-gray-300 bg-darkbase p-2.5 rounded-xl border border-darkborder cursor-pointer">
-                            <input type="checkbox" class="mt-0.5 accent-amber-500">
-                            <div><strong>2. Cadeira Invisível (Agachamento na parede):</strong> Joelhos a 90º por 30s. Estabilidade para quedas.</div>
-                        </label>
-                        <label class="flex items-start gap-2 text-xs text-gray-300 bg-darkbase p-2.5 rounded-xl border border-darkborder cursor-pointer">
-                            <input type="checkbox" class="mt-0.5 accent-amber-500">
-                            <div><strong>3. A Canoa Isométrica ("Barco Firme"):</strong> Pernas esticadas a 15cm do chão por 20s.</div>
-                        </label>
-                    </div>
-                </div>
+  $("modalClose").addEventListener("click",closeModal);
+  $("modalBackdrop").addEventListener("click",e=>{
+    if(e.target===$("modalBackdrop")) closeModal();
+  });
+}
 
-                <!-- RODAPÉ: ANIVERSARIANTES E MENSAGEM AOS PAIS -->
-                <div class="bg-gradient-to-br from-amber-950/30 to-darkcard border border-amber-500/30 rounded-2xl p-4">
-                    <h3 class="font-bebas text-lg text-amber-400 mb-1">🌱 O Papel dos Pais no Tatame e na Vida</h3>
-                    <p class="text-xs text-gray-300 mb-2">"Ensina a criança o caminho em que deve andar, e ainda quando for velho não se desviará dele." (Provérbios 22:6)</p>
-                    <p class="text-[11px] text-gray-400">O apoio familiar gera resiliência emocional para a vida toda. Participe das nossas Células e cultos na IEQ Guaicurus!</p>
-                </div>
-            </div>
-        `;
-    }
+/* -----------------------------
+   RENDER GERAL
+   ----------------------------- */
+function renderAll(){
+  renderBirthdays();
+  renderStudents();
+  renderTatame();
+  renderFrequency();
+  renderCells();
+  renderGame();
+  renderDirectors();
+  updateKPIs();
 
-    function toggleStory() {
-        storyExpanded = !storyExpanded;
-        renderTabContent();
-    }
-
-    function setBentoTab(tab) {
-        activeBentoTab = tab;
-        renderTabContent();
-    }
-
-    function setJiuModalidade(mod) {
-        activeJiuModalidade = mod;
-        renderTabContent();
-    }
-
-    function renderBentoTabContent() {
-        if (activeBentoTab === 'propósito') {
-            return `
-                <p class="mb-2">O Projeto Sementes une a disciplina da arte marcial com os ensinamentos da Palavra de Deus.</p>
-                <ul class="space-y-1">
-                    <li>🎯 <strong>Missão:</strong> Transformar a vida de crianças e jovens unindo Jiu-Jitsu e valores cristãos.</li>
-                    <li>👁️ <strong>Visão:</strong> Ser referência em desenvolvimento integral e fortalecimento familiar.</li>
-                    <li>🏆 <strong>Metas:</strong> Promover saúde, autocontrole e acolhimento espiritual.</li>
-                </ul>
-            `;
-        } else if (activeBentoTab === 'agenda') {
-            return `
-                <p class="mb-2">📅 <strong>Dias:</strong> Terça-feira e Quinta-feira às 19h (90 minutos).</p>
-                <ol class="space-y-1 list-decimal pl-4">
-                    <li><strong>Devocional (10 min):</strong> Oração e reflexão bíblica.</li>
-                    <li><strong>Aquecimento (15 min):</strong> Exercícios funcionais e flexibilidade.</li>
-                    <li><strong>Técnica (40 min):</strong> Posições do Jiu-Jitsu aliadas a princípios cristãos.</li>
-                    <li><strong>Combate (20 min):</strong> Luta controlada sob supervisão técnica.</li>
-                    <li><strong>Encerramento (5 min):</strong> Avisos e oração pela família.</li>
-                </ol>
-            `;
-        } else {
-            return `
-                <p class="mb-2">🛡️ <strong>Gestão Voluntária:</strong> Ação voluntária da liderança da igreja local com total prestação de contas.</p>
-                <p class="mb-2 text-amber-400">⚠️ <strong>ATENÇÃO EXTREMA:</strong> O preenchimento da ficha, saúde e assinatura digital é obrigatório antes do aluno entrar no tatame.</p>
-                <p>⚖️ Amparo Legal: Lei do Voluntariado (9.608/1998), CF/88 e ECA (Art. 4º).</p>
-            `;
-        }
-    }
-
-    // --- TAB 2: MATRÍCULA & ASSINATURA TOUCH ---
-    function renderMatriculaTab() {
-        return `
-            <div class="p-4 space-y-4">
-                <div class="bg-amber-950/40 border border-amber-500/40 p-3 rounded-xl flex items-center gap-2">
-                    <i data-lucide="info" class="w-5 h-5 text-amber-400 flex-shrink-0"></i>
-                    <p class="text-xs text-amber-200"><strong>Passo 1 de 2:</strong> Preenchimento dos dados e Assinatura Digital. A biometria (Passo 2) será liberada após envio.</p>
-                </div>
-
-                <div class="bg-darkcard border border-darkborder rounded-2xl p-4 space-y-3">
-                    <h3 class="font-bebas text-lg text-amber-500">📑 Ficha de Inscrição & Saúde</h3>
-                    
-                    <div class="space-y-2">
-                        <div>
-                            <label class="text-xs text-gray-400">Nome Completo do Aluno</label>
-                            <input type="text" id="mat-aluno" placeholder="Ex: Lucas Gabriel dos Santos" class="w-full p-2 bg-darkbase border border-darkborder rounded-lg text-xs text-gray-100">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-xs text-gray-400">Data de Nascimento</label>
-                                <input type="date" id="mat-nasc" class="w-full p-2 bg-darkbase border border-darkborder rounded-lg text-xs text-gray-100">
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-400">Escola Onde Estuda</label>
-                                <input type="text" id="mat-escola" placeholder="Nome da Escola" class="w-full p-2 bg-darkbase border border-darkborder rounded-lg text-xs text-gray-100">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-400">Nome Completo do Responsável</label>
-                            <input type="text" id="mat-resp" placeholder="Nome do pai/mãe/tutor" class="w-full p-2 bg-darkbase border border-darkborder rounded-lg text-xs text-gray-100">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-xs text-gray-400">Parentesco</label>
-                                <select id="mat-parent" class="w-full p-2 bg-darkbase border border-darkborder rounded-lg text-xs text-gray-100">
-                                    <option>Mãe</option>
-                                    <option>Pai</option>
-                                    <option>Avô/Avó</option>
-                                    <option>Tio/Tia</option>
-                                    <option>Tutor Legal</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-400">WhatsApp / Contato</label>
-                                <input type="text" id="mat-zap" value="(67) 99851-3404" class="w-full p-2 bg-darkbase border border-darkborder rounded-lg text-xs text-gray-100">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- SAÚDE (SIM / NÃO) -->
-                    <div class="border-t border-darkborder pt-3 space-y-2">
-                        <h4 class="text-xs font-semibold text-amber-400">🩺 Histórico de Saúde & Aptidão</h4>
-                        <div class="grid grid-cols-2 gap-2 text-xs">
-                            <label class="flex items-center gap-2 bg-darkbase p-2 rounded border border-darkborder">
-                                <input type="checkbox" id="h-cardio" class="accent-amber-500"> Problema Cardíaco?
-                            </label>
-                            <label class="flex items-center gap-2 bg-darkbase p-2 rounded border border-darkborder">
-                                <input type="checkbox" id="h-asma" class="accent-amber-500"> Asma / Bronquite?
-                            </label>
-                            <label class="flex items-center gap-2 bg-darkbase p-2 rounded border border-darkborder">
-                                <input type="checkbox" id="h-lesao" class="accent-amber-500"> Lesão Articular?
-                            </label>
-                            <label class="flex items-center gap-2 bg-darkbase p-2 rounded border border-darkborder">
-                                <input type="checkbox" id="h-alergia" class="accent-amber-500"> Alergia / Medicamento?
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- ASSINATURA TOUCH CANVAS -->
-                    <div class="border-t border-darkborder pt-3">
-                        <label class="text-xs text-gray-300 block mb-1">✍️ Assine com o dedo ou caneta touch:</label>
-                        <div class="bg-white rounded-lg p-1 border-2 border-amber-500/50">
-                            <canvas id="signature-pad" width="340" height="130" class="w-full h-32 bg-white rounded cursor-crosshair touch-none"></canvas>
-                        </div>
-                        <div class="flex justify-between items-center mt-1">
-                            <span class="text-[10px] text-gray-400" id="current-date-stamp">Corumbá - MS, 22 de Setembro de 2026</span>
-                            <button onclick="clearSignature()" class="text-xs text-red-400 hover:underline">🔄 Apagar</button>
-                        </div>
-                    </div>
-
-                    <button onclick="submitMatricula()" class="w-full py-3 bg-gradient-to-r from-amber-600 to-amber-500 text-black font-semibold rounded-xl text-xs hover:from-amber-500 hover:to-amber-400 transition shadow-lg mt-3 flex items-center justify-center gap-2">
-                        <i data-lucide="save" class="w-4 h-4"></i> Finalizar e Enviar Documento (PDF via WhatsApp)
-                    </button>
-                </div>
-
-                <!-- BIOMETRIA FACIAL (PASSO 2) -->
-                <div id="biometria-section" class="bg-darkcard border border-darkborder rounded-2xl p-4 opacity-50 pointer-events-none">
-                    <h3 class="font-bebas text-lg text-amber-500 mb-1">👤 Passo 2 de 2: Biometria Facial</h3>
-                    <p class="text-xs text-gray-400 mb-3">Liberado após a conclusão e assinatura do Passo 1.</p>
-                    
-                    <div class="bg-darkbase border-2 border-dashed border-darkborder rounded-xl p-6 text-center space-y-2">
-                        <div class="w-20 h-20 mx-auto rounded-full bg-amber-500/10 border-2 border-amber-500 flex items-center justify-center">
-                            <i data-lucide="camera" class="w-8 h-8 text-amber-400"></i>
-                        </div>
-                        <p class="text-xs text-gray-300">Posicione o rosto do aluno dentro da moldura iluminada.</p>
-                        <button onclick="captureFace()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-black font-semibold rounded-lg text-xs">Capturar Face e Concluir</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    // Signature Canvas Logic
-    let canvas, ctx, drawing = false;
-    function initSignature() {
-        canvas = document.getElementById('signature-pad');
-        if (!canvas) return;
-        ctx = canvas.getContext('2d');
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2.5;
-        ctx.lineCap = 'round';
-
-        canvas.addEventListener('mousedown', startDraw);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDraw);
-        canvas.addEventListener('touchstart', startDrawTouch, {passive: false});
-        canvas.addEventListener('touchmove', drawTouch, {passive: false});
-        canvas.addEventListener('touchend', stopDraw);
-    }
-
-    function getPos(e) {
-        const rect = canvas.getBoundingClientRect();
-        return {
-            x: (e.clientX || e.touches[0].clientX) - rect.left,
-            y: (e.clientY || e.touches[0].clientY) - rect.top
-        };
-    }
-
-    function startDraw(e) { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); }
-    function draw(e) { if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }
-    function startDrawTouch(e) { e.preventDefault(); startDraw(e); }
-    function drawTouch(e) { e.preventDefault(); draw(e); }
-    function stopDraw() { drawing = false; }
-    function clearSignature() { if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height); }
-
-    function submitMatricula() {
-        alert("📄 PDF de Matrícula gerado com sucesso!\n✉️ Disparado para o WhatsApp do Responsável e Mestre London (67 998513404).\n🟢 Status do aluno atualizado para CADASTRO COMPLETO!");
-        const bio = document.getElementById('biometria-section');
-        bio.classList.remove('opacity-50', 'pointer-events-none');
-        bio.classList.add('border-amber-500', 'gold-glow');
-    }
-
-    function captureFace() {
-        alert("📸 Biometria facial capturada e associada ao perfil do aluno! Matrícula 100% finalizada.");
-        switchTab('tatame');
-    }
-
-
-    // --- TAB 3: TATAME & CHAMADA ---
-    function renderTatameTab() {
-        return `
-            <div class="p-4 space-y-4">
-                <div class="bg-darkcard border border-darkborder rounded-2xl p-4">
-                    <div class="flex justify-between items-center mb-3">
-                        <h2 class="font-bebas text-lg text-amber-500">🥋 CONTROLE DE TATAME</h2>
-                        <span class="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded">22/09/2026 • 19h</span>
-                    </div>
-
-                    <!-- MÉTODOS DE CHAMADA -->
-                    <div class="grid grid-cols-2 gap-2 mb-4">
-                        <button onclick="alert('📸 IA Coletiva ativada! Escaneando rostos no tatame... Todos os alunos identificados tiveram presença computada!')" class="p-3 bg-amber-600/20 border border-amber-500/40 rounded-xl text-center hover:bg-amber-600/30 transition">
-                            <i data-lucide="camera" class="w-6 h-6 text-amber-400 mx-auto mb-1"></i>
-                            <span class="text-xs font-semibold text-amber-300">Foto da Turma (IA)</span>
-                        </button>
-                        <button onclick="promptNovoAlunoTatame()" class="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-center hover:bg-emerald-950/60 transition">
-                            <i data-lucide="user-plus" class="w-6 h-6 text-emerald-400 mx-auto mb-1"></i>
-                            <span class="text-xs font-semibold text-emerald-300">Aluno Avulso</span>
-                        </button>
-                    </div>
-
-                    <h3 class="text-xs font-semibold text-gray-300 mb-2">Chamada Rápida (Clique para presença):</h3>
-                    <div class="space-y-2">
-                        ${studentsList.map(s => `
-                            <div class="flex items-center justify-between p-2.5 bg-darkbase border ${s.status === 'red' ? 'border-red-500/50' : 'border-darkborder'} rounded-xl">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500 flex items-center justify-center font-bold text-amber-400 text-xs relative">
-                                        ${s.name.charAt(0)}
-                                        <span class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full ${s.status === 'green' ? 'bg-emerald-500' : 'bg-red-500'} border-2 border-darkbase"></span>
-                                    </div>
-                                    <div>
-                                        <h4 class="text-xs font-semibold text-gray-100">${s.name}</h4>
-                                        <p class="text-[10px] text-gray-400">Faixa ${s.faixa} •${s.graus} Graus</p>
-                                    </div>
-                                </div>
-                                <button onclick="togglePresenca(this)" class="px-3 py-1.5 text-xs bg-darkborder hover:bg-amber-500 hover:text-black rounded-lg transition font-medium">
-                                    Presente
-                                </button>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    function togglePresenca(btn) {
-        btn.classList.toggle('bg-emerald-600');
-        btn.classList.toggle('text-white');
-        btn.textContent = btn.classList.contains('bg-emerald-600') ? '✓ OK' : 'Presente';
-    }
-
-    function promptNovoAlunoTatame() {
-        const nome = prompt("Digite o Nome Completo do Aluno Novo/Experimental:");
-        if (nome) {
-            studentsList.push({ id: Date.now(), name: nome, faixa: 'Branca', graus: 0, status: 'red' });
-            alert(`✅ Aluno ${nome} cadastrado com 🔴 Bolinha Vermelha (Pendente de Matrícula/Saúde). Presença lançada!`);
-            renderTabContent();
-        }
-    }
-
-
-    // --- TAB 4: GAME GOSPEL (JORNADA DA SABEDORIA) ---
-    function renderGameTab() {
-        return `
-            <div class="p-4 space-y-4">
-                <!-- HUD SUPERIOR DO JOGO -->
-                <div class="bg-gradient-to-r from-amber-950/60 to-darkcard border border-amber-500/40 rounded-2xl p-3 flex justify-between items-center">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">🏺</span>
-                        <div>
-                            <span class="text-[10px] text-gray-400 block">Azeite (Energia)</span>
-                            <strong class="text-amber-400 text-xs">${gameDrops} / 5 Gotas</strong>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">💰</span>
-                        <div>
-                            <span class="text-[10px] text-gray-400 block">Moedas</span>
-                            <strong class="text-amber-400 text-xs">${gameCoins} Ouro</strong>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">🔥</span>
-                        <div>
-                            <span class="text-[10px] text-gray-400 block">Ofensiva</span>
-                            <strong class="text-amber-400 text-xs">${streakDays} Dias</strong>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- MAPA DE FASES (AS 8 ERAS) -->
-                <div class="bg-darkcard border border-darkborder rounded-2xl p-4 space-y-3">
-                    <div class="flex justify-between items-center">
-                        <h2 class="font-bebas text-lg text-amber-500">🗺️ JORNADA DA SABEDORIA (MAPA)</h2>
-                        <button onclick="recarregarAzeite()" class="text-[10px] bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded-lg border border-amber-500/30 hover:bg-amber-500/30">⚡ Recarga da Palavra</button>
-                    </div>
-
-                    <div class="space-y-2">
-                        <div class="p-3 bg-darkbase border border-amber-500/60 rounded-xl flex items-center justify-between gold-glow">
-                            <div class="flex items-center gap-3">
-                                <span class="text-2xl">📜</span>
-                                <div>
-                                    <h4 class="text-xs font-semibold text-amber-400">Era 1: Origens e Patriarcas</h4>
-                                    <p class="text-[10px] text-gray-400">Gênesis e Jó • Chefe: Abraão & José</p>
-                                </div>
-                            </div>
-                            <button onclick="abrirQuiz()" class="px-3 py-1.5 bg-amber-500 text-black font-semibold rounded-lg text-xs hover:bg-amber-400">Jogar 🏺</button>
-                        </div>
-
-                        <div class="p-3 bg-darkbase border border-darkborder rounded-xl flex items-center justify-between opacity-70">
-                            <div class="flex items-center gap-3">
-                                <span class="text-2xl">⚡</span>
-                                <div>
-                                    <h4 class="text-xs font-semibold text-gray-300">Era 2: A Lei e a Libertação</h4>
-                                    <p class="text-[10px] text-gray-500">Êxodo ao Deuteronômio</p>
-                                </div>
-                            </div>
-                            <span class="text-xs text-gray-500 flex items-center gap-1"><i data-lucide="lock" class="w-3.5 h-3.5"></i> Bloqueado</span>
-                        </div>
-
-                        <div class="p-3 bg-darkbase border border-darkborder rounded-xl flex items-center justify-between opacity-50">
-                            <div class="flex items-center gap-3">
-                                <span class="text-2xl">⚔️</span>
-                                <div>
-                                    <h4 class="text-xs font-semibold text-gray-300">Era 3: Conquistas e Juízes</h4>
-                                    <p class="text-[10px] text-gray-500">Josué, Juízes e Rute</p>
-                                </div>
-                            </div>
-                            <span class="text-xs text-gray-500 flex items-center gap-1"><i data-lucide="lock" class="w-3.5 h-3.5"></i> Bloqueado</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- LIGA DE LÍDERES SEMANAL -->
-                <div class="bg-darkcard border border-darkborder rounded-2xl p-4">
-                    <h3 class="font-bebas text-base text-amber-400 mb-2">🏆 Liga de Ouro (Ranking Semanal)</h3>
-                    <div class="space-y-1.5 text-xs">
-                        <div class="flex justify-between items-center p-2 bg-darkbase rounded-lg border border-amber-500/30">
-                            <span class="text-amber-400 font-semibold">1º Kauã Gabriel (Você)</span>
-                            <span class="text-gray-300 font-bold">1.420 XP</span>
-                        </div>
-                        <div class="flex justify-between items-center p-2 bg-darkbase rounded-lg border border-darkborder">
-                            <span class="text-gray-300">2º Ana Beatriz</span>
-                            <span class="text-gray-400">1.280 XP</span>
-                        </div>
-                        <div class="flex justify-between items-center p-2 bg-darkbase rounded-lg border border-darkborder">
-                            <span class="text-gray-300">3º Enzo Gabriel</span>
-                            <span class="text-gray-400">1.150 XP</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    function recarregarAzeite() {
-        const resp = prompt("Quiz Relâmpago da Palavra:\nO que Deus criou no primeiro dia (Gênesis 1)?\nA) Sol e Lua\nB) A luz e a separação das trevas\nDigite A ou B:");
-        if (resp && resp.toUpperCase() === 'B') {
-            gameDrops = Math.min(5, gameDrops + 2);
-            gameCoins += 15;
-            alert("✨ Resposta Correta! +2 Gotas de Azeite e +15 Moedas de Ouro.");
-            renderTabContent();
-        } else {
-            alert("❌ Resposta incorreta. Tente novamente na próxima!");
-        }
-    }
-
-    function abrirQuiz() {
-        if (gameDrops <= 0) {
-            alert("🏺 Suas Gotas de Azeite acabaram! Use a 'Recarga da Palavra' para continuar jogando.");
-            return;
-        }
-        gameDrops--;
-        const q = prompt("Pergunta 1 (Era 1):\nQual era o nome dos quatro rios que se dividiam a partir do Éden?\nA) Nilo, Eufrates, Tigre, Jordão\nB) Pison, Gion, Tigre e Eufrates\nDigite A ou B:");
-        if (q && q.toUpperCase() === 'B') {
-            gameCoins += 50;
-            alert("🎉 Parabéns! Resposta Correta! +50 Moedas de Ouro e desbloqueio do Card Raro: Abraão!");
-        } else {
-            alert("❌ Errado! Continue estudando as Escrituras.");
-        }
-        renderTabContent();
-    }
-
-
-    // --- TAB 5: FÉ & COMUNIDADE ---
-    function renderFeTab() {
-        return `
-            <div class="p-4 space-y-4">
-                <!-- NOSSAS CÉLULAS -->
-                <div class="bg-darkcard border border-darkborder rounded-2xl p-4">
-                    <h2 class="font-bebas text-lg text-amber-500 mb-2">🌱 NOSSAS CÉLULAS (FAMÍLIAS)</h2>
-                    <div class="space-y-2">
-                        <div class="p-3 bg-darkbase border border-darkborder rounded-xl flex justify-between items-center">
-                            <div>
-                                <h4 class="text-xs font-semibold text-amber-400">Célula Videira</h4>
-                                <p class="text-[10px] text-gray-400">Líder: Pr. Marcos</p>
-                            </div>
-                            <button onclick="window.open('https://wa.me/5567998513404?text=Olá%20líder!%20Faço%20parte%20do%20Projeto%20Sementes%20e%20quero%20participar%20da%20sua%20célula!')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium flex items-center gap-1">
-                                💬 Participar
-                            </button>
-                        </div>
-                        <div class="p-3 bg-darkbase border border-darkborder rounded-xl flex justify-between items-center">
-                            <div>
-                                <h4 class="text-xs font-semibold text-amber-400">Célula Ágape</h4>
-                                <p class="text-[10px] text-gray-400">Líder: Pra. Sara</p>
-                            </div>
-                            <button onclick="window.open('https://wa.me/5567998513404?text=Olá%20líder!%20Quero%20participar%20da%20célula!')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-medium flex items-center gap-1">
-                                💬 Participar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- PEDIDO DE ORAÇÃO -->
-                <div class="bg-darkcard border border-darkborder rounded-2xl p-4 space-y-3">
-                    <h3 class="font-bebas text-base text-amber-400">🙏 Pedido de Oração ao Pastor Joel</h3>
-                    <textarea id="pedido-oracao" rows="3" placeholder="Digite seu pedido de oração ou motivo de consolo..." class="w-full p-2.5 bg-darkbase border border-darkborder rounded-xl text-xs text-gray-100 focus:outline-none focus:border-amber-500"></textarea>
-                    <button onclick="enviarPedidoOracao()" class="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-black font-semibold rounded-xl text-xs flex items-center justify-center gap-2">
-                        <i data-lucide="send" class="w-4 h-4"></i> Enviar Pedido ao Pastor Joel
-                    </button>
-                </div>
-
-                <!-- SALVAÇÃO E BATISMO -->
-                <div class="bg-gradient-to-br from-amber-950/60 to-darkcard border border-amber-500/50 rounded-2xl p-4 text-center space-y-2">
-                    <span class="text-3xl">🌊</span>
-                    <h3 class="font-bebas text-lg text-amber-400">O Seu Nome Está no Livro da Vida?</h3>
-                    <p class="text-[11px] text-gray-300 italic">"E aquele que não foi achado escrito no Livro da Vida foi lançado no lago de fogo." (Apocalipse 20:15)</p>
-                    <p class="text-xs text-gray-300">O batismo nas águas é o passo público de fé e compromisso com Jesus Cristo!</p>
-                    <button onclick="queroSerBatizado()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold rounded-xl text-xs hover:from-amber-400 hover:to-amber-500 shadow-lg">
-                        🌊 QUERO SER BATIZADO!
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    function enviarPedidoOracao() {
-        const texto = document.getElementById('pedido-oracao').value;
-        if (!texto) { alert("Digite o seu pedido de oração."); return; }
-        alert("🙏 Pedido enviado com sucesso para o WhatsApp do Pastor Joel Amorim!");
-        document.getElementById('pedido-oracao').value = '';
-    }
-
-    function queroSerBatizado() {
-        alert("✨ Glória a Deus! Sua decisão foi enviada ao Pastor Joel Amorim. Ele entrará em contato para agendar o batismo nas águas.");
-    }
-
-
-    // --- TAB 6: SECRETARIA & DASHBOARD ---
-    function renderSecretariaTab() {
-        if (currentUser.role === 'parent') {
-            return renderSecretariaParentView();
-        }
-
-        return `
-            <div class="p-4 space-y-4">
-                <div class="bg-darkcard border border-darkborder rounded-2xl p-4 space-y-3">
-                    <div class="flex justify-between items-center">
-                        <h2 class="font-bebas text-lg text-amber-500">🏛️ PAINEL GERENCIAL DA SECRETARIA</h2>
-                        <span class="text-[10px] bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded">Master / Pastor</span>
-                    </div>
-
-                    <!-- KPI METRICS -->
-                    <div class="grid grid-cols-3 gap-2">
-                        <div class="bg-darkbase p-3 rounded-xl border border-darkborder text-center">
-                            <span class="text-2xl font-bebas text-amber-400">48</span>
-                            <span class="text-[10px] text-gray-400 block">Alunos Ativos</span>
-                        </div>
-                        <div class="bg-darkbase p-3 rounded-xl border border-darkborder text-center">
-                            <span class="text-2xl font-bebas text-emerald-400">92%</span>
-                            <span class="text-[10px] text-gray-400 block">Retenção</span>
-                        </div>
-                        <div class="bg-darkbase p-3 rounded-xl border border-darkborder text-center">
-                            <span class="text-2xl font-bebas text-amber-400">12</span>
-                            <span class="text-[10px] text-gray-400 block">Famílias Célula</span>
-                        </div>
-                    </div>
-
-                    <!-- ALUNOS CADASTRADOS & PENDÊNCIAS -->
-                    <div class="border-t border-darkborder pt-3">
-                        <h3 class="text-xs font-semibold text-amber-400 mb-2">📋 Lista de Alunos (Prioridade Pendências)</h3>
-                        <div class="space-y-2">
-                            ${studentsList.map(s => `
-                                <div class="flex items-center justify-between p-2.5 bg-darkbase border border-darkborder rounded-xl">
-                                    <div class="flex items-center gap-2">
-                                        <span class="w-3 h-3 rounded-full ${s.status === 'green' ? 'bg-emerald-500' : 'bg-red-500'}"></span>
-                                        <div>
-                                            <h4 class="text-xs font-semibold text-gray-100">${s.name}</h4>
-                                            <p class="text-[10px] text-gray-400">Faixa ${s.faixa} •${s.status === 'green' ? 'Matrícula OK' : 'Pendente Documento'}</p>
-                                        </div>
-                                    </div>
-                                    <button onclick="alert('Ficha de Saúde de ${s.name}:${s.health ? JSON.stringify(s.health) : "⚠️ Ficha não preenchida (Bolinha Vermelha)"}')" class="px-2.5 py-1 bg-darkborder hover:bg-amber-500 hover:text-black rounded text-[11px]">🩺 Saúde</button>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <!-- EXPORTAÇÃO DE RELATÓRIOS -->
-                    <div class="border-t border-darkborder pt-3 flex gap-2">
-                        <button onclick="alert('📊 Relatório gerencial .PDF gerado e assinado digitalmente.')" class="flex-1 py-2 bg-amber-600 hover:bg-amber-500 text-black font-semibold rounded-lg text-xs">Exportar PDF</button>
-                        <button onclick="alert('📊 Planilha .CSV gerada para auditoria.')" class="flex-1 py-2 bg-darkborder hover:bg-gray-700 text-gray-200 font-semibold rounded-lg text-xs">Exportar CSV</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    function renderSecretariaParentView() {
-        return `
-            <div class="p-4 space-y-4">
-                <div class="bg-darkcard border border-darkborder rounded-2xl p-4 space-y-3">
-                    <h2 class="font-bebas text-lg text-amber-500">🏛️ INFORMAÇÕES DO PROJETO (PAIS)</h2>
-                    <p class="text-xs text-gray-300">Acompanhe o crescimento e a estrutura organizacional do Projeto Sementes.</p>
-                    
-                    <div class="bg-darkbase p-3 rounded-xl border border-darkborder">
-                        <h3 class="text-xs font-semibold text-amber-400 mb-2">👥 Diretoria e Liderança Eclesial</h3>
-                        <ul class="text-xs text-gray-300 space-y-1">
-                            <li>• <strong>Pr. Joel Amorim:</strong> Pastor Presidente (IEQ Guaicurus)</li>
-                            <li>• <strong>Mestre London:</strong> Coordenação Técnica Jiu-Jitsu</li>
-                            <li>• <strong>Pr. Marcos:</strong> Apoio Social e Células</li>
-                        </ul>
-                    </div>
-
-                    <div class="bg-darkbase p-3 rounded-xl border border-darkborder">
-                        <h3 class="text-xs font-semibold text-amber-400 mb-2">📊 Crescimento do Projeto (Alunos Ativos)</h3>
-                        <div class="h-24 bg-darkcard rounded flex items-end justify-around p-2 border border-darkborder">
-                            <div class="w-8 bg-amber-600/50 rounded-t h-[40%] text-[9px] text-center text-amber-300">Jan</div>
-                            <div class="w-8 bg-amber-600/70 rounded-t h-[60%] text-[9px] text-center text-amber-300">Mar</div>
-                            <div class="w-8 bg-amber-600/90 rounded-t h-[80%] text-[9px] text-center text-amber-300">Jun</div>
-                            <div class="w-8 bg-amber-500 rounded-t h-[100%] text-[9px] text-center text-black font-bold">Set</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    // Initialize Lucide icons on load
-    window.addEventListener('DOMContentLoaded', () => {
-        lucide.createIcons();
-        initSignature();
+  const tasks=JSON.parse(localStorage.getItem(STORAGE_KEYS.tasks)||"{}");
+  document.querySelectorAll("[data-task]").forEach(box=>{
+    box.checked=!!tasks[box.dataset.task];
+    box.addEventListener("change",()=>{
+      const current=JSON.parse(localStorage.getItem(STORAGE_KEYS.tasks)||"{}");
+      current[box.dataset.task]=box.checked;
+      localStorage.setItem(STORAGE_KEYS.tasks,JSON.stringify(current));
     });
+  });
+
+  if(window.lucide) lucide.createIcons();
+}
+
+/* -----------------------------
+   BOOT
+   ----------------------------- */
+document.addEventListener("DOMContentLoaded",()=>{
+  loadState();
+  seedState();
+  restoreGame();
+
+  initEvents();
+  initTabs();
+  initEnrollment();
+  setupSignature();
+
+  if(window.lucide) lucide.createIcons();
+
+  restoreSession();
+});
 </script>
+
+<!--
+===============================================================================
+NOTAS DE IMPLEMENTAÇÃO PARA PRODUÇÃO
+===============================================================================
+
+1. LOGO
+   Coloque "logo_projeto_sementes.png" na mesma pasta deste index.html.
+   A especificação original prevê o arquivo vindo do repositório.
+
+2. AUTENTICAÇÃO
+   O login acima é apenas uma demonstração local.
+   Para produção:
+   - Firebase Authentication ou outro provedor;
+   - recuperação de senha por e-mail;
+   - MFA se necessário;
+   - regras de sessão;
+   - nenhuma senha real dentro do HTML.
+
+3. BANCO DE DADOS
+   O HTML utiliza localStorage apenas para demonstração.
+   Para produção, migrar:
+   - alunos;
+   - ficha de saúde;
+   - matrícula;
+   - frequência;
+   - células;
+   - diretoria;
+   - pedidos de oração;
+   - Game Gospel;
+   para Firestore/Supabase ou backend próprio com regras de segurança.
+
+4. DADOS DE SAÚDE E BIOMETRIA
+   A especificação trata informações de menores e biometria.
+   Não use localStorage como armazenamento definitivo.
+   O armazenamento real deve aplicar controles de acesso, criptografia,
+   retenção, auditoria e demais requisitos legais aplicáveis.
+
+5. ASSINATURA
+   A assinatura é desenhada no canvas e convertida para PNG.
+   Para gerar o PDF definitivo:
+   - enviar os dados para backend;
+   - montar PDF;
+   - anexar assinatura;
+   - armazenar de maneira segura;
+   - registrar auditoria.
+
+6. WHATSAPP
+   Links wa.me são usados como fallback.
+   Para disparos automáticos em produção:
+   - contratar/configurar provedor;
+   - usar API oficial ou serviço autorizado;
+   - não expor tokens no HTML.
+
+7. BIOMETRIA FACIAL
+   A câmera é aberta somente quando solicitada.
+   A captura local não cria vetores biométricos.
+   O reconhecimento coletivo da foto da turma precisa de integração
+   específica, consentimento/base legal adequada e arquitetura segura.
+
+8. RELATÓRIOS
+   CSV é gerado no navegador.
+   A impressão/PDF usa a janela de impressão do navegador.
+   Relatórios assinados e auditáveis devem ser gerados no backend.
+
+9. GITHUB PAGES
+   Este arquivo pode ser publicado como página estática.
+   Recursos que dependem de backend não ficam seguros se implementados
+   somente no navegador.
+
+10. MATRIZ DE ACESSOS DA ESPECIFICAÇÃO
+    Responsável:
+      - vê somente o próprio filho;
+      - campos de graduação em leitura.
+
+    Diretoria:
+      - lista completa;
+      - leitura da ficha de saúde;
+      - sem edição de graduação.
+
+    Mestre London:
+      - lista completa;
+      - leitura e escrita de graduação;
+      - edição da data de início;
+      - operação do Tatame;
+      - Secretaria.
+
+    Pastor Joel:
+      - Secretaria conforme escopo;
+      - operação administrativa conforme regras configuradas.
+
+===============================================================================
+FIM DO ARQUIVO
+===============================================================================
+-->
+</body>
+</html>
