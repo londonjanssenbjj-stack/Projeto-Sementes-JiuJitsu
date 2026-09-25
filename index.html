@@ -1098,58 +1098,44 @@
               </label>
             </div>
 
-           <h2 class="section-title">ETAPA DE ASSINATURA E VALIDAÇÃO</h2>
-    <p class="small muted">
-      Localidade e data geradas automaticamente: <strong id="enrollmentDate"></strong>
-    </p>
+           // Exemplo da lógica reorganizada no JavaScript após o submit do formulário:
+$("enrollmentForm").addEventListener("submit", async e => {
+  e.preventDefault();
 
-    <!-- PASSO 1: ASSINATURA NA TELA TOUCH -->
-    <div id="signatureSection">
-      <canvas id="signaturePad" class="signature-pad"></canvas>
-      <div class="signature-tools">
-        <button class="btn" type="button" id="clearSignature">🔄 Apagar e Refazer</button>
-        <button class="btn btn-gold" type="button" id="proceedToBiometric">Avançar para Biometria ➔</button>
-      </div>
-    </div>
+  if (signatureIsEmpty()) {
+    toast("Faça a assinatura na tela antes de finalizar.");
+    return;
+  }
 
-    <!-- PASSO 2: BIOMETRIA (Inicialmente oculto) -->
-    <div id="biometricSection" class="hidden" style="margin-top:22px">
-      <div class="notice">
-        <strong>Passo 2 de 2 — Validação Biométrica.</strong><br>
-        Posicione o rosto do aluno dentro da moldura em local iluminado.
-      </div>
+  // 1 e 2. Assinatura concluída e Cadastro Finalizado com sucesso
+  saveEnrollmentData(); 
 
-      <div class="camera-box" style="margin-top:12px">
-        <video id="cameraVideo" autoplay playsinline muted></video>
-        <div class="face-guide"></div>
-      </div>
+  // 3. Liberar e Realizar a Biometria Facial
+  $("biometricSection").classList.remove("hidden");
+  $("step2Dot").classList.add("active");
+  toast("Cadastro finalizado! Prossiga para a validação biométrica facial.");
 
-      <div class="action-row" style="margin-top:10px">
-        <button class="btn btn-gold" type="button" id="startCamera">Abrir câmera</button>
-        <button class="btn" type="button" id="captureFace">Capturar Face</button>
-      </div>
+  // 4. Enviar o documento assinado via WhatsApp para o Responsável e Mestre London
+  enviarDocumentoWhatsApp();
+});
 
-      <canvas id="faceCanvas" class="hidden"></canvas>
-      <div style="text-align: center;">
-        <img id="facePreview" class="hidden" alt="Prévia facial"
-             style="width:130px;height:130px;object-fit:cover;border-radius:50%;margin-top:12px;border:2px solid var(--gold)">
-      </div>
+function enviarDocumentoWhatsApp() {
+  const phoneResponsavel = $("guardianPhone").value.trim();
+  const nomeAluno = $("studentName").value.trim();
+  
+  const mensagem = encodeURIComponent(
+    `Olá! Segue o documento de matrícula assinado do aluno ${nomeAluno} referente ao Projeto Sementes (IEQ Guaicurus).`
+  );
 
-      <!-- BOTÃO FINAL DE ENVIO (Aparece após capturar a face) -->
-      <div id="finalSubmitSection" class="hidden" style="margin-top:20px;">
-        <button class="btn btn-gold" type="submit" id="sendDocumentBtn" style="width:100%; padding: 14px;">
-          💾 Finalizar, Gerar e Enviar Documento (Responsável & Mestre London)
-        </button>
-      </div>
-    </div>
-
-    <!-- AVISO DE SUCESSO -->
-    <div id="enrollmentSuccess" class="success-notice hidden" style="margin-top:16px">
-      Documento gerado com sucesso! O PDF foi enviado para o responsável e para o Mestre London.
-    </div>
-  </form>
-</section>
-
+  // Envio para o Mestre London e para o Responsável
+  if (APP_CONFIG.masterWhatsapp) {
+    window.open(`https://wa.me/${APP_CONFIG.masterWhatsapp}?text=${mensagem}`, "_blank");
+  }
+  if (phoneResponsavel) {
+    window.open(`https://wa.me/${phoneResponsavel.replace(/\D/g,"")}?text=${mensagem}`, "_blank");
+  }
+}     
+            
       <!-- =====================================================
            STUDENTS
            ===================================================== -->
@@ -3231,23 +3217,36 @@ FIM DO ARQUIVO
 </body>
 </html>
 
-// 1. Quando clicar em avançar após assinar
-document.getElementById('proceedToBiometric').addEventListener('click', function() {
-    document.getElementById('signatureSection').style.display = 'none';
-    document.getElementById('biometricSection').classList.remove('hidden');
-    document.getElementById('biometricSection').style.display = 'block';
-});
+        // --- COLOQUE ESTE BLOCO EXATAMENTE NA ÚLTIMA LINHA DO SEU CÓDIGO JAVA/JS ---
 
-// 2. Quando capturar a face com sucesso, liberar o botão de envio final
-document.getElementById('captureFace').addEventListener('click', function() {
-    // (Sua lógica existente de captura da foto aqui...)
-    document.getElementById('facePreview').classList.remove('hidden');
-    document.getElementById('finalSubmitSection').classList.remove('hidden');
-});
+document.addEventListener("DOMContentLoaded", () => {
+  const enrollmentForm = document.getElementById("enrollmentForm");
+  if (enrollmentForm) {
+    enrollmentForm.addEventListener("submit", async function(e) {
+      e.preventDefault();
+      
+      // 1 & 2. Assinatura e Confirmação/Finalização do Cadastro
+      console.log("Cadastro finalizado e assinatura processada.");
 
-// 3. Clique do Envio Final
-document.getElementById('sendDocumentBtn').addEventListener('click', function(e) {
-    e.preventDefault();
-    document.getElementById('biometricSection').style.display = 'none';
-    document.getElementById('enrollmentSuccess').classList.remove('hidden');
+      // 3. Executar a etapa de Biometria Facial
+      const biometricSection = document.getElementById("biometricSection");
+      if (biometricSection) {
+        biometricSection.classList.remove("hidden");
+      }
+
+      // 4. Envio do documento assinado via WhatsApp (Responsável e Mestre London)
+      const phoneResponsavel = document.getElementById("guardianPhone") ? document.getElementById("guardianPhone").value.replace(/\D/g, "") : "";
+      const nomeAluno = document.getElementById("studentName") ? document.getElementById("studentName").value : "Aluno";
+      const masterWhatsapp = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.masterWhatsapp ? APP_CONFIG.masterWhatsapp : "";
+      
+      const textoMensagem = encodeURIComponent(`Olá! Segue em anexo o documento de matrícula assinado referente ao aluno(a) ${nomeAluno}.[cite: 1]`);
+
+      if (masterWhatsapp) {
+        window.open(`https://wa.me/${masterWhatsapp}?text=${textoMensagem}`, "_blank");
+      }
+      if (phoneResponsavel) {
+        window.open(`https://wa.me/${phoneResponsavel}?text=${textoMensagem}`, "_blank");
+      }
+    });
+  }
 });
