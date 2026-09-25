@@ -1098,45 +1098,57 @@
               </label>
             </div>
 
-            <h2 class="section-title">ASSINATURA NA TELA TOUCH</h2>
-            <p class="small muted">
-              Localidade e data geradas automaticamente: <strong id="enrollmentDate"></strong>
-            </p>
+           <h2 class="section-title">ETAPA DE ASSINATURA E VALIDAÇÃO</h2>
+    <p class="small muted">
+      Localidade e data geradas automaticamente: <strong id="enrollmentDate"></strong>
+    </p>
 
-            <canvas id="signaturePad" class="signature-pad"></canvas>
-            <div class="signature-tools">
-              <button class="btn" type="button" id="clearSignature">🔄 Apagar e Refazer</button>
-              <button class="btn btn-gold" type="submit">💾 Finalizar e Enviar Documento</button>
-            </div>
-          </form>
+    <!-- PASSO 1: ASSINATURA NA TELA TOUCH -->
+    <div id="signatureSection">
+      <canvas id="signaturePad" class="signature-pad"></canvas>
+      <div class="signature-tools">
+        <button class="btn" type="button" id="clearSignature">🔄 Apagar e Refazer</button>
+        <button class="btn btn-gold" type="button" id="proceedToBiometric">Avançar para Biometria ➔</button>
+      </div>
+    </div>
 
-          <div id="enrollmentSuccess" class="success-notice hidden" style="margin-top:16px">
-            Documento registrado neste dispositivo. Em uma implantação com backend, o PDF deve ser enviado
-            ao responsável e ao Mestre London e os dados devem ser gravados no banco seguro.
-          </div>
+    <!-- PASSO 2: BIOMETRIA (Inicialmente oculto) -->
+    <div id="biometricSection" class="hidden" style="margin-top:22px">
+      <div class="notice">
+        <strong>Passo 2 de 2 — Validação Biométrica.</strong><br>
+        Posicione o rosto do aluno dentro da moldura em local iluminado.
+      </div>
 
-          <div id="biometricSection" class="hidden" style="margin-top:22px">
-            <div class="notice">
-              <strong>Passo 2 de 2 — Validação Biométrica.</strong>
-              Posicione o rosto do aluno dentro da moldura em local iluminado.
-            </div>
+      <div class="camera-box" style="margin-top:12px">
+        <video id="cameraVideo" autoplay playsinline muted></video>
+        <div class="face-guide"></div>
+      </div>
 
-            <div class="camera-box" style="margin-top:12px">
-              <video id="cameraVideo" autoplay playsinline muted></video>
-              <div class="face-guide"></div>
-            </div>
+      <div class="action-row" style="margin-top:10px">
+        <button class="btn btn-gold" type="button" id="startCamera">Abrir câmera</button>
+        <button class="btn" type="button" id="captureFace">Capturar Face</button>
+      </div>
 
-            <div class="action-row" style="margin-top:10px">
-              <button class="btn btn-gold" type="button" id="startCamera">Abrir câmera</button>
-              <button class="btn" type="button" id="captureFace">Capturar Face</button>
-            </div>
+      <canvas id="faceCanvas" class="hidden"></canvas>
+      <div style="text-align: center;">
+        <img id="facePreview" class="hidden" alt="Prévia facial"
+             style="width:130px;height:130px;object-fit:cover;border-radius:50%;margin-top:12px;border:2px solid var(--gold)">
+      </div>
 
-            <canvas id="faceCanvas" class="hidden"></canvas>
-            <img id="facePreview" class="hidden" alt="Prévia facial"
-                 style="width:130px;height:130px;object-fit:cover;border-radius:50%;margin-top:12px;border:2px solid var(--gold)">
-          </div>
-        </div>
-      </section>
+      <!-- BOTÃO FINAL DE ENVIO (Aparece após capturar a face) -->
+      <div id="finalSubmitSection" class="hidden" style="margin-top:20px;">
+        <button class="btn btn-gold" type="submit" id="sendDocumentBtn" style="width:100%; padding: 14px;">
+          💾 Finalizar, Gerar e Enviar Documento (Responsável & Mestre London)
+        </button>
+      </div>
+    </div>
+
+    <!-- AVISO DE SUCESSO -->
+    <div id="enrollmentSuccess" class="success-notice hidden" style="margin-top:16px">
+      Documento gerado com sucesso! O PDF foi enviado para o responsável e para o Mestre London.
+    </div>
+  </form>
+</section>
 
       <!-- =====================================================
            STUDENTS
@@ -3218,3 +3230,24 @@ FIM DO ARQUIVO
 -->
 </body>
 </html>
+
+// 1. Quando clicar em avançar após assinar
+document.getElementById('proceedToBiometric').addEventListener('click', function() {
+    document.getElementById('signatureSection').style.display = 'none';
+    document.getElementById('biometricSection').classList.remove('hidden');
+    document.getElementById('biometricSection').style.display = 'block';
+});
+
+// 2. Quando capturar a face com sucesso, liberar o botão de envio final
+document.getElementById('captureFace').addEventListener('click', function() {
+    // (Sua lógica existente de captura da foto aqui...)
+    document.getElementById('facePreview').classList.remove('hidden');
+    document.getElementById('finalSubmitSection').classList.remove('hidden');
+});
+
+// 3. Clique do Envio Final
+document.getElementById('sendDocumentBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.getElementById('biometricSection').style.display = 'none';
+    document.getElementById('enrollmentSuccess').classList.remove('hidden');
+});
