@@ -1098,163 +1098,46 @@
               </label>
             </div>
 
-           // ==========================================
-// MÓDULO DE ASSINATURA DIGITAL (Touch + Caneta + Mouse)
-// ==========================================
-let signatureCtx = null;
-let drawing = false;
+            <h2 class="section-title">ASSINATURA NA TELA TOUCH</h2>
+            <p class="small muted">
+              Localidade e data geradas automaticamente: <strong id="enrollmentDate"></strong>
+            </p>
 
-function setupSignature(){
-  const canvas = $("signaturePad");
-  if(!canvas) return;
+            <canvas id="signaturePad" class="signature-pad"></canvas>
+            <div class="signature-tools">
+              <button class="btn" type="button" id="clearSignature">🔄 Apagar e Refazer</button>
+              <button class="btn btn-gold" type="submit">💾 Finalizar e Enviar Documento</button>
+            </div>
+          </form>
 
-  const resize = ()=>{
-    const ratio = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * ratio;
-    canvas.height = rect.height * ratio;
-    signatureCtx = canvas.getContext("2d");
-    signatureCtx.scale(ratio, ratio);
-    signatureCtx.lineWidth = 2.5;
-    signatureCtx.lineCap = "round";
-    signatureCtx.lineJoin = "round";
-    signatureCtx.strokeStyle = "#111";
-  };
+          <div id="enrollmentSuccess" class="success-notice hidden" style="margin-top:16px">
+            Documento registrado neste dispositivo. Em uma implantação com backend, o PDF deve ser enviado
+            ao responsável e ao Mestre London e os dados devem ser gravados no banco seguro.
+          </div>
 
-  resize();
-  window.addEventListener("resize", resize);
+          <div id="biometricSection" class="hidden" style="margin-top:22px">
+            <div class="notice">
+              <strong>Passo 2 de 2 — Validação Biométrica.</strong>
+              Posicione o rosto do aluno dentro da moldura em local iluminado.
+            </div>
 
-  const getPos = e => {
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - rect.left, y: clientY - rect.top };
-  };
+            <div class="camera-box" style="margin-top:12px">
+              <video id="cameraVideo" autoplay playsinline muted></video>
+              <div class="face-guide"></div>
+            </div>
 
-  const start = e => {
-    e.preventDefault();
-    drawing = true;
-    const p = getPos(e);
-    signatureCtx.beginPath();
-    signatureCtx.moveTo(p.x, p.y);
-  };
+            <div class="action-row" style="margin-top:10px">
+              <button class="btn btn-gold" type="button" id="startCamera">Abrir câmera</button>
+              <button class="btn" type="button" id="captureFace">Capturar Face</button>
+            </div>
 
-  const move = e => {
-    if(!drawing) return;
-    e.preventDefault();
-    const p = getPos(e);
-    signatureCtx.lineTo(p.x, p.y);
-    signatureCtx.stroke();
-  };
+            <canvas id="faceCanvas" class="hidden"></canvas>
+            <img id="facePreview" class="hidden" alt="Prévia facial"
+                 style="width:130px;height:130px;object-fit:cover;border-radius:50%;margin-top:12px;border:2px solid var(--gold)">
+          </div>
+        </div>
+      </section>
 
-  const end = e => {
-    if(!drawing) return;
-    drawing = false;
-  };
-
-  // Eventos Mouse (Computador)
-  canvas.addEventListener("mousedown", start);
-  canvas.addEventListener("mousemove", move);
-  window.addEventListener("mouseup", end);
-
-  // Eventos Touch & Stylus (Celular e Tablets)
-  canvas.addEventListener("touchstart", start, { passive: false });
-  canvas.addEventListener("touchmove", move, { passive: false });
-  canvas.addEventListener("touchend", end);
-}
-
-function clearSignature(){
-  const canvas = $("signaturePad");
-  if(signatureCtx && canvas){
-    signatureCtx.clearRect(0, 0, canvas.width, canvas.height);
-  }
-}
-
-function signatureIsEmpty(){
-  const canvas = $("signaturePad");
-  const ctx = canvas.getContext("2d");
-  const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-  for(let i = 3; i < pixels.length; i += 4){
-    if(pixels[i] !== 0) return false;
-  }
-  return true;
-}
-
-$("clearSignature")?.addEventListener("click", clearSignature);
-
-// MATRÍCULA E ENVIO
-$("enrollmentForm")?.addEventListener("submit", e=>{
-  e.preventDefault();
-  if(signatureIsEmpty()){
-    toast("Por favor, faça a assinatura no painel antes de finalizar.");
-    return;
-  }
-  $("enrollmentSuccess").classList.remove("hidden");
-  $("biometricSection").classList.remove("hidden");
-  $("step2Dot").classList.add("active");
-  toast("Assinatura coletada com sucesso!");
-});
-
-// CÂMERA / BIOMETRIA FACIAL
-let faceStream = null;
-$("startCamera")?.addEventListener("click", async ()=>{
-  try{
-    faceStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-    $("cameraVideo").srcObject = faceStream;
-    toast("Câmera ativada.");
-  }catch(err){
-    toast("Erro ao acessar a câmera.");
-  }
-});
-
-$("captureFace")?.addEventListener("click", ()=>{
-  const video = $("cameraVideo");
-  if(!video.srcObject) return toast("Abra a câmera primeiro.");
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth || 640;
-  canvas.height = video.videoHeight || 480;
-  canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-  $("facePreview").src = canvas.toDataURL("image/jpeg", 0.85);
-  $("facePreview").classList.remove("hidden");
-  if(faceStream) faceStream.getTracks().forEach(t=>t.stop());
-  toast("Face capturada com sucesso!");
-});
-
-function renderStudents(){
-  $("studentList").innerHTML = state.students.map(s=>`
-    <div class="student-row">
-      <img class="avatar" src="logo_projeto_sementes.png" onerror="this.style.display='none'">
-      <span class="dot green"></span>
-      <div><strong>${s.name}</strong><span>Faixa ${s.belt}</span></div>
-    </div>
-  `).join("");
-}
-
-function renderTatame(){
-  $("attendanceGrid").innerHTML = state.students.map(s=>`
-    <div class="athlete present">
-      <strong>${s.name}</strong>
-      <small>Presente</small>
-    </div>
-  `).join("");
-  $("presentCount").textContent = state.students.length;
-}
-
-function renderFrequency(){
-  $("frequencyTable").innerHTML = `<tr><td>Hoje</td><td>Aluno Exemplo</td><td>🟢 Presente</td></tr>`;
-}
-
-function renderAll(){
-  $("enrollmentDate").textContent = new Date().toLocaleDateString("pt-BR");
-  setupSignature();
-  renderStudents();
-  renderTatame();
-  renderFrequency();
-}
-</script>
-</body>
-</html>
-      
       <!-- =====================================================
            STUDENTS
            ===================================================== -->
@@ -1626,7 +1509,7 @@ const APP_CONFIG = {
     Supabase Auth ou outro provedor seguro.
   */
   demoMasterLogin: "londonjanssenbjj@gmail.com",
-  demoMasterPassword: "12381314*Jl",
+  demoMasterPassword: "12381314*Lj",
 
   logo: "logo_projeto_sementes.png"
 };
