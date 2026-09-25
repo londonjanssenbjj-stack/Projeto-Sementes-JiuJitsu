@@ -1098,27 +1098,26 @@
               </label>
             </div>
 
-            <h2 class="section-title">ASSINATURA NA TELA TOUCH</h2>
+         <h2 class="section-title">ASSINATURA NA TELA TOUCH</h2>
             <p class="small muted">
-              Localidade e data geradas automaticamente: <strong id="enrollmentDate"></strong>
+              Localidade e data geradas automaticamente: <strong id="enrollmentDate">Corumbá - MS, 18 de setembro de 2026</strong>
             </p>
 
             <canvas id="signaturePad" class="signature-pad"></canvas>
             <div class="signature-tools">
-              <button class="btn" type="button" id="clearSignature">🔄 Apagar e Refazer</button>
+              <button class="btn btn-danger" type="button" id="clearSignature">🔄 Apagar e Refazer</button>
               <button class="btn btn-gold" type="submit">💾 Finalizar e Enviar Documento</button>
             </div>
           </form>
 
           <div id="enrollmentSuccess" class="success-notice hidden" style="margin-top:16px">
-            Documento registrado neste dispositivo. Em uma implantação com backend, o PDF deve ser enviado
-            ao responsável e ao Mestre London e os dados devem ser gravados no banco seguro.
+            ✉️ Documento enviado! Verifique o seu WhatsApp para confirmar se o PDF da matrícula chegou até você. Caso não tenha recebido, por favor, nos informe imediatamente.
           </div>
 
           <div id="biometricSection" class="hidden" style="margin-top:22px">
             <div class="notice">
-              <strong>Passo 2 de 2 — Validação Biométrica.</strong>
-              Posicione o rosto do aluno dentro da moldura em local iluminado.
+              📢 <strong>Passo 2 de 2 — Validação Biométrica.</strong><br>
+              Posicione o rosto do aluno dentro da moldura abaixo em um local iluminado para finalizar a matrícula protetiva.
             </div>
 
             <div class="camera-box" style="margin-top:12px">
@@ -1128,7 +1127,7 @@
 
             <div class="action-row" style="margin-top:10px">
               <button class="btn btn-gold" type="button" id="startCamera">Abrir câmera</button>
-              <button class="btn" type="button" id="captureFace">Capturar Face</button>
+              <button class="btn btn-success" type="button" id="captureFace">Capturar Face</button>
             </div>
 
             <canvas id="faceCanvas" class="hidden"></canvas>
