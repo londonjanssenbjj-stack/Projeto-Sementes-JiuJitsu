@@ -1098,46 +1098,172 @@
               </label>
             </div>
 
-            <h2 class="section-title">ASSINATURA NA TELA TOUCH</h2>
-            <p class="small muted">
-              Localidade e data geradas automaticamente: <strong id="enrollmentDate"></strong>
-            </p>
+           /* -----------------------------
+   SIGNATURE TOUCH / MOUSE CORRIGIDO
+   ----------------------------- */
+let signatureCtx = null;
+let drawing = false;
 
-            <canvas id="signaturePad" class="signature-pad"></canvas>
-            <div class="signature-tools">
-              <button class="btn" type="button" id="clearSignature">🔄 Apagar e Refazer</button>
-              <button class="btn btn-gold" type="submit">💾 Finalizar e Enviar Documento</button>
-            </div>
-          </form>
+function setupSignature(){
+  const canvas = $("signaturePad");
+  if(!canvas) return;
 
-          <div id="enrollmentSuccess" class="success-notice hidden" style="margin-top:16px">
-            Documento registrado neste dispositivo. Em uma implantação com backend, o PDF deve ser enviado
-            ao responsável e ao Mestre London e os dados devem ser gravados no banco seguro.
-          </div>
+  const resize = ()=>{
+    const ratio = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    signatureCtx = canvas.getContext("2d");
+    signatureCtx.scale(ratio, ratio);
+    signatureCtx.lineWidth = 2.5;
+    signatureCtx.lineCap = "round";
+    signatureCtx.strokeStyle = "#111";
+  };
 
-          <div id="biometricSection" class="hidden" style="margin-top:22px">
-            <div class="notice">
-              <strong>Passo 2 de 2 — Validação Biométrica.</strong>
-              Posicione o rosto do aluno dentro da moldura em local iluminado.
-            </div>
+  resize();
+  window.addEventListener("resize", resize);
 
-            <div class="camera-box" style="margin-top:12px">
-              <video id="cameraVideo" autoplay playsinline muted></video>
-              <div class="face-guide"></div>
-            </div>
+  const getPos = e => {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  };
 
-            <div class="action-row" style="margin-top:10px">
-              <button class="btn btn-gold" type="button" id="startCamera">Abrir câmera</button>
-              <button class="btn" type="button" id="captureFace">Capturar Face</button>
-            </div>
+  const start = e => {
+    e.preventDefault();
+    drawing = true;
+    const p = getPos(e);
+    signatureCtx.beginPath();
+    signatureCtx.moveTo(p.x, p.y);
+  };
 
-            <canvas id="faceCanvas" class="hidden"></canvas>
-            <img id="facePreview" class="hidden" alt="Prévia facial"
-                 style="width:130px;height:130px;object-fit:cover;border-radius:50%;margin-top:12px;border:2px solid var(--gold)">
-          </div>
-        </div>
-      </section>
+  const move = e => {
+    if(!drawing) return;
+    e.preventDefault();
+    const p = getPos(e);
+    signatureCtx.lineTo(p.x, p.y);
+    signatureCtx.stroke();
+  };
 
+  const end = () => { drawing = false; };
+
+  canvas.addEventListener("mousedown", start);
+  canvas.addEventListener("mousemove", move);
+  window.addEventListener("mouseup", end);
+
+  canvas.addEventListener("touchstart", start, {passive: false});
+  canvas.addEventListener("touchmove", move, {passive: false});
+  canvas.addEventListener("touchend", end);
+}
+
+function clearSignature(){
+  const canvas = $("signaturePad");
+  if(signatureCtx){
+    signatureCtx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+function signatureIsEmpty(){
+  const canvas = $("signaturePad");
+  const ctx = canvas.getContext("2d");
+  const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  for(let i = 3; i < pixels.length; i += 4){
+    if(pixels[i] !== 0) return false;
+  }
+  return true;
+}
+
+function initEnrollment(){
+  const fixedDateStr = "Corumbá - MS, 18 de setembro de 2026";
+  const isoFixedDate = "2026-09-18";
+  $("enrollmentDate").textContent = fixedDateStr;
+
+  $("enrollmentForm").addEventListener("submit", async e=>{
+    e.preventDefault();
+
+    if(signatureIsEmpty()){
+      toast("Faça a assinatura no painel antes de finalizar.");
+      return;
+    }
+
+    if(!$("imageConsent").checked){
+      toast("É necessário confirmar o termo de imagem.");
+      return;
+    }
+
+    const health = {
+      heart: document.querySelector('input[name="heart"]:checked')?.value || "",
+      respiratory: document.querySelector('input[name="respiratory"]:checked')?.value || "",
+      injury: document.querySelector('input[name="injury"]:checked')?.value || "",
+      medication: document.querySelector('input[name="medication"]:checked')?.value || "",
+      allergy: document.querySelector('input[name="allergy"]:checked')?.value || "",
+      fainting: document.querySelector('input[name="fainting"]:checked')?.value || "",
+      details: $("healthDetails").value.trim()
+    };
+
+    const signature = $("signaturePad").toDataURL("image/png");
+    const guardianPhoneInput = $("guardianPhone").value.trim();
+    const studentNameInput = $("studentName").value.trim();
+
+    state.enrollment = {
+      id: "enrollment-" + Date.now(),
+      date: isoFixedDate,
+      city: "Corumbá - MS",
+      student:{ name: studentNameInput, birth: $("studentBirth").value, school: $("studentSchool").value.trim(), address: $("studentAddress").value.trim() },
+      guardian:{ name: $("guardianName").value.trim(), relation: $("guardianRelation").value, phone: guardianPhoneInput, document: $("guardianDocument").value.trim() },
+      health, imageConsent: true, signature
+    };
+
+    let student = state.students.find(s=>s.name.toLowerCase()===studentNameInput.toLowerCase());
+
+    if(!student){
+      student = {
+        id: "student-" + Date.now(),
+        name: studentNameInput,
+        birth: state.enrollment.student.birth,
+        guardian: state.enrollment.guardian.name,
+        phone: guardianPhoneInput,
+        belt: "Branca",
+        degrees: 0,
+        status: "complete",
+        startDate: isoFixedDate,
+        face: "",
+        health
+      };
+      state.students.push(student);
+    }else{
+      student.status = "complete";
+      student.health = health;
+      student.guardian = state.enrollment.guardian.name;
+      student.phone = guardianPhoneInput;
+    }
+
+    saveState();
+
+    $("enrollmentSuccess").classList.remove("hidden");
+    $("biometricSection").classList.remove("hidden");
+    $("step2Dot").classList.add("active");
+    $("biometricSection").scrollIntoView({ behavior: "smooth" });
+
+    toast("Documento finalizado. A biometria foi liberada.");
+    renderStudents();
+    updateKPIs();
+
+    const cleanGuardianPhone = guardianPhoneInput.replace(/\D/g, "");
+    const pdfMessage = encodeURIComponent(`📄 Olá! Segue o PDF da Ficha de Inscrição e Matrícula de ${studentNameInput} preenchida e assinada em ${fixedDateStr}.`);
+
+    setTimeout(()=>{
+      if(cleanGuardianPhone){
+        window.open(`https://wa.me/55${cleanGuardianPhone}?text=${pdfMessage}`, "_blank");
+      }
+      window.open(`https://wa.me/${APP_CONFIG.masterWhatsapp}?text=${pdfMessage}`, "_blank");
+    }, 500);
+  });
+
+  $("clearSignature").addEventListener("click", clearSignature);
+}
+      
       <!-- =====================================================
            STUDENTS
            ===================================================== -->
