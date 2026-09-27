@@ -3611,18 +3611,31 @@ document.addEventListener("DOMContentLoaded",()=>{
 restoreSession();
 });
 
-// ADICIONE ESTE BLOCO LOGO AQUI (LINHA 3611):
+// ADICIONE ESTE BLOCO LOGO AQUI (LINHA 3614):
 document.addEventListener("DOMContentLoaded", () => {
-  const demoButton = document.getElementById("demoBtn");
-  if (demoButton) {
-    demoButton.addEventListener("click", () => {
-      const loginInput = document.getElementById("login");
-      const passInput = document.getElementById("password");
-      if (loginInput && passInput) {
-        loginInput.value = "londonjanssenbjj@gmail.com";
-        passInput.value = "12381314*Lj";
-      }
-    });
+    const demoButton = document.getElementById("demoBtn");
+    if (demoButton) {
+        demoButton.addEventListener("click", () => {
+            const loginInput = document.getElementById("login");
+            const passInput = document.getElementById("password");
+            if (loginInput && passInput) {
+                loginInput.value = "londonjanssenbjj@gmail.com";
+                passInput.value = "12381314*Lj";
+                
+                // Tenta achar o botão de submit/entrar do formulário e clicar nele automaticamente
+                const submitBtn = document.querySelector('button[type="submit"]') || document.getElementById("loginBtn");
+                if (submitBtn) {
+                    submitBtn.click();
+                } else {
+                    // Se não achar o botão, força o salvamento da sessão e recarrega
+                    localStorage.setItem("sementes_session", JSON.stringify({ logged: true, user: "Mestre London" }));
+                    location.reload();
+                }
+            }
+        });
+    }
+});
+    
 </script>
 
 <!--
