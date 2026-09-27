@@ -2114,12 +2114,20 @@ O documento da matrícula foi gerado pelo aplicativo Projeto Sementes.`;
 }
 
 function openWhatsAppDocument(recipientType, phone){
-  const number=normalizeWhatsAppNumber(phone);
+  const number = normalizeWhatsAppNumber(phone);
   if(!number) return false;
 
-  const message=encodeURIComponent(buildEnrollmentMessage(recipientType));
-  const url=`https://wa.me/${number}?text=${message}`;
-  const win=window.open(url,"_blank");
+  const message = encodeURIComponent(buildEnrollmentMessage(recipientType));
+  
+  // Abre a conversa do WhatsApp com a mensagem pronta
+  const url = `https://wa.me/${number}?text=${message}`;
+  const win = window.open(url, "_blank");
+
+  // Alerta visual de apoio para o usuário anexar o PDF baixado
+  setTimeout(() => {
+    toast("📄 PDF gerado e baixado! Anexe o arquivo PDF na conversa do WhatsApp.");
+  }, 1000);
+
   return !!win;
 }
 
