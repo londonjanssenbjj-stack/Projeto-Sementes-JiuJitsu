@@ -3608,7 +3608,21 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(window.lucide) lucide.createIcons();
 
   restoreSession();
+restoreSession();
 });
+
+// ADICIONE ESTE BLOCO LOGO AQUI (LINHA 3611):
+document.addEventListener("DOMContentLoaded", () => {
+  const demoButton = document.getElementById("demoBtn");
+  if (demoButton) {
+    demoButton.addEventListener("click", () => {
+      const loginInput = document.getElementById("login");
+      const passInput = document.getElementById("password");
+      if (loginInput && passInput) {
+        loginInput.value = "londonjanssenbjj@gmail.com";
+        passInput.value = "12381314*Lj";
+      }
+    });
 </script>
 
 <!--
