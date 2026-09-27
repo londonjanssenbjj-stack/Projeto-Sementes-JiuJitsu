@@ -2263,168 +2263,36 @@ function generateEnrollmentPDF(){
   setTimeout(()=>URL.revokeObjectURL(url),120000);
   return {blob, filename, codigoMatricula};
 }
-function initEnrollment(){
-  $("enrollmentDate").textContent = `${APP_CONFIG.city}, ${formatDate(todayISO())}`;
-
-  $("enrollmentForm").addEventListener("submit",async e=>{
-    e.preventDefault();
-
-    if(signatureIsEmpty()){
-      toast("Faça a assinatura no painel antes de finalizar.");
-      return;
-    }
-
-    if(!$("imageConsent").checked){
-      toast("É necessário confirmar o termo de imagem.");
-      return;
-    }
-
-    if(!$("enrollmentForm").checkValidity()){
-      $("enrollmentForm").reportValidity();
-      return;
-    }
-
-    const health = {
-      heart: document.querySelector('input[name="heart"]:checked')?.value || "",
-      respiratory: document.querySelector('input[name="respiratory"]:checked')?.value || "",
-      injury: document.querySelector('input[name="injury"]:checked')?.value || "",
-      medication: document.querySelector('input[name="medication"]:checked')?.value || "",
-      allergy: document.querySelector('input[name="allergy"]:checked')?.value || "",
-      fainting: document.querySelector('input[name="fainting"]:checked')?.value || "",
-      details: $("healthDetails").value.trim()
-    };
-
-    const signature=$("signaturePad").toDataURL("image/png");
-
-    state.enrollment={
-      id:"enrollment-"+Date.now(),
-      date:todayISO(),
-      city:APP_CONFIG.city,
-      student:{
-        name:$("studentName").value.trim(),
-        birth:$("studentBirth").value,
-        school:$("studentSchool").value.trim(),
-        address:$("studentAddress").value.trim()
-      },
-      guardian:{
-        name:$("guardianName").value.trim(),
-        relation:$("guardianRelation").value,
-        phone:$("guardianPhone").value.trim(),
-        document:$("guardianDocument").value.trim()
-      },
-      health,
-      imageConsent:true,
-      signature,
-      documentGenerated:false,
-      documentFilename:""
-    };
-
-    let student=state.students.find(
-      s=>s.name.toLowerCase()===state.enrollment.student.name.toLowerCase()
-    );
-
-    if(!student){
-      student={
-        id:"student-"+Date.now(),
-        name:state.enrollment.student.name,
-        birth:state.enrollment.student.birth,
-        guardian:state.enrollment.guardian.name,
-        phone:state.enrollment.guardian.phone,
-        belt:"Branca",
-        degrees:0,
-        status:"pending",
-        startDate:todayISO(),
-        face:"",
-        health
-      };
-      state.students.push(student);
-    }else{
-      // Só fica verde depois da biometria.
-      student.status=student.face ? "complete" : "pending";
-      student.health=health;
-      student.guardian=state.enrollment.guardian.name;
-      student.phone=state.enrollment.guardian.phone;
-    }
-
-    saveState();
-
-    let pdf;
-    try{
-      pdf=generateEnrollmentPDF();
-      state.enrollment.documentGenerated=true;
-      state.enrollment.documentFilename=pdf.filename;
-      saveState();
-    }catch(error){
-      console.error(error);
-      toast("Não foi possível gerar o PDF. Verifique a conexão e tente novamente.");
-      return;
-    }
-
-    $("enrollmentSuccess").classList.remove("hidden");
+$("enrollmentSuccess").classList.remove("hidden");
     $("enrollmentSuccess").innerHTML=`
-      <strong>✅ Documento gerado com sucesso.</strong><br>
-      O PDF foi baixado neste dispositivo como <strong>${escapeHTML(pdf.filename)}</strong>.<br>
-      <span class="small">O WhatsApp será aberto para o Mestre London e para o responsável. O arquivo PDF deve ser anexado na conversa.</span>
+      <strong>✅ Documento registrado e numerado com sucesso (${pdf.codigoMatricula}).</strong><br>
+      O arquivo foi enviado automaticamente para a pasta de arquivos da Secretaria (acessível à Diretoria e gerenciável pelo Mestre).<br><br>
+      <span class="small" style="color:var(--gold2)">⚠️ <strong>Aviso ao Responsável:</strong> Baixe o seu documento abaixo para guardar uma via oficial assinada.</span>
       <div class="action-row" style="margin-top:10px">
-        <button class="btn btn-gold" type="button" id="sendMasterEnrollment">💬 Mestre London</button>
-        <button class="btn" type="button" id="sendGuardianEnrollment">💬 Responsável</button>
-        <button class="btn" type="button" id="shareEnrollmentPDF">📄 Compartilhar PDF</button>
+        <button class="btn btn-gold" type="button" id="shareEnrollmentPDF">📥 Baixar Documento em PDF</button>
       </div>
     `;
 
-    // ORDEM CORRETA: documento primeiro, biometria depois.
-    $("biometricSection").classList.remove("hidden");
-    $("step2Dot").classList.add("active");
-    $("step1Dot").classList.remove("active");
-
-    // Abre as duas conversas com a mensagem já preenchida.
-    const masterOpened=openWhatsAppDocument("master",APP_CONFIG.masterWhatsapp);
-    const guardianOpened=openWhatsAppDocument("guardian",state.enrollment.guardian.phone);
-
-    $("sendMasterEnrollment").addEventListener(
-      "click",
-      ()=>openWhatsAppDocument("master",APP_CONFIG.masterWhatsapp)
-    );
-
-    $("sendGuardianEnrollment").addEventListener(
-      "click",
-      ()=>openWhatsAppDocument("guardian",state.enrollment.guardian.phone)
-    );
-
-    $("shareEnrollmentPDF").addEventListener("click",async()=>{
+    $("shareEnrollmentPDF").addEventListener("click", async () => {
       try{
-        const file=new File([pdf.blob],pdf.filename,{type:"application/pdf"});
-
-        if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+        const file = new File([pdf.blob], pdf.filename, {type: "application/pdf"});
+        if(navigator.share && navigator.canShare && navigator.canShare({files: [file]})){
           await navigator.share({
-            title:`Matrícula — ${state.enrollment.student.name}`,
-            text:"Documento de matrícula do Projeto Sementes.",
-            files:[file]
+            title: `Matrícula — ${state.enrollment.student.name}`,
+            text: `Documento oficial ${pdf.codigoMatricula} do Projeto Sementes.`,
+            files: [file]
           });
-        }else{
-          toast("Seu navegador não permite compartilhar arquivos diretamente. O PDF já foi baixado.");
+        } else {
+          // Fallback caso o compartilhamento nativo não esteja disponível no navegador
+          const a = document.createElement("a");
+          a.href = pdf.url;
+          a.download = pdf.filename;
+          a.click();
         }
-      }catch(error){
-        if(error?.name!=="AbortError") console.error(error);
+      }catch(err){
+        if(err?.name !== "AbortError") console.error(err);
       }
     });
-
-    renderStudents();
-    updateKPIs();
-
-    toast(
-      masterOpened || guardianOpened
-        ? "Documento gerado. WhatsApp aberto e biometria liberada."
-        : "Documento gerado. Biometria liberada."
-    );
-
-    // Tenta abrir a câmera automaticamente após liberar a biometria.
-    setTimeout(()=>startCamera(),700);
-  });
-
-  $("clearSignature").addEventListener("click",clearSignature);
-}
-
 /* -----------------------------
    CAMERA / FACE
    ----------------------------- */
