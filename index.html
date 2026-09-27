@@ -3110,7 +3110,87 @@ function renderGame(){
 /* -----------------------------
    SECRETARIA
    ----------------------------- */
-function renderDirectors(){
+/* ============================================================
+   COFRE DE DOCUMENTOS DA SECRETARIA (VISÍVEL PARA DIRETORIA E MESTRE)
+   ============================================================ */
+
+function renderSecretaryDocuments() {
+  if (!canSeeSecretary()) return;
+
+  const isMaster = state.user?.role === "master";
+  const enrollmentData = state.enrollment; 
+
+  let container = $("secretaryDocumentsContainer");
+  if (!container) {
+    const secretaryPage = $("secretaryPage");
+    if (secretaryPage) {
+      const newCard = document.createElement("article");
+      newCard.className = "card wide";
+      newCard.style.marginTop = "14px";
+      newCard.innerHTML = `
+        <div class="card-header">
+          <div><h2 class="section-title">COFRE DE MATRÍCULAS E DOCUMENTOS</h2><span class="small muted">Consulta da Diretoria e Gestão do Mestre</span></div>
+          <i class="icon-gold" data-lucide="folder-lock"></i>
+        </div>
+        <div id="secretaryDocumentsContainer"></div>
+      `;
+      secretaryPage.appendChild(newCard);
+      container = $("secretaryDocumentsContainer");
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  if (!container) return;
+
+  if (!enrollmentData) {
+    container.innerHTML = `<p class="muted small">Nenhum documento recente no cofre da secretaria.</p>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="card" style="background:#151515; margin-top: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <strong>Ficha: ${escapeHTML(enrollmentData.student.name)}</strong>
+          <div class="small muted">Responsável: ${escapeHTML(enrollmentData.guardian.name)} — Data: ${formatDate(enrollmentData.date)}</div>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-blue" type="button" onclick="reopenEnrollmentPDF()">👁️ Ver PDF</button>
+          ${isMaster ? `<button class="btn btn-danger" type="button" onclick="deleteEnrollmentPDF()">🗑️ Excluir</button>` : ``}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function reopenEnrollmentPDF() {
+  if (state.enrollment) {
+    generateEnrollmentPDF(); 
+    toast("Documento aberto/baixado para consulta.");
+  } else {
+    toast("Nenhum documento encontrado no cofre.");
+  }
+}
+
+function deleteEnrollmentPDF() {
+  if (state.user?.role !== "master") {
+    toast("Apenas o Mestre London tem permissão para excluir documentos.");
+    return;
+  }
+  
+  if (confirm("Deseja realmente excluir este documento do cofre da secretaria?")) {
+    state.enrollment = null;
+    saveState();
+    renderSecretaryDocuments();
+    toast("Documento excluído com sucesso.");
+  }
+}
+
+/* -----------------------------
+   SECRETARIA
+   ----------------------------- */
+  
+  function renderDirectors(){
   $("directorsTable").innerHTML=directors.map(d=>`
     <tr>
       <td>${escapeHTML(d.name)}</td>
