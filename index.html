@@ -2400,7 +2400,7 @@ function generateEnrollmentPDF(){
 function initEnrollment(){
   $("enrollmentDate").textContent = `${APP_CONFIG.city}, ${formatDate(todayISO())}`;
 
-  $("enrollmentForm").addEventListener("submit",async e=>{
+  $("enrollmentForm").addEventListener("submit", async e => {
     e.preventDefault();
 
     if(signatureIsEmpty()){
@@ -2428,77 +2428,73 @@ function initEnrollment(){
       details: $("healthDetails").value.trim()
     };
 
-    const signature=$("signaturePad").toDataURL("image/png");
+    const signature = $("signaturePad").toDataURL("image/png");
 
-    state.enrollment={
-      id:"enrollment-"+Date.now(),
-      date:todayISO(),
-      city:APP_CONFIG.city,
-      student:{
-        name:$("studentName").value.trim(),
-        birth:$("studentBirth").value,
-        school:$("studentSchool").value.trim(),
-        address:$("studentAddress").value.trim()
+    state.enrollment = {
+      id: "enrollment-" + Date.now(),
+      date: todayISO(),
+      city: APP_CONFIG.city,
+      student: {
+        name: $("studentName").value.trim(),
+        birth: $("studentBirth").value,
+        school: $("studentSchool").value.trim(),
+        address: $("studentAddress").value.trim()
       },
-      guardian:{
-        name:$("guardianName").value.trim(),
-        relation:$("guardianRelation").value,
-        phone:$("guardianPhone").value.trim(),
-        document:$("guardianDocument").value.trim()
+      guardian: {
+        name: $("guardianName").value.trim(),
+        relation: $("guardianRelation").value,
+        phone: $("guardianPhone").value.trim(),
+        document: $("guardianDocument").value.trim()
       },
       health,
-      imageConsent:true,
+      imageConsent: true,
       signature,
-      documentGenerated:false,
-      documentFilename:""
+      documentGenerated: false,
+      documentFilename: ""
     };
 
-    let student=state.students.find(
-      s=>s.name.toLowerCase()===state.enrollment.student.name.toLowerCase()
+    let student = state.students.find(
+      s => s.name.toLowerCase() === state.enrollment.student.name.toLowerCase()
     );
 
     if(!student){
-      student={
-        id:"student-"+Date.now(),
-        name:state.enrollment.student.name,
-        birth:state.enrollment.student.birth,
-        guardian:state.enrollment.guardian.name,
-        phone:state.enrollment.guardian.phone,
-        belt:"Branca",
-        degrees:0,
-        status:"pending",
-        startDate:todayISO(),
-        face:"",
+      student = {
+        id: "student-" + Date.now(),
+        name: state.enrollment.student.name,
+        birth: state.enrollment.student.birth,
+        guardian: state.enrollment.guardian.name,
+        phone: state.enrollment.guardian.phone,
+        belt: "Branca",
+        degrees: 0,
+        status: "pending",
+        startDate: todayISO(),
+        face: "",
         health
       };
       state.students.push(student);
-    }else{
-      // Só fica verde depois da biometria.
-      student.status=student.face ? "complete" : "pending";
-      student.health=health;
-      student.guardian=state.enrollment.guardian.name;
-      student.phone=state.enrollment.guardian.phone;
+    } else {
+      student.status = student.face ? "complete" : "pending";
+      student.health = health;
+      student.guardian = state.enrollment.guardian.name;
+      student.phone = state.enrollment.guardian.phone;
     }
-  }); // Fecha o addEventListener do 'submit'
-} // <-- IMPORTANTE: Esta chave fecha a função initEnrollment() inteira!
-  
+
     saveState();
 
     let pdf;
-    try{
-      pdf=generateEnrollmentPDF();
-      state.enrollment.documentGenerated=true;
-      state.enrollment.documentFilename=pdf.filename;
+    try {
+      pdf = generateEnrollmentPDF();
+      state.enrollment.documentGenerated = true;
+      state.enrollment.documentFilename = pdf.filename;
       saveState();
-    }catch(error){
+    } catch(error) {
       console.error(error);
       toast("Não foi possível gerar o PDF. Verifique a conexão e tente novamente.");
       return;
     }
 
     $("enrollmentSuccess").classList.remove("hidden");
-   $("enrollmentSuccess").classList.remove("hidden");
-    $("enrollmentSuccess").innerHTML=`
+    $("enrollmentSuccess").innerHTML = `
       <strong>✅ Matrícula e Documento Registrados com Sucesso!</strong><br>
       O PDF foi gerado e salvo com segurança na Secretaria do projeto para consulta da Diretoria e do Mestre.<br><br>
       <div class="action-row" style="margin-top:10px; gap: 8px; flex-wrap: wrap;">
@@ -2514,41 +2510,39 @@ function initEnrollment(){
     $("sendMasterNotice").addEventListener("click", () => {
       openWhatsAppDocument("master", APP_CONFIG.masterWhatsapp);
     });
-    
-    // ORDEM CORRETA: documento primeiro, biometria depois.
+      
     $("biometricSection").classList.remove("hidden");
     $("step2Dot").classList.add("active");
     $("step1Dot").classList.remove("active");
 
-    // Abre as duas conversas com a mensagem já preenchida.
-    const masterOpened=openWhatsAppDocument("master",APP_CONFIG.masterWhatsapp);
-    const guardianOpened=openWhatsAppDocument("guardian",state.enrollment.guardian.phone);
+    const masterOpened = openWhatsAppDocument("master", APP_CONFIG.masterWhatsapp);
+    const guardianOpened = openWhatsAppDocument("guardian", state.enrollment.guardian.phone);
 
     $("sendMasterEnrollment").addEventListener(
       "click",
-      ()=>openWhatsAppDocument("master",APP_CONFIG.masterWhatsapp)
+      () => openWhatsAppDocument("master", APP_CONFIG.masterWhatsapp)
     );
 
     $("sendGuardianEnrollment").addEventListener(
       "click",
-      ()=>openWhatsAppDocument("guardian",state.enrollment.guardian.phone)
+      () => openWhatsAppDocument("guardian", state.enrollment.guardian.phone)
     );
 
-    $("shareEnrollmentPDF").addEventListener("click",async()=>{
-      try{
-        const file=new File([pdf.blob],pdf.filename,{type:"application/pdf"});
+    $("shareEnrollmentPDF").addEventListener("click", async () => {
+      try {
+        const file = new File([pdf.blob], pdf.filename, { type: "application/pdf" });
 
-        if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+        if(navigator.share && navigator.canShare && navigator.canShare({ files: [file] })){
           await navigator.share({
-            title:`Matrícula — ${state.enrollment.student.name}`,
-            text:"Documento de matrícula do Projeto Sementes.",
-            files:[file]
+            title: `Matrícula — ${state.enrollment.student.name}`,
+            text: "Documento de matrícula do Projeto Sementes.",
+            files: [file]
           });
-        }else{
+        } else {
           toast("Seu navegador não permite compartilhar arquivos diretamente. O PDF já foi baixado.");
         }
-      }catch(error){
-        if(error?.name!=="AbortError") console.error(error);
+      } catch(error) {
+        if(error?.name !== "AbortError") console.error(error);
       }
     });
 
@@ -2561,13 +2555,11 @@ function initEnrollment(){
         : "Documento gerado. Biometria liberada."
     );
 
-    // Tenta abrir a câmera automaticamente após liberar a biometria.
-    setTimeout(()=>startCamera(),700);
+    setTimeout(() => startCamera(), 700);
   });
 
-  $("clearSignature").addEventListener("click",clearSignature);
+  $("clearSignature").addEventListener("click", clearSignature);
 }
-
 /* -----------------------------
    CAMERA / FACE
    ----------------------------- */
