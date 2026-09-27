@@ -14,6 +14,7 @@
 
   <!-- ÍCONES -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
     :root{
@@ -428,7 +429,7 @@
       border:1px solid #444;
     }
     .dot{width:10px;height:10px;border-radius:50%}
-    .dot.red{background:#ef4444}.dot.green{background:#22c55e}
+    .dot.red{background:#ef4444}.dot.yellow{background:#f4d03f}.dot.green{background:#22c55e}
     .student-row strong{font-size:13px}.student-row span{font-size:10px;color:#aaa}
     .action-row{display:flex;gap:7px;flex-wrap:wrap}
 
@@ -1106,14 +1107,15 @@
             <canvas id="signaturePad" class="signature-pad"></canvas>
             <div class="signature-tools">
               <button class="btn" type="button" id="clearSignature">🔄 Apagar e Refazer</button>
-            <button class="btn btn-gold" type="submit" onclick="enviarWhatsAppMestre(event)">Finalizar e Enviar Documento</button>
+              <button class="btn btn-gold" type="submit">💾 Finalizar e Enviar Documento</button>
             </div>
           </form>
 
-          <div id="enrollmentsSuccess" class="success-notice hidden" style="margin-top:16px">
-    Documento assinado com sucesso! O comprovante foi enviado para o WhatsApp do Mestre London e do responsável cadastrado.
-</div>
-   
+          <div id="enrollmentSuccess" class="success-notice hidden" style="margin-top:16px">
+            Documento registrado neste dispositivo. Em uma implantação com backend, o PDF deve ser enviado
+            ao responsável e ao Mestre London e os dados devem ser gravados no banco seguro.
+          </div>
+
           <div id="biometricSection" class="hidden" style="margin-top:22px">
             <div class="notice">
               <strong>Passo 2 de 2 — Validação Biométrica.</strong>
@@ -2082,6 +2084,183 @@ function signatureIsEmpty(){
 /* -----------------------------
    ENROLLMENT
    ----------------------------- */
+function normalizeWhatsAppNumber(phone){
+  let n=String(phone||"").replace(/\D/g,"");
+  if(!n) return "";
+  if(n.startsWith("55")) return n;
+  if(n.length===10 || n.length===11) return "55"+n;
+  return n;
+}
+
+function buildEnrollmentMessage(recipientType){
+  const e=state.enrollment;
+  const aluno=e?.student?.name || "";
+  const responsavel=e?.guardian?.name || "";
+  const data=formatDate(e?.date || todayISO());
+
+  if(recipientType==="master"){
+    return `Olá, Mestre London! 🌱🥋
+
+A matrícula do aluno ${aluno} foi finalizada e assinada pelo responsável ${responsavel} em ${data}.
+
+O documento da matrícula foi gerado pelo aplicativo Projeto Sementes.`;
+  }
+
+  return `Olá, ${responsavel}! 🌱🥋
+
+A matrícula de ${aluno} foi finalizada e assinada em ${data}.
+
+O documento da matrícula foi gerado pelo aplicativo Projeto Sementes.`;
+}
+
+function openWhatsAppDocument(recipientType, phone){
+  const number=normalizeWhatsAppNumber(phone);
+  if(!number) return false;
+
+  const message=encodeURIComponent(buildEnrollmentMessage(recipientType));
+  const url=`https://wa.me/${number}?text=${message}`;
+  const win=window.open(url,"_blank");
+  return !!win;
+}
+
+function generateEnrollmentPDF(){
+  if(!window.jspdf?.jsPDF){
+    throw new Error("Biblioteca de PDF não carregada.");
+  }
+
+  const {jsPDF}=window.jspdf;
+  const e=state.enrollment;
+  const doc=new jsPDF({unit:"mm",format:"a4"});
+  const margin=15;
+  const pageWidth=210;
+  const contentWidth=pageWidth-(margin*2);
+  let y=18;
+
+  const title=(text,size=15)=>{
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(size);
+    doc.setTextColor(140,106,21);
+    doc.text(text,margin,y);
+    y+=8;
+  };
+
+  const labelValue=(label,value)=>{
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(9);
+    doc.setTextColor(45,45,45);
+    doc.text(label,margin,y);
+    y+=4.5;
+
+    doc.setFont("helvetica","normal");
+    const text=String(value||"Não informado");
+    const wrapped=doc.splitTextToSize(text,contentWidth);
+    doc.text(wrapped,margin,y);
+    y+=(wrapped.length*4.2)+3;
+
+    if(y>275){
+      doc.addPage();
+      y=18;
+    }
+  };
+
+  const paragraph=(text)=>{
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(55,55,55);
+    const wrapped=doc.splitTextToSize(String(text||""),contentWidth);
+    doc.text(wrapped,margin,y);
+    y+=(wrapped.length*4.1)+4;
+
+    if(y>275){
+      doc.addPage();
+      y=18;
+    }
+  };
+
+  doc.setFillColor(18,18,18);
+  doc.rect(0,0,210,14,"F");
+  doc.setTextColor(244,215,110);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(13);
+  doc.text("PROJETO SEMENTES — JIU-JITSU",margin,9);
+  y=22;
+
+  title("FICHA DE MATRÍCULA E AUTORIZAÇÃO",15);
+
+  labelValue("Data da matrícula",formatDate(e.date));
+  labelValue("Local",e.city);
+
+  title("DADOS DO ALUNO",12);
+  labelValue("Nome completo",e.student.name);
+  labelValue("Data de nascimento",formatDate(e.student.birth));
+  labelValue("Escola",e.student.school);
+  labelValue("Endereço",e.student.address);
+
+  title("DADOS DO RESPONSÁVEL",12);
+  labelValue("Nome completo",e.guardian.name);
+  labelValue("Grau de parentesco",e.guardian.relation);
+  labelValue("WhatsApp",e.guardian.phone);
+  labelValue("CIN / RG",e.guardian.document);
+
+  title("HISTÓRICO DE SAÚDE",12);
+  labelValue("Problema cardíaco/pressão",e.health.heart);
+  labelValue("Asma/bronquite/problemas respiratórios",e.health.respiratory);
+  labelValue("Lesão óssea, muscular ou articular",e.health.injury);
+  labelValue("Uso regular de medicamento controlado",e.health.medication);
+  labelValue("Alergia",e.health.allergy);
+  labelValue("Desmaios/tonturas durante exercícios",e.health.fainting);
+  labelValue("Detalhes",e.health.details);
+
+  title("AUTORIZAÇÕES",12);
+  paragraph("O responsável declara que autorizou a participação do menor nas atividades gratuitas de Jiu-Jitsu do Projeto Social Sementes e confirmou a ciência das condições da atividade.");
+  paragraph("O responsável declarou as informações de saúde apresentadas no cadastro e confirmou a responsabilidade pela comunicação de alterações de saúde.");
+  paragraph("O responsável confirmou o termo de autorização de uso de imagem e voz para as finalidades institucionais previstas no cadastro.");
+
+  if(y>225){
+    doc.addPage();
+    y=18;
+  }
+
+  title("ASSINATURA DIGITAL DO RESPONSÁVEL",12);
+
+  if(e.signature){
+    try{
+      doc.addImage(e.signature,"PNG",margin,y,90,45);
+      y+=51;
+    }catch(_){
+      paragraph("Assinatura registrada no cadastro digital.");
+    }
+  }else{
+    paragraph("Assinatura registrada no cadastro digital.");
+  }
+
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(8);
+  doc.setTextColor(90,90,90);
+  doc.text(
+    `Documento gerado pelo aplicativo Projeto Sementes em ${new Date().toLocaleString("pt-BR")}.`,
+    margin,
+    282
+  );
+
+  const safeName=(e.student.name||"Aluno").replace(/[^a-z0-9À-ÿ]+/gi,"-");
+  const filename=`Matricula-${safeName}.pdf`;
+  const blob=doc.output("blob");
+  const url=URL.createObjectURL(blob);
+
+  // Mantém uma cópia do PDF no dispositivo para anexar ao WhatsApp.
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(()=>URL.revokeObjectURL(url),120000);
+
+  return {blob,url,filename};
+}
+
 function initEnrollment(){
   $("enrollmentDate").textContent = `${APP_CONFIG.city}, ${formatDate(todayISO())}`;
 
@@ -2098,6 +2277,11 @@ function initEnrollment(){
       return;
     }
 
+    if(!$("enrollmentForm").checkValidity()){
+      $("enrollmentForm").reportValidity();
+      return;
+    }
+
     const health = {
       heart: document.querySelector('input[name="heart"]:checked')?.value || "",
       respiratory: document.querySelector('input[name="respiratory"]:checked')?.value || "",
@@ -2108,9 +2292,9 @@ function initEnrollment(){
       details: $("healthDetails").value.trim()
     };
 
-    const signature = $("signaturePad").toDataURL("image/png");
+    const signature=$("signaturePad").toDataURL("image/png");
 
-    state.enrollment = {
+    state.enrollment={
       id:"enrollment-"+Date.now(),
       date:todayISO(),
       city:APP_CONFIG.city,
@@ -2128,13 +2312,17 @@ function initEnrollment(){
       },
       health,
       imageConsent:true,
-      signature
+      signature,
+      documentGenerated:false,
+      documentFilename:""
     };
 
-    let student = state.students.find(s=>s.name.toLowerCase()===state.enrollment.student.name.toLowerCase());
+    let student=state.students.find(
+      s=>s.name.toLowerCase()===state.enrollment.student.name.toLowerCase()
+    );
 
     if(!student){
-      student = {
+      student={
         id:"student-"+Date.now(),
         name:state.enrollment.student.name,
         birth:state.enrollment.student.birth,
@@ -2142,14 +2330,15 @@ function initEnrollment(){
         phone:state.enrollment.guardian.phone,
         belt:"Branca",
         degrees:0,
-        status:"complete",
+        status:"pending",
         startDate:todayISO(),
         face:"",
         health
       };
       state.students.push(student);
     }else{
-      student.status="complete";
+      // Só fica verde depois da biometria.
+      student.status=student.face ? "complete" : "pending";
       student.health=health;
       student.guardian=state.enrollment.guardian.name;
       student.phone=state.enrollment.guardian.phone;
@@ -2157,19 +2346,78 @@ function initEnrollment(){
 
     saveState();
 
+    let pdf;
+    try{
+      pdf=generateEnrollmentPDF();
+      state.enrollment.documentGenerated=true;
+      state.enrollment.documentFilename=pdf.filename;
+      saveState();
+    }catch(error){
+      console.error(error);
+      toast("Não foi possível gerar o PDF. Verifique a conexão e tente novamente.");
+      return;
+    }
+
     $("enrollmentSuccess").classList.remove("hidden");
+    $("enrollmentSuccess").innerHTML=`
+      <strong>✅ Documento gerado com sucesso.</strong><br>
+      O PDF foi baixado neste dispositivo como <strong>${escapeHTML(pdf.filename)}</strong>.<br>
+      <span class="small">O WhatsApp será aberto para o Mestre London e para o responsável. O arquivo PDF deve ser anexado na conversa.</span>
+      <div class="action-row" style="margin-top:10px">
+        <button class="btn btn-gold" type="button" id="sendMasterEnrollment">💬 Mestre London</button>
+        <button class="btn" type="button" id="sendGuardianEnrollment">💬 Responsável</button>
+        <button class="btn" type="button" id="shareEnrollmentPDF">📄 Compartilhar PDF</button>
+      </div>
+    `;
+
+    // ORDEM CORRETA: documento primeiro, biometria depois.
     $("biometricSection").classList.remove("hidden");
     $("step2Dot").classList.add("active");
+    $("step1Dot").classList.remove("active");
 
-    toast("Documento finalizado. A biometria foi liberada.");
+    // Abre as duas conversas com a mensagem já preenchida.
+    const masterOpened=openWhatsAppDocument("master",APP_CONFIG.masterWhatsapp);
+    const guardianOpened=openWhatsAppDocument("guardian",state.enrollment.guardian.phone);
+
+    $("sendMasterEnrollment").addEventListener(
+      "click",
+      ()=>openWhatsAppDocument("master",APP_CONFIG.masterWhatsapp)
+    );
+
+    $("sendGuardianEnrollment").addEventListener(
+      "click",
+      ()=>openWhatsAppDocument("guardian",state.enrollment.guardian.phone)
+    );
+
+    $("shareEnrollmentPDF").addEventListener("click",async()=>{
+      try{
+        const file=new File([pdf.blob],pdf.filename,{type:"application/pdf"});
+
+        if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+          await navigator.share({
+            title:`Matrícula — ${state.enrollment.student.name}`,
+            text:"Documento de matrícula do Projeto Sementes.",
+            files:[file]
+          });
+        }else{
+          toast("Seu navegador não permite compartilhar arquivos diretamente. O PDF já foi baixado.");
+        }
+      }catch(error){
+        if(error?.name!=="AbortError") console.error(error);
+      }
+    });
+
     renderStudents();
     updateKPIs();
 
-    /*
-      PDF real:
-      Em produção, envie os dados e a assinatura para um backend
-      que gere o PDF e encaminhe aos números/e-mails autorizados.
-    */
+    toast(
+      masterOpened || guardianOpened
+        ? "Documento gerado. WhatsApp aberto e biometria liberada."
+        : "Documento gerado. Biometria liberada."
+    );
+
+    // Tenta abrir a câmera automaticamente após liberar a biometria.
+    setTimeout(()=>startCamera(),700);
   });
 
   $("clearSignature").addEventListener("click",clearSignature);
@@ -2183,16 +2431,33 @@ let classStream=null;
 
 async function startCamera(){
   try{
+    if(!navigator.mediaDevices?.getUserMedia){
+      toast("A câmera precisa ser usada em HTTPS ou localhost. Abra o aplicativo por um endereço seguro.");
+      return;
+    }
+
     if(faceStream) faceStream.getTracks().forEach(t=>t.stop());
-    faceStream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:"user"},
+
+    faceStream=await navigator.mediaDevices.getUserMedia({
+      video:{
+        facingMode:{ideal:"user"},
+        width:{ideal:1280},
+        height:{ideal:720}
+      },
       audio:false
     });
+
     $("cameraVideo").srcObject=faceStream;
-    toast("Câmera aberta.");
+    $("cameraVideo").play().catch(()=>{});
+    toast("Câmera aberta. Posicione o rosto na moldura.");
   }catch(error){
     console.error(error);
-    toast("Não foi possível abrir a câmera. Verifique a permissão do navegador.");
+
+    toast(
+      error?.name==="NotAllowedError"
+        ? "Permissão da câmera negada. Autorize a câmera no navegador e toque em Abrir câmera."
+        : "Não foi possível abrir a câmera. Verifique a permissão do navegador."
+    );
   }
 }
 
@@ -3158,21 +3423,19 @@ NOTAS DE IMPLEMENTAÇÃO PARA PRODUÇÃO
    O armazenamento real deve aplicar controles de acesso, criptografia,
    retenção, auditoria e demais requisitos legais aplicáveis.
 
-5. ASSINATURA
+5. ASSINATURA E PDF
    A assinatura é desenhada no canvas e convertida para PNG.
-   Para gerar o PDF definitivo:
-   - enviar os dados para backend;
-   - montar PDF;
-   - anexar assinatura;
-   - armazenar de maneira segura;
-   - registrar auditoria.
+   O navegador gera uma cópia PDF da matrícula com os dados e a assinatura.
+   O arquivo é baixado localmente e pode ser compartilhado pelo recurso nativo
+   do dispositivo quando disponível. Para armazenamento/auditoria definitiva,
+   utilizar backend seguro.
 
 6. WHATSAPP
-   Links wa.me são usados como fallback.
-   Para disparos automáticos em produção:
-   - contratar/configurar provedor;
-   - usar API oficial ou serviço autorizado;
-   - não expor tokens no HTML.
+   O fluxo abre as conversas do Mestre London e do responsável com mensagem
+   previamente preenchida. O PDF é baixado no dispositivo para ser anexado.
+   O envio automático de um arquivo PDF como anexo, sem ação do usuário,
+   exige WhatsApp Business/API oficial ou backend autorizado; um link wa.me
+   não permite anexar um arquivo local diretamente.
 
 7. BIOMETRIA FACIAL
    A câmera é aberta somente quando solicitada.
