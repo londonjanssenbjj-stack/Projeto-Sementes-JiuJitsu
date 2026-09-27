@@ -2134,107 +2134,119 @@ function generateEnrollmentPDF(){
   const margin=10;
   const pageWidth=210;
   const contentWidth=pageWidth-(margin*2);
-  let y=12;
+  let y=10;
 
-  // Cabeçalho institucional
-  doc.setFillColor(18,18,18);
-  doc.rect(0,0,210,12,"F");
-  doc.setTextColor(244,215,110);
-  doc.setFont("helvetica","bold");
-  doc.setFontSize(11);
-  doc.text("PROJETO SEMENTES — IEQ GUAICURUS • JIU-JITSU", margin, 8);
-  y = 16;
+  // Numeração automática sequencial do documento baseada no total de alunos/matrículas
+  const docNumber = String(state.students.length).padStart(4, '0');
+  const codigoMatricula = `PS-${new Date().getFullYear()}/${docNumber}`;
+  e.documentNumber = codigoMatricula; // Salva o número no registro para a Secretaria
 
-  // Título principal
+  // Cabeçalho institucional oficial com o número do documento
   doc.setFont("helvetica","bold");
-  doc.setFontSize(12);
-  doc.setTextColor(140,106,21);
-  doc.text("FICHA DE MATRÍCULA, TERMOS DE RESPONSABILIDADE E USO DE IMAGEM", margin, y);
+  doc.setFontSize(9);
+  doc.setTextColor(20,20,20);
+  doc.text(`PROJETO SEMENTES — IEQ GUAICURUS • JIU-JITSU    |    REGISTRO Nº: ${codigoMatricula}`, pageWidth / 2, y, { align: "center" });
   y += 5;
 
-  // Função auxiliar compacta para dados em grade / linha
-  const writeRow = (label1, val1, label2, val2) => {
-    doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(80,80,80);
-    doc.text(label1, margin, y);
-    doc.text(label2, margin + 100, y);
-    y += 3.5;
-    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(20,20,20);
-    doc.text(String(val1 || "-"), margin, y);
-    doc.text(String(val2 || "-"), margin + 100, y);
-    y += 5;
-  };
+  doc.setFontSize(11);
+  doc.setTextColor(140,106,21);
+  doc.text("FICHA DE INSCRIÇÃO E AUTORIZAÇÃO DE PARTICIPAÇÃO", pageWidth / 2, y, { align: "center" });
+  y += 6;
 
-  const writeFull = (label, val) => {
-    doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(80,80,80);
-    doc.text(label, margin, y);
-    y += 3.5;
-    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(20,20,20);
-    const wrapped = doc.splitTextToSize(String(val || "-"), contentWidth);
-    doc.text(wrapped, margin, y);
-    y += (wrapped.length * 3.8) + 2;
-  };
+  // Caixa de seção: 1. Dados do Aluno
+  doc.setFillColor(245,245,245);
+  doc.rect(margin, y, contentWidth, 5, "F");
+  doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(40,40,40);
+  doc.text("1. DADOS DO ALUNO (MENOR)", margin + 2, y + 3.5);
+  y += 7;
 
-  // 1. Dados
-  writeRow("ALUNO: " + String(e.student.name || ""), "", "DATA DE NASCIMENTO: " + formatDate(e.student.birth), "");
-  writeRow("ESCOLA: " + String(e.student.school || "-"), "", "ENDEREÇO: " + String(e.student.address || "-"), "");
-  writeRow("RESPONSÁVEL: " + String(e.guardian.name || ""), "GRAU: " + String(e.guardian.relation || ""), "WHATSAPP: " + String(e.guardian.phone || ""), "RG/CIN: " + String(e.guardian.document || "-"));
+  doc.setFontSize(7.5);
+  doc.text("Nome Completo:", margin, y);
+  doc.setFont("helvetica","normal"); doc.text(String(e.student.name || ""), margin + 28, y);
+  doc.setFont("helvetica","bold"); doc.text("Data de Nasc.:", margin + 115, y);
+  doc.setFont("helvetica","normal"); doc.text(formatDate(e.student.birth), margin + 138, y);
+  y += 4.5;
 
-  // Linha divisória
-  doc.setDrawColor(200,180,100);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 4;
+  doc.setFont("helvetica","bold"); doc.text("Escola:", margin, y);
+  doc.setFont("helvetica","normal"); doc.text(String(e.student.school || "-"), margin + 14, y);
+  y += 4.5;
 
-  // 2. Saúde resumida
-  doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(140,106,21);
-  doc.text("HISTÓRICO DE SAÚDE E APTIDÃO FÍSICA", margin, y);
-  y += 4;
-  
+  doc.setFont("helvetica","bold"); doc.text("Endereço:", margin, y);
+  doc.setFont("helvetica","normal"); doc.text(String(e.student.address || "-"), margin + 18, y);
+  y += 6;
+
+  // Caixa de seção: 2. Dados do Responsável Legal
+  doc.setFillColor(245,245,245);
+  doc.rect(margin, y, contentWidth, 5, "F");
+  doc.setFont("helvetica","bold"); doc.text("2. DADOS DO RESPONSÁVEL LEGAL", margin + 2, y + 3.5);
+  y += 7;
+
+  doc.text("Nome do Responsável:", margin, y);
+  doc.setFont("helvetica","normal"); doc.text(String(e.guardian.name || ""), margin + 35, y);
+  y += 4.5;
+
+  doc.setFont("helvetica","bold"); doc.text("Parentesco:", margin, y);
+  doc.setFont("helvetica","normal"); doc.text(String(e.guardian.relation || ""), margin + 21, y);
+  doc.setFont("helvetica","bold"); doc.text("WhatsApp:", margin + 85, y);
+  doc.setFont("helvetica","normal"); doc.text(String(e.guardian.phone || ""), margin + 105, y);
+  y += 4.5;
+
+  doc.setFont("helvetica","bold"); doc.text("RG/CIN:", margin, y);
+  doc.setFont("helvetica","normal"); doc.text(String(e.guardian.document || "-"), margin + 15, y);
+  y += 6;
+
+  // Caixa de seção: 3. Termos e Saúde
+  doc.setFillColor(245,245,245);
+  doc.rect(margin, y, contentWidth, 5, "F");
+  doc.setFont("helvetica","bold"); doc.text("3. TERMO DE AUTORIZAÇÃO, SAÚDE E IMAGEM", margin + 2, y + 3.5);
+  y += 6.5;
+
+  const tEsporte = "• Prática Esportiva: Eu, responsável legal, AUTORIZO o menor a participar de forma gratuita das aulas de Jiu-Jitsu do Projeto 'Sementes', ciente de que envolvem contato físico sob supervisão técnica.";
   const h = e.health || {};
-  const saudeTexto = `Cardíaco: ${h.heart} | Respiratório: ${h.respiratory} | Lesões: ${h.injury} | Medicação: ${h.medication} | Alergia: ${h.allergy} | Desmaios: ${h.fainting} | Detalhes: ${h.details}`;
-  doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(50,50,50);
-  const wrapSaude = doc.splitTextToSize(saudeTexto, contentWidth);
-  doc.text(wrapSaude, margin, y);
-  y += (wrapSaude.length * 3.5) + 3;
+  const tSaude = `• Saúde e Aptidão: Cardíaco: ${h.heart} | Respiratório: ${h.respiratory} | Lesões: ${h.injury} | Medicação: ${h.medication} | Alergia: ${h.allergy} | Desmaios: ${h.fainting} | Detalhes: ${h.details}. Declaro que o menor goza de boa saúde.`;
+  const tImagem = "• Uso de Imagem e Voz: AUTORIZO a IEQ Guaicurus a utilizar a imagem e voz do menor capturadas em fotos/vídeos para fins estritamente institucionais, pedagógicos e prestação de contas do projeto.";
 
-  // 3. Textos Jurídicos Formais (compactos para caber na folha única)
-  doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(140,106,21);
-  doc.text("TERMOS DE AUTORIZAÇÃO E RESPONSABILIDADE", margin, y);
-  y += 3.5;
-
-  const termoEsporte = "• Prática Esportiva: Autorizo o menor sob minha tutela a participar das aulas gratuitas de Jiu-Jitsu do Projeto Sementes, ciente dos riscos inerentes à modalidade de contato físico e da supervisão técnica habilitada.";
-  const termoSaude = "• Responsabilidade Sanitária: Declaro sob as penas da lei que o menor goza de plena saúde física e aptidão para exercícios, comprometendo-me a informar qualquer alteração.";
-  const termoImagem = "• Uso de Imagem e Voz: Autorizo de forma gratuita, definitiva e irrevogável a IEQ Guaicurus a utilizar a imagem e voz do menor em fotos/vídeos institucionais, redes sociais e materiais pedagógicos do projeto.";
-
-  doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(60,60,60);
+  doc.setFont("helvetica","normal"); doc.setFontSize(6.8); doc.setTextColor(50,50,50);
   
-  const t1 = doc.splitTextToSize(termoEsporte, contentWidth);
-  doc.text(t1, margin, y); y += (t1.length * 3) + 1.5;
+  const box1 = doc.splitTextToSize(tEsporte, contentWidth);
+  doc.text(box1, margin, y); y += (box1.length * 3) + 2;
 
-  const t2 = doc.splitTextToSize(termoSaude, contentWidth);
-  doc.text(t2, margin, y); y += (t2.length * 3) + 1.5;
+  const box2 = doc.splitTextToSize(tSaude, contentWidth);
+  doc.text(box2, margin, y); y += (box2.length * 3) + 2;
 
-  const t3 = doc.splitTextToSize(termoImagem, contentWidth);
-  doc.text(t3, margin, y); y += (t3.length * 3) + 4;
+  const box3 = doc.splitTextToSize(tImagem, contentWidth);
+  doc.text(box3, margin, y); y += (box3.length * 3) + 5;
 
-  // 4. Assinatura Digital e Rodapé
-  doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(140,106,21);
-  doc.text("ASSINATURA DIGITAL DO RESPONSÁVEL LEGAL", margin, y);
-  y += 3;
+  // Local, data e Assinatura centralizada na mesma página
+  doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(20,20,20);
+  doc.text(`Corumbá - MS, ${formatDate(e.date || todayISO())}.`, pageWidth / 2, y, { align: "center" });
+  y += 4;
 
   if(e.signature){
     try{
-      // Dimensões controladas para fixar na mesma folha A4
-      doc.addImage(e.signature, "PNG", margin, y, 50, 22);
+      doc.addImage(e.signature, "PNG", (pageWidth - 45) / 2, y, 45, 18);
+      y += 19;
     }catch(err){
-      doc.setFont("helvetica","italic"); doc.setFontSize(7.5);
-      doc.text("[Assinatura digital registrada em sistema]", margin, y + 10);
+      y += 10;
     }
+  } else {
+    y += 15;
   }
 
-  // Bloco de rodapé fixo ao final da página única
-  doc.setFont("helvetica","normal"); doc.setFontSize(6.5); doc.setTextColor(100,100,100);
-  doc.text(`Documento gerado digitalmente pelo aplicativo Projeto Sementes em ${new Date().toLocaleString("pt-BR")} — Corumbá/MS`, margin, 288);
+  doc.setDrawColor(100,100,100);
+  doc.setLineWidth(0.2);
+  doc.line(pageWidth/2 - 40, y, pageWidth/2 + 40, y);
+  y += 3.5;
+
+  doc.setFont("helvetica","bold"); doc.setFontSize(7.5);
+  doc.text("Assinatura do Responsável Legal", pageWidth / 2, y, { align: "center" });
+  y += 3.5;
+  doc.setFont("helvetica","normal"); doc.setFontSize(7);
+  doc.text(`Nome legível: ${String(e.guardian.name || "")}`, pageWidth / 2, y, { align: "center" });
+
+  // Rodapé técnico compacto com o código do documento
+  doc.setFontSize(6); doc.setTextColor(120,120,120);
+  doc.text(`Doc. ${codigoMatricula} gerado digitalmente pelo App Projeto Sementes em ${new Date().toLocaleString("pt-BR")} — Corumbá/MS`, pageWidth / 2, 288, { align: "center" });
 
   const safeName=(e.student.name||"Aluno").replace(/[^a-z0-9À-ÿ]+/gi,"-");
   const filename=`Matricula-${safeName}.pdf`;
@@ -2249,7 +2261,7 @@ function generateEnrollmentPDF(){
   a.remove();
 
   setTimeout(()=>URL.revokeObjectURL(url),120000);
-  return {blob, filename};
+  return {blob, filename, codigoMatricula};
 }
 function initEnrollment(){
   $("enrollmentDate").textContent = `${APP_CONFIG.city}, ${formatDate(todayISO())}`;
