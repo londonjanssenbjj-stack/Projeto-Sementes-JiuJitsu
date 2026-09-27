@@ -2133,6 +2133,138 @@ function generateEnrollmentPDF(){
     throw new Error("Biblioteca de PDF não carregada.");
   }
 
+  const {jsPDF} = window.jspdf;
+  const e = state.enrollment;
+  const doc = new jsPDF({unit: "mm", format: "a4"});
+  
+  const margin = 12;
+  const pageWidth = 210;
+  const contentWidth = pageWidth - (margin * 2);
+  let y = 10;
+
+  // Número de Identificação Único do Documento (Protocolo/ID)
+  const docIdNumber = "PS-" + Math.floor(100000 + Math.random() * 900000);
+
+  // Cabeçalho Institucional
+  doc.setFillColor(18, 18, 18);
+  doc.rect(0, 0, 210, 14, "F");
+  doc.setTextColor(244, 215, 110);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("PROJETO SEMENTES — IEQ GUAICURUS / CORUMBÁ-MS", margin, 9);
+  
+  doc.setFontSize(9);
+  doc.text(`REGISTRO Nº: ${docIdNumber}`, 155, 9);
+  y = 19;
+
+  // Título Principal
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(140, 106, 21);
+  doc.text("FICHA DE MATRÍCULA, TERMOS DE AUTORIZAÇÃO E RESPONSABILIDADE", margin, y);
+  y += 6;
+
+  // Linha auxiliar de dados compactos em duas colunas (Aluno e Responsável)
+  doc.setFontSize(8.5);
+  doc.setTextColor(40, 40, 40);
+  
+  doc.setFont("helvetica", "bold");
+  doc.text("DADOS DO ALUNO:", margin, y);
+  doc.text("DADOS DO RESPONSÁVEL:", margin + 100, y);
+  y += 4;
+
+  doc.setFont("helvetica", "normal");
+  doc.text(`Nome: ${e.student.name || "N/I"}`, margin, y);
+  doc.text(`Nome: ${e.guardian.name || "N/I"} (${e.guardian.relation || ""})`, margin + 100, y);
+  y += 4;
+
+  doc.text(`Nascimento: ${formatDate(e.student.birth)} | Escola: ${e.student.school || "N/I"}`, margin, y);
+  doc.text(`WhatsApp: ${e.guardian.phone || "N/I"} | CIN/RG: ${e.guardian.document || "N/I"}`, margin + 100, y);
+  y += 4;
+
+  doc.text(`Endereço: ${e.student.address || "N/I"}`, margin, y);
+  y += 6;
+
+  // Bloco de Saúde (Compacto em linha)
+  doc.setFont("helvetica", "bold");
+  doc.text("HISTÓRICO DE SAÚDE:", margin, y);
+  y += 4;
+  doc.setFont("helvetica", "normal");
+  const saudeResumo = `Cardíaco: ${e.health.heart} | Respiratório: ${e.health.respiratory} | Lesões: ${e.health.injury} | Medicamentos: ${e.health.medication} | Alergias: ${e.health.allergy} | Desmaios: ${e.health.fainting}`;
+  const wrapSaude = doc.splitTextToSize(saudeResumo, contentWidth);
+  doc.text(wrapSaude, margin, y);
+  y += (wrapSaude.length * 3.5) + 3;
+
+  if (e.health.details && e.health.details !== "NÃO") {
+    doc.text(`Observações de Saúde: ${e.health.details}`, margin, y);
+    y += 5;
+  }
+
+  // Termos Jurídicos por Extenso (Validados em uma única página)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(140, 106, 21);
+  doc.text("TERMOS DE AUTORIZAÇÃO E RESPONSABILIDADE JURÍDICA", margin, y);
+  y += 4;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(50, 50, 50);
+
+  const termosTexto = [
+    "1. AUTORIZAÇÃO DE PRÁTICA ESPORTIVA: Eu, responsável legal, autorizo expressamente o menor sob minha tutela a participar de forma gratuita das aulas de Jiu-Jitsu do Projeto Social 'Sementes', promovido pela Igreja do Evangelho Quadrangular. Estou ciente de que as atividades envolvem treinos físicos e de contato inerentes à modalidade, sob supervisão técnica.",
+    "2. RESPONSABILIDADE SANITÁRIA: Declaro, sob as penas da lei, que o menor goza de boa saúde e está apto para a prática de artes marciais. Comprometo-me a informar imediatamente qualquer alteração em seu estado clínico.",
+    "3. USO DE IMAGEM E VOZ: Em conformidade com o Art. 5º, X da CF e Art. 20 do Código Civil, autorizo de forma gratuita, definitiva e irrevogável a utilização da imagem e voz do menor em fotos ou vídeos, exclusivamente para fins de divulgação institucional, pedagógica e prestação de contas nas redes sociais e boletins da igreja."
+  ];
+
+  termosTexto.forEach(termo => {
+    const splitTermo = doc.splitTextToSize(termo, contentWidth);
+    doc.text(splitTermo, margin, y);
+    y += (splitTermo.length * 3.3) + 2;
+  });
+
+  y += 2;
+
+  // Assinatura e Rodapé Juntos na mesma folha
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(40, 40, 40);
+  doc.text("ASSINATURA DIGITAL DO RESPONSÁVEL LEGAL:", margin, y);
+  y += 3;
+
+  if (e.signature) {
+    try {
+      doc.addImage(e.signature, "PNG", margin, y, 55, 22);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // Bloco de Rodapé com Identificação e Data
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Documento autenticado digitalmente - Protocolo ID: ${docIdNumber}`, margin, 285);
+  doc.text(`Gerado pelo sistema Projeto Sementes em ${new Date().toLocaleString("pt-BR")}`, 130, 285);
+
+  const safeName = (e.student.name || "Aluno").replace(/[^a-z0-9À-ÿ]+/gi, "-");
+  const filename = `Matricula-${safeName}-${docIdNumber}.pdf`;
+  
+  const blob = doc.output("blob");
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 120000);
+
+  return {blob, url, filename};
+}
+
   const {jsPDF}=window.jspdf;
   const e=state.enrollment;
   const doc=new jsPDF({unit:"mm",format:"a4"});
