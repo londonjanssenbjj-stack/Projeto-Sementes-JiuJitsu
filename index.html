@@ -3436,15 +3436,16 @@ function initEvents(){
 /* -----------------------------
    RENDER GERAL
    ----------------------------- */
-function renderAll(){
-  renderBirthdays();
-  renderStudents();
-  renderTatame();
-  renderFrequency();
-  renderCells();
-  renderGame();
-  renderDirectors();
-  updateKPIs();
+  function renderAll(){
+    renderBirthdays();
+    renderStudents();
+    renderTatame();
+    renderFrequency();
+    renderCells();
+    renderGame();
+    renderDirectors();
+    renderSecretaryDocuments(); // <--- Cole esta linha aqui
+    updateKPIs();
 
   const tasks=JSON.parse(localStorage.getItem(STORAGE_KEYS.tasks)||"{}");
   document.querySelectorAll("[data-task]").forEach(box=>{
