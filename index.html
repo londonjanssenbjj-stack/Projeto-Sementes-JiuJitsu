@@ -2364,17 +2364,24 @@ function initEnrollment(){
     }
 
     $("enrollmentSuccess").classList.remove("hidden");
+   $("enrollmentSuccess").classList.remove("hidden");
     $("enrollmentSuccess").innerHTML=`
-      <strong>✅ Documento gerado com sucesso.</strong><br>
-      O PDF foi baixado neste dispositivo como <strong>${escapeHTML(pdf.filename)}</strong>.<br>
-      <span class="small">O WhatsApp será aberto para o Mestre London e para o responsável. O arquivo PDF deve ser anexado na conversa.</span>
-      <div class="action-row" style="margin-top:10px">
-        <button class="btn btn-gold" type="button" id="sendMasterEnrollment">💬 Mestre London</button>
-        <button class="btn" type="button" id="sendGuardianEnrollment">💬 Responsável</button>
-        <button class="btn" type="button" id="shareEnrollmentPDF">📄 Compartilhar PDF</button>
+      <strong>✅ Matrícula e Documento Registrados com Sucesso!</strong><br>
+      O PDF foi gerado e salvo com segurança na Secretaria do projeto para consulta da Diretoria e do Mestre.<br><br>
+      <div class="action-row" style="margin-top:10px; gap: 8px; flex-wrap: wrap;">
+        <button class="btn btn-gold" type="button" id="downloadPDFDirect">📥 Baixar Cópia em PDF</button>
+        <button class="btn btn-success" type="button" id="sendMasterNotice">💬 Avisar Mestre London</button>
       </div>
     `;
 
+    $("downloadPDFDirect").addEventListener("click", () => {
+      generateEnrollmentPDF();
+    });
+
+    $("sendMasterNotice").addEventListener("click", () => {
+      openWhatsAppDocument("master", APP_CONFIG.masterWhatsapp);
+    });
+    
     // ORDEM CORRETA: documento primeiro, biometria depois.
     $("biometricSection").classList.remove("hidden");
     $("step2Dot").classList.add("active");
