@@ -2479,7 +2479,9 @@ function initEnrollment(){
       student.guardian=state.enrollment.guardian.name;
       student.phone=state.enrollment.guardian.phone;
     }
-
+  }); // Fecha o addEventListener do 'submit'
+} // <-- IMPORTANTE: Esta chave fecha a função initEnrollment() inteira!
+  
     saveState();
 
     let pdf;
