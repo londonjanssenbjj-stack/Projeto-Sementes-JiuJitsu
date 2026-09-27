@@ -2131,124 +2131,116 @@ function generateEnrollmentPDF(){
   const {jsPDF}=window.jspdf;
   const e=state.enrollment;
   const doc=new jsPDF({unit:"mm",format:"a4"});
-  const margin=15;
+  const margin=10;
   const pageWidth=210;
   const contentWidth=pageWidth-(margin*2);
-  let y=18;
+  let y=12;
 
-  const title=(text,size=15)=>{
-    doc.setFont("helvetica","bold");
-    doc.setFontSize(size);
-    doc.setTextColor(140,106,21);
-    doc.text(text,margin,y);
-    y+=8;
-  };
-
-  const labelValue=(label,value)=>{
-    doc.setFont("helvetica","bold");
-    doc.setFontSize(9);
-    doc.setTextColor(45,45,45);
-    doc.text(label,margin,y);
-    y+=4.5;
-
-    doc.setFont("helvetica","normal");
-    const text=String(value||"Não informado");
-    const wrapped=doc.splitTextToSize(text,contentWidth);
-    doc.text(wrapped,margin,y);
-    y+=(wrapped.length*4.2)+3;
-
-    if(y>275){
-      doc.addPage();
-      y=18;
-    }
-  };
-
-  const paragraph=(text)=>{
-    doc.setFont("helvetica","normal");
-    doc.setFontSize(8.5);
-    doc.setTextColor(55,55,55);
-    const wrapped=doc.splitTextToSize(String(text||""),contentWidth);
-    doc.text(wrapped,margin,y);
-    y+=(wrapped.length*4.1)+4;
-
-    if(y>275){
-      doc.addPage();
-      y=18;
-    }
-  };
-
+  // Cabeçalho institucional
   doc.setFillColor(18,18,18);
-  doc.rect(0,0,210,14,"F");
+  doc.rect(0,0,210,12,"F");
   doc.setTextColor(244,215,110);
   doc.setFont("helvetica","bold");
-  doc.setFontSize(13);
-  doc.text("PROJETO SEMENTES — JIU-JITSU",margin,9);
-  y=22;
+  doc.setFontSize(11);
+  doc.text("PROJETO SEMENTES — IEQ GUAICURUS • JIU-JITSU", margin, 8);
+  y = 16;
 
-  title("FICHA DE MATRÍCULA E AUTORIZAÇÃO",15);
+  // Título principal
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(12);
+  doc.setTextColor(140,106,21);
+  doc.text("FICHA DE MATRÍCULA, TERMOS DE RESPONSABILIDADE E USO DE IMAGEM", margin, y);
+  y += 5;
 
-  labelValue("Data da matrícula",formatDate(e.date));
-  labelValue("Local",e.city);
+  // Função auxiliar compacta para dados em grade / linha
+  const writeRow = (label1, val1, label2, val2) => {
+    doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(80,80,80);
+    doc.text(label1, margin, y);
+    doc.text(label2, margin + 100, y);
+    y += 3.5;
+    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(20,20,20);
+    doc.text(String(val1 || "-"), margin, y);
+    doc.text(String(val2 || "-"), margin + 100, y);
+    y += 5;
+  };
 
-  title("DADOS DO ALUNO",12);
-  labelValue("Nome completo",e.student.name);
-  labelValue("Data de nascimento",formatDate(e.student.birth));
-  labelValue("Escola",e.student.school);
-  labelValue("Endereço",e.student.address);
+  const writeFull = (label, val) => {
+    doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(80,80,80);
+    doc.text(label, margin, y);
+    y += 3.5;
+    doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(20,20,20);
+    const wrapped = doc.splitTextToSize(String(val || "-"), contentWidth);
+    doc.text(wrapped, margin, y);
+    y += (wrapped.length * 3.8) + 2;
+  };
 
-  title("DADOS DO RESPONSÁVEL",12);
-  labelValue("Nome completo",e.guardian.name);
-  labelValue("Grau de parentesco",e.guardian.relation);
-  labelValue("WhatsApp",e.guardian.phone);
-  labelValue("CIN / RG",e.guardian.document);
+  // 1. Dados
+  writeRow("ALUNO: " + String(e.student.name || ""), "", "DATA DE NASCIMENTO: " + formatDate(e.student.birth), "");
+  writeRow("ESCOLA: " + String(e.student.school || "-"), "", "ENDEREÇO: " + String(e.student.address || "-"), "");
+  writeRow("RESPONSÁVEL: " + String(e.guardian.name || ""), "GRAU: " + String(e.guardian.relation || ""), "WHATSAPP: " + String(e.guardian.phone || ""), "RG/CIN: " + String(e.guardian.document || "-"));
 
-  title("HISTÓRICO DE SAÚDE",12);
-  labelValue("Problema cardíaco/pressão",e.health.heart);
-  labelValue("Asma/bronquite/problemas respiratórios",e.health.respiratory);
-  labelValue("Lesão óssea, muscular ou articular",e.health.injury);
-  labelValue("Uso regular de medicamento controlado",e.health.medication);
-  labelValue("Alergia",e.health.allergy);
-  labelValue("Desmaios/tonturas durante exercícios",e.health.fainting);
-  labelValue("Detalhes",e.health.details);
+  // Linha divisória
+  doc.setDrawColor(200,180,100);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 4;
 
-  title("AUTORIZAÇÕES",12);
-  paragraph("O responsável declara que autorizou a participação do menor nas atividades gratuitas de Jiu-Jitsu do Projeto Social Sementes e confirmou a ciência das condições da atividade.");
-  paragraph("O responsável declarou as informações de saúde apresentadas no cadastro e confirmou a responsabilidade pela comunicação de alterações de saúde.");
-  paragraph("O responsável confirmou o termo de autorização de uso de imagem e voz para as finalidades institucionais previstas no cadastro.");
+  // 2. Saúde resumida
+  doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(140,106,21);
+  doc.text("HISTÓRICO DE SAÚDE E APTIDÃO FÍSICA", margin, y);
+  y += 4;
+  
+  const h = e.health || {};
+  const saudeTexto = `Cardíaco: ${h.heart} | Respiratório: ${h.respiratory} | Lesões: ${h.injury} | Medicação: ${h.medication} | Alergia: ${h.allergy} | Desmaios: ${h.fainting} | Detalhes: ${h.details}`;
+  doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(50,50,50);
+  const wrapSaude = doc.splitTextToSize(saudeTexto, contentWidth);
+  doc.text(wrapSaude, margin, y);
+  y += (wrapSaude.length * 3.5) + 3;
 
-  if(y>225){
-    doc.addPage();
-    y=18;
-  }
+  // 3. Textos Jurídicos Formais (compactos para caber na folha única)
+  doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(140,106,21);
+  doc.text("TERMOS DE AUTORIZAÇÃO E RESPONSABILIDADE", margin, y);
+  y += 3.5;
 
-  title("ASSINATURA DIGITAL DO RESPONSÁVEL",12);
+  const termoEsporte = "• Prática Esportiva: Autorizo o menor sob minha tutela a participar das aulas gratuitas de Jiu-Jitsu do Projeto Sementes, ciente dos riscos inerentes à modalidade de contato físico e da supervisão técnica habilitada.";
+  const termoSaude = "• Responsabilidade Sanitária: Declaro sob as penas da lei que o menor goza de plena saúde física e aptidão para exercícios, comprometendo-me a informar qualquer alteração.";
+  const termoImagem = "• Uso de Imagem e Voz: Autorizo de forma gratuita, definitiva e irrevogável a IEQ Guaicurus a utilizar a imagem e voz do menor em fotos/vídeos institucionais, redes sociais e materiais pedagógicos do projeto.";
+
+  doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(60,60,60);
+  
+  const t1 = doc.splitTextToSize(termoEsporte, contentWidth);
+  doc.text(t1, margin, y); y += (t1.length * 3) + 1.5;
+
+  const t2 = doc.splitTextToSize(termoSaude, contentWidth);
+  doc.text(t2, margin, y); y += (t2.length * 3) + 1.5;
+
+  const t3 = doc.splitTextToSize(termoImagem, contentWidth);
+  doc.text(t3, margin, y); y += (t3.length * 3) + 4;
+
+  // 4. Assinatura Digital e Rodapé
+  doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(140,106,21);
+  doc.text("ASSINATURA DIGITAL DO RESPONSÁVEL LEGAL", margin, y);
+  y += 3;
 
   if(e.signature){
     try{
-      doc.addImage(e.signature,"PNG",margin,y,90,45);
-      y+=51;
-    }catch(_){
-      paragraph("Assinatura registrada no cadastro digital.");
+      // Dimensões controladas para fixar na mesma folha A4
+      doc.addImage(e.signature, "PNG", margin, y, 50, 22);
+    }catch(err){
+      doc.setFont("helvetica","italic"); doc.setFontSize(7.5);
+      doc.text("[Assinatura digital registrada em sistema]", margin, y + 10);
     }
-  }else{
-    paragraph("Assinatura registrada no cadastro digital.");
   }
 
-  doc.setFont("helvetica","normal");
-  doc.setFontSize(8);
-  doc.setTextColor(90,90,90);
-  doc.text(
-    `Documento gerado pelo aplicativo Projeto Sementes em ${new Date().toLocaleString("pt-BR")}.`,
-    margin,
-    282
-  );
+  // Bloco de rodapé fixo ao final da página única
+  doc.setFont("helvetica","normal"); doc.setFontSize(6.5); doc.setTextColor(100,100,100);
+  doc.text(`Documento gerado digitalmente pelo aplicativo Projeto Sementes em ${new Date().toLocaleString("pt-BR")} — Corumbá/MS`, margin, 288);
 
   const safeName=(e.student.name||"Aluno").replace(/[^a-z0-9À-ÿ]+/gi,"-");
   const filename=`Matricula-${safeName}.pdf`;
   const blob=doc.output("blob");
   const url=URL.createObjectURL(blob);
 
-  // Mantém uma cópia do PDF no dispositivo para anexar ao WhatsApp.
   const a=document.createElement("a");
   a.href=url;
   a.download=filename;
@@ -2257,10 +2249,8 @@ function generateEnrollmentPDF(){
   a.remove();
 
   setTimeout(()=>URL.revokeObjectURL(url),120000);
-
-  return {blob,url,filename};
+  return {blob, filename};
 }
-
 function initEnrollment(){
   $("enrollmentDate").textContent = `${APP_CONFIG.city}, ${formatDate(todayISO())}`;
 
