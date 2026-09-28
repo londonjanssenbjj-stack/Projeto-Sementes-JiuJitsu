@@ -33,7 +33,7 @@
       --border:rgba(212,175,55,.38);
       --shadow:0 12px 36px rgba(0,0,0,.35);
       --radius:20px;
-    } 
+    }
 
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
@@ -179,7 +179,7 @@
     }
     .security-badge svg{color:var(--gold2)}
 
-    /* APP SHELL */ 
+    /* APP SHELL */
     #mainScreen{display:none}
     .topbar{
       position:sticky;
@@ -698,7 +698,6 @@
         <div class="notice" style="margin-bottom:14px">
           🎵 <strong>Momento de Louvor</strong><br>
           <span class="small">“Quando Ele Vem” — Ana Nóbrega. A reprodução automática depende do arquivo de áudio autorizado estar junto do HTML e das permissões do navegador.</span>
-          <button class="btn btn-gold" style="margin-top:8px" type="button" onclick="playBackgroundMusic()">▶ Ouvir louvor</button>
         </div>
 
         <div class="bento">
@@ -1479,10 +1478,11 @@
 
           <article class="card gold-border">
             <div class="card-header">
-              <div><h2 class="section-title">ADMINISTRADOR</h2><span class="small muted">Desenvolvedor</span></div>
+              <div><h2 class="section-title">ADMINISTRADOR</h2><span class="small muted">Fora da Diretoria</span></div>
               <i class="icon-gold" data-lucide="shield"></i>
             </div>
             <p class="body-text"><strong>Administrador Mestre London</strong></p>
+            <p class="small muted">Administrador</p>
             <p class="small muted">Responsável pela administração do sistema e exclusão de documentos da Secretaria.</p>
           </article>
 
@@ -2049,7 +2049,10 @@ function showApp(){
   if(tatameBtn) tatameBtn.style.display = canOperateTatame() ? "" : "none";
 
   renderAll();
-  if(state.user?.role) playBackgroundMusic();
+  if(state.user?.role) {
+    // O login é uma ação do usuário; esta tentativa ocorre dentro do mesmo fluxo.
+    playBackgroundMusic();
+  }
 }
 
 function logout(){
@@ -2423,6 +2426,8 @@ function initEnrollment(){
 
   $("enrollmentForm").addEventListener("submit",async e=>{
     e.preventDefault();
+    // Ativa o áudio enquanto o toque em "Finalizar Documento" ainda é uma ação do usuário.
+    await ensureAudioReady();
 
     if(signatureIsEmpty()){
       toast("Faça a assinatura no painel antes de finalizar.");
@@ -2520,8 +2525,6 @@ function initEnrollment(){
         createdAt:new Date().toISOString()
       });
       saveState();
-      if(audioContext && audioContext.state==="suspended") audioContext.resume().catch(()=>{});
-      playSuccessSound("success");
     }catch(error){
       console.error(error);
       toast("Não foi possível gerar o PDF. Verifique a conexão e tente novamente.");
@@ -2539,12 +2542,17 @@ function initEnrollment(){
     `;
 
     $("biometricSection").classList.remove("hidden");
+    $("biometricSection").style.display="block";
+    $("biometricSection").setAttribute("aria-hidden","false");
+    $("startCamera").disabled=false;
+    $("captureFace").disabled=false;
     $("step2Dot").classList.add("active");
     $("step1Dot").classList.remove("active");
 
     // O documento fica disponível para download; a notificação é somente para o Mestre London.
     const masterOpened=openWhatsAppDocument("master",APP_CONFIG.masterWhatsapp);
-    playSuccessSound("finalize");
+    await playSuccessSound("finalize");
+    toast("🔊 Documento finalizado com sucesso.");
     $("downloadEnrollmentPDF").addEventListener("click",()=>downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename));
 
     renderStudents();
@@ -2556,8 +2564,8 @@ function initEnrollment(){
         : "Documento finalizado. Biometria liberada."
     );
 
-    // Tenta abrir a câmera automaticamente após liberar a biometria.
-    setTimeout(()=>startCamera(),700);
+    // A biometria fica visível imediatamente. O responsável toca em "Abrir câmera" para autorizar o acesso.
+    setTimeout(()=>$("biometricSection").scrollIntoView({behavior:"smooth",block:"center"}),250);
   });
 
   $("clearSignature").addEventListener("click",clearSignature);
@@ -2601,7 +2609,7 @@ async function startCamera(){
   }
 }
 
-function captureFace(){
+async function captureFace(){
   const video=$("cameraVideo");
   if(!video.srcObject){
     toast("Abra a câmera primeiro.");
@@ -2632,9 +2640,8 @@ function captureFace(){
     faceStream=null;
   }
 
-  if(audioContext && audioContext.state==="suspended") audioContext.resume().catch(()=>{});
-  playSuccessSound("biometric");
-  toast("Face capturada e vinculada ao cadastro local.");
+  await playSuccessSound("biometric");
+  toast("🔊 Biometria confirmada com sucesso. Face capturada e vinculada ao cadastro local.");
   renderStudents();
 }
 
@@ -3038,64 +3045,95 @@ function downloadCSV(filename,rows){
    ----------------------------- */
 let audioContext=null;
 
-function playTone(frequency,duration=0.16,type="sine",gainValue=.055,delay=0){
+async function ensureAudioReady(){
   try{
-    audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();
-    if(audioContext.state==="suspended") audioContext.resume().catch(()=>{});
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    if(!Ctx) return false;
+    audioContext=audioContext||new Ctx();
+    if(audioContext.state==="suspended") await audioContext.resume();
+    return audioContext.state==="running";
+  }catch(error){
+    console.warn("Áudio não pôde ser ativado",error);
+    return false;
+  }
+}
+
+async function playTone(frequency,duration=0.16,type="sine",gainValue=.055,delay=0){
+  try{
+    if(!(await ensureAudioReady())) return;
+    const now=audioContext.currentTime;
     const osc=audioContext.createOscillator();
     const gain=audioContext.createGain();
     osc.type=type;
     osc.frequency.value=frequency;
-    gain.gain.setValueAtTime(0.0001,audioContext.currentTime+delay);
-    gain.gain.exponentialRampToValueAtTime(gainValue,audioContext.currentTime+delay+.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001,audioContext.currentTime+delay+duration);
+    gain.gain.setValueAtTime(0.0001,now+delay);
+    gain.gain.exponentialRampToValueAtTime(gainValue,now+delay+.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001,now+delay+duration);
     osc.connect(gain); gain.connect(audioContext.destination);
-    osc.start(audioContext.currentTime+delay);
-    osc.stop(audioContext.currentTime+delay+duration+.03);
-  }catch(error){}
+    osc.start(now+delay);
+    osc.stop(now+delay+duration+.03);
+  }catch(error){ console.warn("Falha no efeito sonoro",error); }
 }
 
-function playSuccessSound(kind="success"){
+async function playSuccessSound(kind="success"){
+  const ready=await ensureAudioReady();
+  if(!ready) return false;
   if(kind==="biometric"){
-    playTone(523.25,.18,"sine",.07,0);
-    playTone(659.25,.18,"sine",.07,.11);
-    playTone(783.99,.28,"sine",.075,.22);
+    await playTone(523.25,.18,"sine",.07,0);
+    await playTone(659.25,.18,"sine",.07,.11);
+    await playTone(783.99,.28,"sine",.075,.22);
   }else{
-    playTone(261.63,.18,"sine",.07,0);
-    playTone(329.63,.18,"sine",.07,.10);
-    playTone(392.00,.18,"sine",.07,.20);
-    playTone(523.25,.34,"sine",.08,.30);
+    await playTone(261.63,.18,"sine",.07,0);
+    await playTone(329.63,.18,"sine",.07,.10);
+    await playTone(392.00,.18,"sine",.07,.20);
+    await playTone(523.25,.34,"sine",.08,.30);
   }
-  if(navigator.vibrate) navigator.vibrate(kind==="biometric"?40:60);
+  if(navigator.vibrate) navigator.vibrate(kind==="biometric"?70:90);
+  return true;
 }
 
-function playErrorSound(){
-  playTone(130,.22,"triangle",.07,0);
+async function playErrorSound(){
+  await playTone(130,.22,"triangle",.07,0);
   if(navigator.vibrate) navigator.vibrate([35,35,35]);
 }
 
-function playClickSound(){ playTone(220,.06,"triangle",.025,0); }
+function playClickSound(){ ensureAudioReady().then(()=>playTone(220,.06,"triangle",.025,0)); }
 
-function playBackgroundMusic(){
+let musicReady=false;
+async function playBackgroundMusic(){
   const audio=$("homeMusic");
-  if(!audio) return;
-  audio.src=APP_CONFIG.homeMusic;
-  audio.volume=.28;
-  audio.muted=false;
-  audio.load();
-  const promise=audio.play();
-  if(promise && promise.catch){
-    promise.catch(()=>{
-      // O iPhone bloqueia áudio automático fora de uma ação do usuário.
-      // Os botões de navegação/login são ações do usuário e tentam novamente.
-    });
+  if(!audio) return false;
+  try{
+    audio.loop=true;
+    audio.preload="auto";
+    audio.volume=.30;
+    audio.muted=false;
+    if(audio.getAttribute("src")!==APP_CONFIG.homeMusic) audio.src=APP_CONFIG.homeMusic;
+    if(!musicReady){
+      musicReady=true;
+      audio.addEventListener("error",()=>toast("Não foi possível carregar o arquivo quando-ele-vem.mp3."),{once:true});
+    }
+    await audio.play();
+    return true;
+  }catch(error){
+    console.warn("Louvor bloqueado ou arquivo ausente",error);
+    return false;
   }
 }
-
 function stopBackgroundMusic(){
   const audio=$("homeMusic");
-  if(audio){ audio.pause(); }
+  if(audio) audio.pause();
 }
+
+// Se o navegador bloqueou o autoplay, a primeira interação do usuário libera o áudio
+// sem mostrar um botão de música na interface.
+document.addEventListener("pointerdown",()=>{
+  if(state.user){
+    const active=document.querySelector(".page.active")?.id;
+    if(active==="homePage" || active==="faithPage") playBackgroundMusic();
+    if(audioContext && audioContext.state==="suspended") audioContext.resume().catch(()=>{});
+  }
+},{passive:true});
 
 document.addEventListener("click",e=>{
   if(e.target.closest("button")) playClickSound();
@@ -3200,14 +3238,17 @@ function restoreGame(){
 }
 
 function updateGameResources(){
-  $("oilValue").textContent=state.game.oil;
-  $("coinValue").textContent=state.game.coins;
-  $("streakValue").textContent=state.game.streak;
+  const oil=$("oilValue"), coins=$("coinValue"), streak=$("streakValue");
+  if(oil) oil.textContent=state.game.oil;
+  if(coins) coins.textContent=state.game.coins;
+  if(streak) streak.textContent=state.game.streak;
 }
 
 function renderGameMap(){
   const scenes=["🌿 Jardim do Éden","🏜️ Egito","🌊 Mar Vermelho","⛺ Deserto","👑 Reino de Israel","🕊️ Profetas","✝️ Evangelhos","✨ Novo Testamento"];
-  $("gameMap").innerHTML=eras.map((era,index)=>{
+  const map=$("gameMap");
+  if(!map) return;
+  map.innerHTML=eras.map((era,index)=>{
     const locked=era.id>state.game.unlockedEra;
     const scene=scenes[index]||"✨ Novo Testamento";
     return `
@@ -3224,85 +3265,81 @@ function renderGameMap(){
           <div class="node">🔍 Nó 2<br><strong>Quiz</strong></div>
           <div class="node">⚔️ Nó 3<br><strong>Boss: ${escapeHTML(era.boss)}</strong></div>
         </div>
-        ${!locked ? `<button class="btn btn-gold" style="margin-top:10px" onclick="playEra(${era.id})">▶ Jogar Fase ${era.id}</button>` : ""}
-      </article>
-    `;
+        ${!locked?`<button class="btn btn-gold" style="margin-top:10px" type="button" onclick="playEra(${era.id})">▶ Jogar Fase ${era.id}</button>`:""}
+      </article>`;
   }).join("");
 }
 
 function playEra(eraId){
-  if(eraId>state.game.unlockedEra){
-    toast("Essa Era está bloqueada.");
-    return;
-  }
-
-  if(state.game.oil<=0){
-    refillWord();
-    return;
-  }
+  if(eraId>state.game.unlockedEra){ toast("Essa Era está bloqueada."); return; }
+  if(state.game.oil<=0){ refillWord(); return; }
 
   state.game.oil--;
   state.game.xp += 10;
   state.game.coins += 2;
+  state.game.currentEra=eraId;
   saveGame();
   updateGameResources();
 
-  modal(
-    `Era ${eraId} iniciada`,
-    `<p class="body-text">Você gastou 1 gota de Azeite e ganhou 10 XP + 2 moedas.</p>
-     <p class="small muted">Cada Era possui 3 nós: contexto, quiz e Boss Battle.</p>
-     <button class="btn btn-gold" type="button" onclick="openQuiz()">Abrir Quiz</button>`
-  );
+  // Abre o desafio diretamente. Isso evita que o modal interrompa a navegação no iPhone.
+  openPage("gamePage");
+  renderGameMap();
+  renderQuiz();
+  toast(`Era ${eraId} iniciada. Você ganhou 10 XP + 2 moedas.`);
+  startQuizTimer();
+  setTimeout(()=>{
+    const quiz=$("quizBox");
+    if(quiz) quiz.scrollIntoView({behavior:"smooth",block:"center"});
+  },120);
 }
 
 function refillWord(){
-  modal(
-    "Recarga da Palavra",
-    `<p class="body-text">
-      O Azeite chegou a zero. A recarga ativa apresenta um texto bíblico curto
-      baseado na Era atual e uma pergunta interpretativa.
-    </p>
+  modal("Recarga da Palavra",`
+    <p class="body-text">O Azeite chegou a zero. Responda para recarregar.</p>
     <p class="body-text"><strong>Pergunta:</strong> Qual é a importância de buscar sabedoria antes de agir?</p>
-    <button class="btn btn-gold" onclick="answerRefill(true)">Responder e recarregar</button>`
-  );
+    <button class="btn btn-gold" type="button" onclick="answerRefill(true)">Responder e recarregar</button>
+  `);
 }
 
 function answerRefill(correct){
   if(correct){
     state.game.oil=Math.min(5,state.game.oil+2);
     saveGame();
-    updateGameResources();
     closeModal();
+    updateGameResources();
     toast("Resposta registrada. +2 gotas de Azeite.");
   }
 }
 
 function renderQuiz(){
+  const box=$("quizBox");
+  if(!box) return;
   const q=quizQuestions[0];
-
-  $("quizBox").innerHTML=`
+  box.innerHTML=`
     <div class="timer" id="quizTimer">20</div>
     <p class="body-text"><strong>${escapeHTML(q.question)}</strong></p>
     <div>
-      ${q.options.map((opt,i)=>`
-        <button class="btn quiz-option" onclick="answerQuiz(0,${i})">${String.fromCharCode(65+i)}) ${escapeHTML(opt)}</button>
-      `).join("")}
-    </div>
-  `;
+      ${q.options.map((opt,i)=>`<button class="btn quiz-option" type="button" onclick="answerQuiz(0,${i})">${String.fromCharCode(65+i)}) ${escapeHTML(opt)}</button>`).join("")}
+    </div>`;
 }
 
 function openQuiz(){
   closeModal();
   openPage("gamePage");
   renderQuiz();
-  window.scrollTo({top:0,behavior:"smooth"});
+  startQuizTimer();
+  setTimeout(()=>$("quizBox")?.scrollIntoView({behavior:"smooth",block:"center"}),120);
+}
 
-  let seconds=20;
+function startQuizTimer(){
   clearInterval(window.__quizTimer);
+  let seconds=20;
+  const timer=$("quizTimer");
+  if(timer) timer.textContent=seconds;
   window.__quizTimer=setInterval(()=>{
     seconds--;
-    const timer=$("quizTimer");
-    if(timer) timer.textContent=seconds;
+    const el=$("quizTimer");
+    if(el) el.textContent=Math.max(seconds,0);
     if(seconds<=0){
       clearInterval(window.__quizTimer);
       toast("Tempo encerrado.");
@@ -3310,9 +3347,8 @@ function openQuiz(){
   },1000);
 }
 
-function answerQuiz(qIndex,answer){
+async function answerQuiz(qIndex,answer){
   clearInterval(window.__quizTimer);
-
   const q=quizQuestions[qIndex];
   const options=document.querySelectorAll(".quiz-option");
   const clicked=options[answer];
@@ -3321,53 +3357,51 @@ function answerQuiz(qIndex,answer){
     if(clicked) clicked.classList.add("correct","particle-pop");
     state.game.xp += 25;
     state.game.coins += 5;
-
+    state.game.streak += 1;
     if(qIndex===2){
       state.game.unlockedEra=Math.max(state.game.unlockedEra,2);
       if(!state.game.cards.includes("José do Egito")) state.game.cards.push("José do Egito");
     }
-
-    playSuccessSound("quiz");
+    await playSuccessSound("quiz");
     saveGame();
-    setTimeout(renderGame,500);
+    updateGameResources();
     toast("Resposta correta! XP e moedas recebidos.");
+    setTimeout(()=>{renderGame();openPage("gamePage");},500);
   }else{
     if(clicked) clicked.classList.add("wrong");
-    playErrorSound();
-    toast("Resposta incorreta. A resposta correta será reforçada no próximo desafio.");
-    setTimeout(renderGame,600);
+    await playErrorSound();
+    state.game.streak=0;
+    saveGame();
+    updateGameResources();
+    toast("Resposta incorreta. Tente novamente na próxima fase.");
   }
 }
 
 function renderCardsAlbum(){
-  $("cardsAlbum").innerHTML=collectibleCards.map(card=>{
+  const box=$("cardsAlbum");
+  if(!box) return;
+  box.innerHTML=collectibleCards.map(card=>{
     const unlocked=state.game.cards.includes(card.name);
-    return `
-      <div class="cell-item" style="${unlocked?"":"opacity:.45"}">
-        <h4>${unlocked?"👑":"🔒"} ${escapeHTML(card.name)}</h4>
-        <p class="small muted">Raridade: ${escapeHTML(card.rarity)}</p>
-        <p class="small">${unlocked?escapeHTML(card.text):"Card bloqueado."}</p>
-        <p class="small muted">${unlocked?escapeHTML(card.reference):"Como desbloquear: "+escapeHTML(card.unlock)}</p>
-      </div>
-    `;
+    return `<div class="cell-item" style="${unlocked?"":"opacity:.45"}">
+      <h4>${unlocked?"👑":"🔒"} ${escapeHTML(card.name)}</h4>
+      <p class="small muted">Raridade: ${escapeHTML(card.rarity)}</p>
+      <p class="small">${unlocked?escapeHTML(card.text):"Card bloqueado."}</p>
+      <p class="small muted">${unlocked?escapeHTML(card.reference):"Como desbloquear: "+escapeHTML(card.unlock)}</p>
+    </div>`;
   }).join("");
 }
 
 function renderLeagues(){
+  const box=$("leagueList");
+  if(!box) return;
   const leagues=[
     ["Liga de Bronze","Entrada • Top 15 sobem"],
     ["Liga de Prata","Multiplicadores leves de moedas • Top 10 sobem"],
     ["Liga de Ouro","Disputa de XP • Top 5 sobem"],
     ["Liga de Diamante","Alta consistência diária • Top 3 sobem"],
-    ["Liga dos Embaixadores","Elite • 1º recebe a insígnia Mestre da Palavra"]
+    ["Liga dos Embaixadores","Elite • insígnia Mestre da Palavra"]
   ];
-
-  $("leagueList").innerHTML=leagues.map((x,i)=>`
-    <div>
-      <strong>${i+1}. ${escapeHTML(x[0])}</strong>
-      <div class="small muted">${escapeHTML(x[1])}</div>
-    </div>
-  `).join("");
+  box.innerHTML=leagues.map((x,i)=>`<div><strong>${i+1}. ${escapeHTML(x[0])}</strong><div class="small muted">${escapeHTML(x[1])}</div></div>`).join("");
 }
 
 function renderGame(){
@@ -3620,8 +3654,8 @@ function initEvents(){
     }
 
     // O submit do login é uma ação do usuário; aproveitamos este gesto para liberar o áudio no iPhone.
-    playBackgroundMusic();
     showApp();
+    playBackgroundMusic();
     toast("Bem-vindo ao Projeto Sementes.");
   });
 
@@ -3750,8 +3784,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(window.lucide) lucide.createIcons();
 
   restoreSession();
-  // Se a sessão já estiver aberta, a tela inicial tenta iniciar o louvor.
-  if(state.user) setTimeout(()=>playBackgroundMusic(),80);
 });
 </script>
 
