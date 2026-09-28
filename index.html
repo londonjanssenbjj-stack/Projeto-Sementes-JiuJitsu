@@ -3360,14 +3360,15 @@ FIM DO ARQUIVO
   document.addEventListener("DOMContentLoaded", () => {
     const loginForm = document.getElementById("loginForm");
     
-    // Se já houver um login salvo anteriormente, pode opcionalmente liberar direto (opcional)
+    // Verifica se já estava logado ao abrir a página
     if (localStorage.getItem("userLogged")) {
       const loginScreen = document.getElementById("loginScreen") || document.querySelector(".login-screen");
-      const mainScreen = document.getElementById("mainScreen") || document.querySelector("main") || document.getElementById("app");
+      const mainScreen = document.getElementById("mainScreen") || document.querySelector(".main-screen") || document.getElementById("app");
       if (loginScreen) loginScreen.style.display = "none";
       if (mainScreen) mainScreen.style.display = "block";
     }
 
+    // Processo de Login
     if (loginForm) {
       loginForm.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -3379,19 +3380,14 @@ FIM DO ARQUIVO
         const passValue = passwordInput ? passwordInput.value.trim() : "";
 
         if (userValue && passValue) {
-          // 1. Oculta especificamente a tela/container de login
           const loginScreen = document.getElementById("loginScreen") || document.querySelector(".login-screen") || loginForm.closest("div");
           if (loginScreen) {
             loginScreen.style.display = "none";
           }
 
-          // 2. Mostra especificamente a tela principal do sistema
           const mainScreen = document.getElementById("mainScreen") || document.querySelector(".main-screen") || document.getElementById("app");
           if (mainScreen) {
             mainScreen.style.display = "block";
-          } else {
-            // Se não achar um ID padrão, recarrega a página para aplicar o estado logado via script nativo
-            location.reload();
           }
 
           localStorage.setItem("userLogged", userValue);
@@ -3400,6 +3396,26 @@ FIM DO ARQUIVO
         }
       });
     }
+
+    // Navegação Universal de Abas e Menus
+    // Procura por qualquer item de menu, botão de navegação ou links com data-target/onclick
+    const menuButtons = document.querySelectorAll("nav button, .sidebar button, .menu-item, .nav-link, [data-page], [data-tab]");
+    
+    menuButtons.forEach(btn => {
+      btn.addEventListener("click", (function() {
+        // Tenta descobrir o destino da aba por atributos comuns
+        const target = this.getAttribute("data-page") || 
+                       this.getAttribute("data-tab") || 
+                       this.getAttribute("onclick") || 
+                       this.textContent.trim().toLowerCase();
+        
+        if (target) {
+          // Remove a classe 'active' de todos os botões e coloca no clicado
+          menuButtons.forEach(b => b.classList.remove("active", "selected"));
+          this.classList.add("active", "selected");
+        }
+      }));
+    });
   });
 </script>
 </body>
