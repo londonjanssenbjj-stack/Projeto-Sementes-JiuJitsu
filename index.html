@@ -3358,7 +3358,7 @@ FIM DO ARQUIVO
 -->
 <script>
   document.addEventListener("DOMContentLoaded", () => {
-    // Intercepta o envio do formulário de login de forma segura
+    // 1. GERENCIAMENTO DO LOGIN
     const loginForm = document.getElementById("loginForm");
     
     if (loginForm) {
@@ -3372,27 +3372,57 @@ FIM DO ARQUIVO
         const passValue = passwordInput ? passwordInput.value.trim() : "";
 
         if (userValue && passValue) {
-          // Oculta telas de login comuns por ID ou classe de forma segura
-          const loginScreens = document.querySelectorAll("#loginScreen, .login-screen, #login-container");
-          loginScreens.forEach(el => el.style.display = "none");
-
-          // Exibe as telas principais de forma segura
-          const mainScreens = document.querySelectorAll("#mainScreen, .main-screen, #app-container, .app-content");
-          mainScreens.forEach(el => el.style.display = "block");
-
-          // Salva a sessão
-          localStorage.setItem("userLogged", userValue);
-
-          // Se nenhuma tela principal mudou visualmente por ID, força um reload ou aviso de sucesso
-          if (mainScreens.length === 0) {
-            location.reload();
+          // Oculta telas de login
+          const loginScreens = document.querySelectorAll("#loginScreen, .login-screen, #login-container, form#loginForm");
+          loginScreens.forEach(el => {
+            if(el !== loginForm) el.style.display = "none";
+          });
+          if (loginForm.closest(".login-wrapper") || loginForm.parentElement) {
+            loginForm.parentElement.style.display = "none";
           }
+
+          // Exibe as telas principais
+          const mainScreens = document.querySelectorAll("#mainScreen, .main-screen, #app-container, .app-content, header, nav, main");
+          mainScreens.forEach(el => el.style.display = ""); // Restaura o display original do CSS
+
+          localStorage.setItem("userLogged", userValue);
         } else {
           alert("Por favor, preencha o login e a senha.");
         }
       });
     }
+
+    // 2. GERENCIAMENTO DE ABAS / MENU LATERAL / NAVEGAÇÃO
+    // Procura por botões de menu ou links que alternam abas
+    const navButtons = document.querySelectorAll("nav button, .sidebar button, .menu-item, [data-tab], .nav-link");
+    const tabContents = document.querySelectorAll(".tab-content, .content-section, section[id]");
+
+    navButtons.forEach(button => {
+      button.addEventListener("click", (e) => {
+        // Tenta identificar qual aba deve abrir (via atributo data-tab, href ou classe)
+        const targetTabId = button.getAttribute("data-tab") || button.getAttribute("href") || button.dataset.target;
+        
+        if (targetTabId) {
+          e.preventDefault();
+          
+          // Remove a classe 'active' ou 'selected' de todos os botões e adiciona no clicado
+          navButtons.forEach(btn => btn.classList.remove("active", "selected"));
+          button.classList.add("active", "selected");
+
+          // Oculta todas as seções e exibe apenas a correspondente
+          tabContents.forEach(section => {
+            if (section.id === targetTabId || section.classList.contains(targetTabId)) {
+              section.style.display = "block";
+              section.classList.add("active");
+            } else if (!section.id.includes("login")) {
+              section.style.display = "none";
+              section.classList.remove("active");
+            }
+          });
+        }
+      });
+    });
   });
-</script>
+</script> 
 </body>
 </html>
