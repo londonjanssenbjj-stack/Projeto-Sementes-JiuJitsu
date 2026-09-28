@@ -1889,17 +1889,24 @@ function showLogin(){
 }
 
 function showApp(){
+  // A troca de tela acontece antes do restante do aplicativo.
   $("loginScreen").style.display="none";
   $("mainScreen").style.display="block";
-  $("userChip").textContent = `${state.user.name} • ${roleLabel(state.user.role)}`;
+  const chip = $("userChip");
+  if(chip && state.user) chip.textContent = `${state.user.name} • ${roleLabel(state.user.role)}`;
 
-  const secretaryBtn = document.querySelector('[data-page="secretaryPage"]');
-  if(secretaryBtn) secretaryBtn.style.display = canSeeSecretary() ? "" : "none";
+  try{
+    const secretaryBtn = document.querySelector('[data-page="secretaryPage"]');
+    if(secretaryBtn) secretaryBtn.style.display = canSeeSecretary() ? "" : "none";
 
-  const tatameBtn = document.querySelector('[data-page="tatamePage"]');
-  if(tatameBtn) tatameBtn.style.display = canOperateTatame() ? "" : "none";
+    const tatameBtn = document.querySelector('[data-page="tatamePage"]');
+    if(tatameBtn) tatameBtn.style.display = canOperateTatame() ? "" : "none";
+  }catch(error){ console.error("Erro ao configurar permissões:", error); }
 
-  renderAll();
+  // Um erro em qualquer renderização secundária não deve desfazer o login.
+  try{ renderAll(); }catch(error){
+    console.error("Erro ao renderizar o aplicativo após login:", error);
+  }
 }
 
 function logout(){
@@ -3423,19 +3430,38 @@ function renderAll(){
    BOOT
    ----------------------------- */
 document.addEventListener("DOMContentLoaded",()=>{
-  loadState();
-  seedState();
-  restoreGame();
+  // 1) Carrega somente os dados locais; falhas aqui não bloqueiam o login.
+  try{ loadState(); }catch(error){ console.error("loadState",error); }
+  try{ seedState(); }catch(error){ console.error("seedState",error); }
+  try{ restoreGame(); }catch(error){ console.error("restoreGame",error); }
 
-  initAuth();
-  initEvents();
-  initTabs();
-  initEnrollment();
-  setupSignature();
+  // 2) O LOGIN é sempre registrado primeiro.
+  try{ initAuth(); }catch(error){
+    console.error("initAuth",error);
+    const form=$("loginForm");
+    if(form && !form.dataset.authFallback){
+      form.dataset.authFallback="1";
+      form.addEventListener("submit",function(e){
+        e.preventDefault();
+        const ok=loginDemo($("login")?.value||"",$("password")?.value||"");
+        if(!ok){ toast("Login ou senha inválidos."); return; }
+        try{ showApp(); }catch(err){
+          $("loginScreen").style.display="none";
+          $("mainScreen").style.display="block";
+        }
+      });
+    }
+  }
 
-  if(window.lucide) lucide.createIcons();
+  // 3) Os outros módulos são isolados: nenhum erro deles bloqueia o acesso.
+  try{ initEvents(); }catch(error){ console.error("initEvents",error); }
+  try{ initTabs(); }catch(error){ console.error("initTabs",error); }
+  try{ initEnrollment(); }catch(error){ console.error("initEnrollment",error); }
+  try{ setupSignature(); }catch(error){ console.error("setupSignature",error); }
+  try{ if(window.lucide) lucide.createIcons(); }catch(error){}
 
-  restoreSession();
+  // 4) Só restaura sessão existente se houver uma sessão válida.
+  try{ restoreSession(); }catch(error){ console.error("restoreSession",error); showLogin(); }
 });
 </script>
 
