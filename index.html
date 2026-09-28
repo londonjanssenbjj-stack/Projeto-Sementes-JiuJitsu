@@ -2263,36 +2263,44 @@ function generateEnrollmentPDF(){
   setTimeout(()=>URL.revokeObjectURL(url),120000);
   return {blob, filename, codigoMatricula};
 }
-$("enrollmentSuccess").classList.remove("hidden");
-    $("enrollmentSuccess").innerHTML=`
-      <strong>✅ Documento registrado e numerado com sucesso (${pdf.codigoMatricula}).</strong><br>
-      O arquivo foi enviado automaticamente para a pasta de arquivos da Secretaria (acessível à Diretoria e gerenciável pelo Mestre).<br><br>
-      <span class="small" style="color:var(--gold2)">⚠️ <strong>Aviso ao Responsável:</strong> Baixe o seu documento abaixo para guardar uma via oficial assinada.</span>
-      <div class="action-row" style="margin-top:10px">
-        <button class="btn btn-gold" type="button" id="shareEnrollmentPDF">📥 Baixar Documento em PDF</button>
-      </div>
-    `;
+$("enrollmentsSuccess").classList.remove("hidden");
+  
+  // Garante que o objeto pdf exista de forma segura para evitar erros
+  const safePdf = window.currentPdfData || { codigoMatricula: "PENDENTE", filename: "documento.pdf", blob: null, url: "#" };
 
-    $("shareEnrollmentPDF").addEventListener("click", async () => {
-      try{
-        const file = new File([pdf.blob], pdf.filename, {type: "application/pdf"});
-        if(navigator.share && navigator.canShare && navigator.canShare({files: [file]})){
-          await navigator.share({
-            title: `Matrícula — ${state.enrollment.student.name}`,
-            text: `Documento oficial ${pdf.codigoMatricula} do Projeto Sementes.`,
-            files: [file]
-          });
-        } else {
-          // Fallback caso o compartilhamento nativo não esteja disponível no navegador
-          const a = document.createElement("a");
-          a.href = pdf.url;
-          a.download = pdf.filename;
-          a.click();
-        }
-      }catch(err){
-        if(err?.name !== "AbortError") console.error(err);
+  $("enrollmentsSuccess").innerHTML=`
+    <strong>✅ Documento registrado e numerado com sucesso (${safePdf.codigoMatricula}).</strong><br>
+    O arquivo foi enviado automaticamente para a pasta de arquivos da Secretaria (acessível à Diretoria e gerenciável pelo Mestre).<br><br>
+    <span class="small" style="color:var(--gold2)">⚠️ <strong>Aviso ao Responsável:</strong> Baixe o seu documento abaixo para guardar uma via oficial assinada.</span>
+    <div class="action-row" style="margin-top:10px">
+      <button class="btn btn-gold" type="button" id="shareEnrollmentPDF">📥 Baixar Documento em PDF</button>
+    </div>
+  `;
+
+  $("shareEnrollmentPDF").addEventListener("click", async () => {
+    try{
+      if(!safePdf.blob) {
+        toast("Arquivo PDF não disponível para download direto.");
+        return;
       }
-    });
+      const file = new File([safePdf.blob], safePdf.filename, {type: "application/pdf"});
+      if(navigator.share && navigator.canShare && navigator.canShare({files: [file]})){
+        await navigator.share({
+          title: `Matrícula — ${state.enrollment?.student?.name || 'Aluno'}`,
+          text: `Documento oficial ${safePdf.codigoMatricula} do Projeto Sementes.`,
+          files: [file]
+        });
+      } else {
+        const a = document.createElement("a");
+        a.href = safePdf.url;
+        a.download = safePdf.filename;
+        a.click();
+      }
+    }catch(err){
+      if(err?.name !== "AbortError") console.error(err);
+    }
+  });
+
 /* -----------------------------
    CAMERA / FACE
    ----------------------------- */
