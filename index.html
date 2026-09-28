@@ -3358,9 +3358,16 @@ FIM DO ARQUIVO
 -->
 <script>
   document.addEventListener("DOMContentLoaded", () => {
-    // 1. GERENCIAMENTO DO LOGIN
     const loginForm = document.getElementById("loginForm");
     
+    // Se já houver um login salvo anteriormente, pode opcionalmente liberar direto (opcional)
+    if (localStorage.getItem("userLogged")) {
+      const loginScreen = document.getElementById("loginScreen") || document.querySelector(".login-screen");
+      const mainScreen = document.getElementById("mainScreen") || document.querySelector("main") || document.getElementById("app");
+      if (loginScreen) loginScreen.style.display = "none";
+      if (mainScreen) mainScreen.style.display = "block";
+    }
+
     if (loginForm) {
       loginForm.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -3372,18 +3379,20 @@ FIM DO ARQUIVO
         const passValue = passwordInput ? passwordInput.value.trim() : "";
 
         if (userValue && passValue) {
-          // Oculta telas de login
-          const loginScreens = document.querySelectorAll("#loginScreen, .login-screen, #login-container, form#loginForm");
-          loginScreens.forEach(el => {
-            if(el !== loginForm) el.style.display = "none";
-          });
-          if (loginForm.closest(".login-wrapper") || loginForm.parentElement) {
-            loginForm.parentElement.style.display = "none";
+          // 1. Oculta especificamente a tela/container de login
+          const loginScreen = document.getElementById("loginScreen") || document.querySelector(".login-screen") || loginForm.closest("div");
+          if (loginScreen) {
+            loginScreen.style.display = "none";
           }
 
-          // Exibe as telas principais
-          const mainScreens = document.querySelectorAll("#mainScreen, .main-screen, #app-container, .app-content, header, nav, main");
-          mainScreens.forEach(el => el.style.display = ""); // Restaura o display original do CSS
+          // 2. Mostra especificamente a tela principal do sistema
+          const mainScreen = document.getElementById("mainScreen") || document.querySelector(".main-screen") || document.getElementById("app");
+          if (mainScreen) {
+            mainScreen.style.display = "block";
+          } else {
+            // Se não achar um ID padrão, recarrega a página para aplicar o estado logado via script nativo
+            location.reload();
+          }
 
           localStorage.setItem("userLogged", userValue);
         } else {
@@ -3391,38 +3400,7 @@ FIM DO ARQUIVO
         }
       });
     }
-
-    // 2. GERENCIAMENTO DE ABAS / MENU LATERAL / NAVEGAÇÃO
-    // Procura por botões de menu ou links que alternam abas
-    const navButtons = document.querySelectorAll("nav button, .sidebar button, .menu-item, [data-tab], .nav-link");
-    const tabContents = document.querySelectorAll(".tab-content, .content-section, section[id]");
-
-    navButtons.forEach(button => {
-      button.addEventListener("click", (e) => {
-        // Tenta identificar qual aba deve abrir (via atributo data-tab, href ou classe)
-        const targetTabId = button.getAttribute("data-tab") || button.getAttribute("href") || button.dataset.target;
-        
-        if (targetTabId) {
-          e.preventDefault();
-          
-          // Remove a classe 'active' ou 'selected' de todos os botões e adiciona no clicado
-          navButtons.forEach(btn => btn.classList.remove("active", "selected"));
-          button.classList.add("active", "selected");
-
-          // Oculta todas as seções e exibe apenas a correspondente
-          tabContents.forEach(section => {
-            if (section.id === targetTabId || section.classList.contains(targetTabId)) {
-              section.style.display = "block";
-              section.classList.add("active");
-            } else if (!section.id.includes("login")) {
-              section.style.display = "none";
-              section.classList.remove("active");
-            }
-          });
-        }
-      });
-    });
   });
-</script> 
+</script>
 </body>
 </html>
