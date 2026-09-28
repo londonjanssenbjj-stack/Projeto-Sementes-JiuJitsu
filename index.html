@@ -471,6 +471,65 @@
     .quiz-option{width:100%;text-align:left;margin:6px 0}
     .timer{font-family:"Bebas Neue";font-size:48px;color:var(--gold2);text-align:center}
 
+    /* LOGIN / ÁUDIO */
+    .input-wrap{position:relative}
+    .input-wrap .icon-btn{
+      position:absolute;right:8px;top:50%;transform:translateY(-50%);
+      width:38px;height:38px;border-radius:10px;border:1px solid #3a3a3a;
+      background:#191919;color:#f4d76e;display:grid;place-items:center;
+    }
+    .password-toggle svg{width:18px;height:18px}
+
+    /* GAME PREMIUM */
+    .game-hero{overflow:hidden;padding:0}
+    .game-sky{
+      min-height:150px;padding:22px;display:flex;align-items:center;gap:18px;
+      background:
+        radial-gradient(circle at 20% 20%,rgba(255,255,255,.45),transparent 12%),
+        linear-gradient(180deg,#8fc7e8 0%,#b9dff0 48%,#6ea95d 49%,#416b39 100%);
+      position:relative;color:#132016;
+    }
+    .game-sky:after{
+      content:"";position:absolute;inset:auto 0 0;height:40px;
+      background:linear-gradient(180deg,transparent,rgba(18,18,18,.12));
+    }
+    .game-bible{
+      width:82px;height:82px;border-radius:24px;background:linear-gradient(145deg,#8c6a15,#f4d76e);
+      display:grid;place-items:center;font-size:42px;box-shadow:0 12px 28px rgba(0,0,0,.25);
+      z-index:1;
+    }
+    .game-sky>div:last-child{z-index:1}
+    .cloud{position:absolute;width:85px;height:24px;background:rgba(255,255,255,.72);border-radius:30px;filter:blur(.4px)}
+    .cloud:before,.cloud:after{content:"";position:absolute;background:inherit;border-radius:50%}
+    .cloud:before{width:34px;height:34px;left:18px;top:-14px}.cloud:after{width:42px;height:42px;right:12px;top:-20px}
+    .cloud-a{top:22px;right:28px}.cloud-b{top:76px;left:35%;transform:scale(.72)}
+
+    .game-map{display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden}
+    .game-map:before{
+      content:"";position:absolute;left:27px;top:20px;bottom:20px;width:4px;
+      background:linear-gradient(#d4af37,#6f8f5d,#4e85a5,#d4af37);border-radius:10px;
+    }
+    .era{
+      margin-left:10px;padding:16px 16px 16px 48px;border:1px solid #4b3a13;border-radius:22px;
+      background:linear-gradient(145deg,#231e12,#15130e);position:relative;box-shadow:0 10px 24px rgba(0,0,0,.18);
+    }
+    .era:before{
+      content:"";position:absolute;left:15px;top:26px;width:28px;height:28px;border-radius:50%;
+      background:linear-gradient(145deg,#f4d76e,#8c6a15);border:3px solid #171717;z-index:2;
+    }
+    .era.locked{opacity:.5;filter:saturate(.5)}
+    .era-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .era h3{font-family:"Bebas Neue";font-size:24px;color:var(--gold2);margin:0}
+    .nodes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+    .node{padding:11px;border-radius:14px;background:#171717;border:1px solid #343434;font-size:10px}
+    .quiz-option{width:100%;text-align:left;margin:6px 0;transition:.2s}
+    .quiz-option.correct{border-color:#34d399;background:rgba(16,185,129,.18);box-shadow:0 0 22px rgba(16,185,129,.28)}
+    .quiz-option.wrong{border-color:#f59e9e;background:rgba(239,68,68,.15);animation:shake .28s linear}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+    .timer{font-family:"Bebas Neue";font-size:48px;color:var(--gold2);text-align:center}
+    .particle-pop{animation:particlePop .65s ease-out}
+    @keyframes particlePop{0%{box-shadow:0 0 0 rgba(244,215,110,0)}50%{box-shadow:0 0 32px rgba(244,215,110,.65)}100%{box-shadow:0 0 0 rgba(244,215,110,0)}}
+
     /* SECRETARIA */
     .table-wrap{overflow:auto;border:1px solid #303030;border-radius:14px}
     table{width:100%;border-collapse:collapse;min-width:700px}
@@ -549,9 +608,9 @@
 
         <form id="loginForm">
           <div class="field">
-            <label for="login">E-mail, CPF ou celular</label>
+            <label for="login">Login</label>
             <div class="input-wrap">
-              <i data-lucide="mail"></i>
+              <i data-lucide="user-round"></i>
               <input id="login" class="input" autocomplete="username" required
                      placeholder="Digite seu login">
             </div>
@@ -560,9 +619,13 @@
           <div class="field">
             <label for="password">Senha</label>
             <div class="input-wrap">
-              <i data-lucide="lock"></i>
+              <i data-lucide="lock-keyhole"></i>
               <input id="password" class="input" type="password" autocomplete="current-password"
                      required placeholder="Digite sua senha">
+              <button class="icon-btn password-toggle" id="togglePassword" type="button"
+                      aria-label="Mostrar senha" title="Mostrar senha">
+                <i data-lucide="eye"></i>
+              </button>
             </div>
           </div>
 
@@ -572,8 +635,7 @@
         </form>
 
         <div class="login-links">
-          <button class="link-btn" id="forgotBtn" type="button">Esqueci minha senha</button>
-          <button class="link-btn" id="demoBtn" type="button">Acesso de demonstração</button>
+          <button class="link-btn hidden" id="forgotBtn" type="button">Esqueci minha senha</button>
         </div>
 
         <div class="security-badge">
@@ -633,6 +695,11 @@
       <section id="homePage" class="page active">
         <h1 class="page-title">Bem-vindo à família Sementes</h1>
         <p class="page-sub">Disciplina, valores cristãos, jiu-jitsu e fortalecimento das famílias.</p>
+        <div class="notice" style="margin-bottom:14px">
+          🎵 <strong>Momento de Louvor</strong><br>
+          <span class="small">“Quando Ele Vem” — Ana Nóbrega. A reprodução automática depende do arquivo de áudio autorizado estar junto do HTML e das permissões do navegador.</span>
+          <button class="btn btn-gold" style="margin-top:8px" type="button" onclick="playBackgroundMusic()">▶ Ouvir louvor</button>
+        </div>
 
         <div class="bento">
 
@@ -1262,12 +1329,19 @@
         <div class="bento">
           <article class="card wide faith-card">
             <div class="card-header">
-              <div><h2 class="section-title">NOSSAS CÉLULAS</h2><span class="small muted">5 opções</span></div>
+              <div><h2 class="section-title">NOSSAS CÉLULAS</h2><span class="small muted">Rede de Mulheres • 6 células</span></div>
               <i class="icon-gold" data-lucide="users-round"></i>
             </div>
             <div id="cellsGrid" class="cell-grid"></div>
           </article>
 
+          <article class="card wide gold-border" style="margin-top:14px">
+            <div class="card-header">
+              <div><h2 class="section-title">REDE DE MULHERES</h2><span class="small muted">Liderança e células</span></div>
+              <i class="icon-gold" data-lucide="heart-handshake"></i>
+            </div>
+            <div id="womenNetworkGrid" class="cell-grid"></div>
+          </article>
           <article class="card">
             <div class="card-header">
               <div><h2 class="section-title">CLAMOR E CUIDADO PASTORAL</h2><span class="small muted">Pedido de oração</span></div>
@@ -1308,18 +1382,29 @@
            GAME GOSPEL
            ===================================================== -->
       <section id="gamePage" class="page">
-        <h1 class="page-title">Game Gospel — Jornada da Sabedoria</h1>
-        <p class="page-sub">Mapa bíblico de 8 Eras com XP, Azeite, moedas, desafios e cards.</p>
+        <h1 class="page-title">Game Gospel — A Viagem</h1>
+        <p class="page-sub">Uma jornada bíblica visual, com fases, desafios, recompensas e coleção de personagens.</p>
 
         <div class="resource-row">
           <div class="resource"><strong id="oilValue">5</strong><span>🏺 Gotas de Azeite</span></div>
-          <div class="resource"><strong id="coinValue">0</strong><span>💰 Moedas de Ouro</span></div>
-          <div class="resource"><strong id="streakValue">0</strong><span>🔥 Dias de Ofensiva</span></div>
+          <div class="resource"><strong id="coinValue">0</strong><span>💰 Moedas</span></div>
+          <div class="resource"><strong id="streakValue">0</strong><span>🔥 Ofensiva</span></div>
+        </div>
+
+        <div class="game-hero card">
+          <div class="game-sky">
+            <div class="cloud cloud-a"></div><div class="cloud cloud-b"></div>
+            <div class="game-bible">📖</div>
+            <div>
+              <h2 class="section-title">A VIAGEM PELA BÍBLIA</h2>
+              <p class="small muted">Toque em uma fase liberada para continuar sua jornada.</p>
+            </div>
+          </div>
         </div>
 
         <div class="card" style="margin-bottom:14px">
           <div class="card-header">
-            <div><h2 class="section-title">JORNADA</h2><span class="small muted">O livro ativo brilha em dourado; os bloqueados têm cadeado.</span></div>
+            <div><h2 class="section-title">MAPA DAS FASES</h2><span class="small muted">Jardim do Éden → Egito → Mar Vermelho → Novo Testamento</span></div>
             <i class="icon-gold" data-lucide="map"></i>
           </div>
           <div id="gameMap" class="game-map"></div>
@@ -1327,7 +1412,7 @@
 
         <div class="card">
           <div class="card-header">
-            <div><h2 class="section-title">QUIZ DA ERA 1</h2><span class="small muted">Nível adolescente/jovem</span></div>
+            <div><h2 class="section-title">DESAFIO</h2><span class="small muted">Responda e receba XP</span></div>
             <i class="icon-gold" data-lucide="brain"></i>
           </div>
           <div id="quizBox"></div>
@@ -1335,20 +1420,17 @@
 
         <div class="card" style="margin-top:14px">
           <div class="card-header">
-            <div><h2 class="section-title">ÁLBUM DE CARDS</h2><span class="small muted">Recompensas colecionáveis</span></div>
-            <i class="icon-gold" data-lucide="layers"></i>
+            <div><h2 class="section-title">ÁLBUM DE DESCOBERTAS</h2><span class="small muted">Conquiste 100% de acertos para desbloquear figuras</span></div>
+            <i class="icon-gold" data-lucide="images"></i>
           </div>
           <div id="cardsAlbum" class="cell-grid"></div>
         </div>
 
         <div class="card" style="margin-top:14px">
           <div class="card-header">
-            <div><h2 class="section-title">LIGA DE LÍDERES</h2><span class="small muted">Ranking semanal</span></div>
+            <div><h2 class="section-title">LIGA DE LÍDERES</h2><span class="small muted">XP acumulado</span></div>
             <i class="icon-gold" data-lucide="trophy"></i>
           </div>
-          <p class="small muted">
-            O ranking zera automaticamente todo domingo às 23h59 e contabiliza o XP da semana corrente.
-          </p>
           <div id="leagueList" class="list"></div>
         </div>
       </section>
@@ -1362,7 +1444,7 @@
 
         <div class="notice" style="margin-bottom:14px">
           <strong>Secretaria — Documentos de Matrícula</strong><br>
-          Os documentos cadastrados ficam visíveis somente para a Diretoria. A exclusão é permitida exclusivamente ao Mestre London.
+          Os documentos cadastrados ficam visíveis somente para a Diretoria e Administrador. A exclusão é permitida exclusivamente ao Administrador Mestre London.
           <span class="small muted">Neste arquivo HTML, o armazenamento é local ao dispositivo; para receber documentos de outros celulares/computadores é necessário conectar um backend seguro.</span>
         </div>
 
@@ -1384,7 +1466,7 @@
         <div class="bento">
           <article class="card wide">
             <div class="card-header">
-              <div><h2 class="section-title">ESTRUTURA ORGANIZACIONAL E DIRETORIA</h2><span class="small muted">5 integrantes fixos</span></div>
+              <div><h2 class="section-title">ESTRUTURA ORGANIZACIONAL E DIRETORIA</h2><span class="small muted">3 integrantes da Diretoria</span></div>
               <i class="icon-gold" data-lucide="building-2"></i>
             </div>
             <div class="table-wrap">
@@ -1393,6 +1475,16 @@
                 <tbody id="directorsTable"></tbody>
               </table>
             </div>
+          </article>
+
+          <article class="card gold-border">
+            <div class="card-header">
+              <div><h2 class="section-title">ADMINISTRADOR</h2><span class="small muted">Fora da Diretoria</span></div>
+              <i class="icon-gold" data-lucide="shield"></i>
+            </div>
+            <p class="body-text"><strong>${escapeHTML(administrator.name)}</strong></p>
+            <p class="small muted">${escapeHTML(administrator.role)}</p>
+            <p class="small muted">Responsável pela administração do sistema e exclusão de documentos da Secretaria.</p>
           </article>
 
           <article class="card">
@@ -1488,6 +1580,8 @@
 
 <div id="toast"></div>
 
+<audio id="homeMusic" loop preload="none" src="quando-ele-vem.mp3"></audio>
+
 <script>
 /* ============================================================
    PROJETO SEMENTES — SINGLE FILE APPLICATION
@@ -1507,7 +1601,8 @@ const APP_CONFIG = {
   projectName: "Projeto Sementes",
   city: "Corumbá - MS",
   church: "IEQ Guaicurus",
-  masterName: "Mestre London",
+  masterName: "Administrador Mestre London",
+  masterDisplayName: "Administrador Professor London",
   masterEmail: "londonjanssenbjj@gmail.com",
   masterWhatsapp: "5567998513404",
   classTime: "19h às 20h30",
@@ -1521,7 +1616,8 @@ const APP_CONFIG = {
   demoMasterLogin: "londonjanssenbjj@gmail.com",
   demoMasterPassword: "12381314*Lj",
 
-  logo: "logo_projeto_sementes.png"
+  logo: "logo_projeto_sementes.png",
+  homeMusic: "quando-ele-vem.mp3"
 };
 
 const STORAGE_KEYS = {
@@ -1584,20 +1680,31 @@ const defaultStudents = [
 ];
 
 const directors = [
-  {name:"Pastor Joel", role:"Pastor Joel", phone:"", address:"Restrito"},
-  {name:"Diretor 2", role:"Diretoria", phone:"", address:"Restrito"},
-  {name:"Diretor 3", role:"Diretoria", phone:"", address:"Restrito"},
-  {name:"Diretor 4", role:"Diretoria", phone:"", address:"Restrito"},
-  {name:"Diretor 5", role:"Diretoria", phone:"", address:"Restrito"}
+  {name:"Pastor Joel", role:"Pastor", phone:"67999082592", address:"Restrito"},
+  {name:"Irmão Antonio", role:"Diretoria", phone:"67996164200", address:"Restrito"},
+  {name:"Irmã Adriana", role:"Diretoria", phone:"67984839839", address:"Restrito"}
 ];
 
+const administrator = {
+  name:"Administrador Mestre London",
+  role:"Administrador",
+  phone:APP_CONFIG.masterWhatsapp
+};
+
 const cells = [
-  {name:"Célula Videira", leader:"Líder Marcos", phone:""},
-  {name:"Célula 2", leader:"Líder Responsável", phone:""},
-  {name:"Célula 3", leader:"Líder Responsável", phone:""},
-  {name:"Célula 4", leader:"Líder Responsável", phone:""},
-  {name:"Célula 5", leader:"Líder Responsável", phone:""}
+  {name:"✨ Célula Preciosas", leader:"Rosalina", phone:"67998547152"},
+  {name:"✨ Célula Filhas", leader:"Fabíola", phone:"67996602974"},
+  {name:"✨ Célula Guerreiras", leader:"Adriana", phone:"67992489750"},
+  {name:"✨ Célula Princesas", leader:"Lisbela", phone:"67996527268"},
+  {name:"✨ Célula Bem-aventuradas", leader:"Edluce", phone:"67999180140"},
+  {name:"✨ Célula Virtuosas", leader:"Jakelyne", phone:"67998857914"}
 ];
+
+const networkLeader = {
+  name:"Líder da Rede de Mulheres",
+  leader:"Pra. Simone",
+  phone:"67999195844"
+};
 
 const eras = [
   {
@@ -1825,7 +1932,7 @@ function seedState(){
 
 function roleLabel(role){
   const map = {
-    master:"Mestre London",
+    master:"Administrador Mestre London",
     pastor:"Pastor Joel",
     director:"Diretoria",
     guardian:"Responsável"
@@ -1864,6 +1971,24 @@ function loginDemo(login,password){
       name:APP_CONFIG.masterName,
       email:APP_CONFIG.masterEmail,
       role:"master"
+    };
+    localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    return true;
+  }
+
+  // Acessos de responsáveis cadastrados no próprio perfil do aluno.
+  const guardianStudent = state.students.find(s =>
+    s.accessLogin &&
+    s.accessPassword &&
+    String(s.accessLogin).trim().toLowerCase() === normalized &&
+    String(s.accessPassword) === password
+  );
+  if(guardianStudent){
+    state.user = {
+      id:"guardian-"+guardianStudent.id,
+      name:guardianStudent.guardian || guardianStudent.name,
+      role:"guardian",
+      studentId:guardianStudent.id
     };
     localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
     return true;
@@ -1914,7 +2039,9 @@ function showLogin(){
 function showApp(){
   $("loginScreen").style.display="none";
   $("mainScreen").style.display="block";
-  $("userChip").textContent = `${state.user.name} • ${roleLabel(state.user.role)}`;
+  $("userChip").textContent = state.user.role==="master"
+    ? APP_CONFIG.masterDisplayName
+    : `${state.user.name} • ${roleLabel(state.user.role)}`;
 
   const secretaryBtn = document.querySelector('[data-page="secretaryPage"]');
   if(secretaryBtn) secretaryBtn.style.display = canSeeSecretary() ? "" : "none";
@@ -1923,6 +2050,7 @@ function showApp(){
   if(tatameBtn) tatameBtn.style.display = canOperateTatame() ? "" : "none";
 
   renderAll();
+  if(state.user?.role) playBackgroundMusic();
 }
 
 function logout(){
@@ -1943,6 +2071,8 @@ function openPage(pageId){
   document.querySelectorAll("#mainNav button").forEach(btn=>{
     btn.classList.toggle("active",btn.dataset.page===pageId);
   });
+
+  if(pageId==="homePage") playBackgroundMusic();
 
   if(pageId==="secretaryPage" && !canSeeSecretary()){
     toast("Acesso restrito ao Mestre London e Pastor Joel.");
@@ -2399,7 +2529,7 @@ function initEnrollment(){
     $("enrollmentSuccess").classList.remove("hidden");
     $("enrollmentSuccess").innerHTML=`
       <strong>✅ Documento gerado com sucesso — ${escapeHTML(pdf.codigoMatricula)}.</strong><br>
-      <span class="small">O documento foi numerado e registrado na Secretaria.</span><br><br>
+      <span class="small">O documento foi numerado e registrado na Secretaria. A notificação é enviada somente ao Administrador Mestre London.</span><br><br>
       <span class="small" style="color:var(--gold2)">⚠️ <strong>Aviso ao Responsável:</strong> não esqueça de baixar seu Documento gerado e guardar sua via assinada.</span>
       <div class="action-row" style="margin-top:10px">
         <button class="btn btn-gold" type="button" id="downloadEnrollmentPDF">📥 Baixar Documento</button>
@@ -2410,8 +2540,9 @@ function initEnrollment(){
     $("step2Dot").classList.add("active");
     $("step1Dot").classList.remove("active");
 
-    // A única notificação automática é para o Mestre London.
+    // O documento fica disponível para download; a notificação é somente para o Mestre London.
     const masterOpened=openWhatsAppDocument("master",APP_CONFIG.masterWhatsapp);
+    playSuccessSound("finalize");
     $("downloadEnrollmentPDF").addEventListener("click",()=>downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename));
 
     renderStudents();
@@ -2419,8 +2550,8 @@ function initEnrollment(){
 
     toast(
       masterOpened
-        ? "Documento gerado. WhatsApp do Mestre London aberto e biometria liberada."
-        : "Documento gerado. Biometria liberada."
+        ? "Documento finalizado. Mestre London notificado e biometria liberada."
+        : "Documento finalizado. Biometria liberada."
     );
 
     // Tenta abrir a câmera automaticamente após liberar a biometria.
@@ -2499,6 +2630,7 @@ function captureFace(){
     faceStream=null;
   }
 
+  playSuccessSound("biometric");
   toast("Face capturada e vinculada ao cadastro local.");
   renderStudents();
 }
@@ -2633,6 +2765,10 @@ function openStudent(id){
           <label>Status</label>
           <input class="input" value="${s.status==="complete"?"🟢 Completo":"🔴 Pendente"}" disabled>
         </div>
+        <div class="field">
+          <label>Login do responsável</label>
+          <input class="input" value="${escapeHTML(s.accessLogin||"Não definido")}" disabled>
+        </div>
       </div>
 
       <div class="card" style="background:#151515;margin-top:14px">
@@ -2652,9 +2788,10 @@ function openStudent(id){
         }
       </div>
 
-      ${editable ? `
+      ${(editable || (state.user?.role==="guardian" && state.user.studentId===s.id)) ? `
         <div class="action-row" style="margin-top:14px">
-          <button class="btn btn-gold" onclick="saveStudentProfile('${s.id}')">Salvar alterações</button>
+          ${editable ? `<button class="btn btn-gold" onclick="saveStudentProfile('${s.id}')">Salvar alterações</button>` : ""}
+          <button class="btn" type="button" onclick="resetGuardianPassword('${s.id}')">🔐 Redefinir senha do responsável</button>
         </div>
       ` : `
         <p class="small muted" style="margin-top:12px">
@@ -2663,6 +2800,49 @@ function openStudent(id){
       `}
     `
   );
+}
+
+function resetGuardianPassword(id){
+  const s=state.students.find(x=>x.id===id);
+  if(!s) return;
+  const allowed=state.user?.role==="master" || (state.user?.role==="guardian" && state.user.studentId===id);
+  if(!allowed){
+    toast("Você não tem permissão para redefinir esta senha.");
+    return;
+  }
+
+  modal(
+    "Redefinir senha do responsável",
+    `
+      <p class="small muted">Defina uma nova senha de acesso para o responsável deste aluno.</p>
+      <form id="guardianPasswordForm">
+        <div class="field">
+          <label>Login do responsável</label>
+          <input class="input" value="${escapeHTML(s.accessLogin||"Ainda não definido")}" disabled>
+        </div>
+        <div class="field">
+          <label>Nova senha</label>
+          <input id="newGuardianPassword" class="input" type="password" minlength="6" required>
+        </div>
+        <button class="btn btn-gold" type="submit">Salvar nova senha</button>
+      </form>
+    `
+  );
+
+  setTimeout(()=>{
+    $("guardianPasswordForm")?.addEventListener("submit",e=>{
+      e.preventDefault();
+      const password=$("newGuardianPassword").value;
+      if(password.length<6){
+        toast("A senha deve ter pelo menos 6 caracteres.");
+        return;
+      }
+      s.accessPassword=password;
+      saveState();
+      closeModal();
+      toast("Senha do responsável redefinida com sucesso.");
+    });
+  },0);
 }
 
 function saveStudentProfile(id){
@@ -2851,19 +3031,90 @@ function downloadCSV(filename,rows){
 }
 
 /* -----------------------------
+   ÁUDIO / FEEDBACK
+   ----------------------------- */
+let audioContext=null;
+
+function playTone(frequency,duration=0.16,type="sine",gainValue=.055,delay=0){
+  try{
+    audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();
+    const osc=audioContext.createOscillator();
+    const gain=audioContext.createGain();
+    osc.type=type;
+    osc.frequency.value=frequency;
+    gain.gain.setValueAtTime(0.0001,audioContext.currentTime+delay);
+    gain.gain.exponentialRampToValueAtTime(gainValue,audioContext.currentTime+delay+.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001,audioContext.currentTime+delay+duration);
+    osc.connect(gain); gain.connect(audioContext.destination);
+    osc.start(audioContext.currentTime+delay);
+    osc.stop(audioContext.currentTime+delay+duration+.03);
+  }catch(error){}
+}
+
+function playSuccessSound(kind="success"){
+  if(kind==="biometric"){
+    playTone(523.25,.18,"sine",.07,0);
+    playTone(659.25,.18,"sine",.07,.11);
+    playTone(783.99,.28,"sine",.075,.22);
+  }else{
+    playTone(261.63,.18,"sine",.07,0);
+    playTone(329.63,.18,"sine",.07,.10);
+    playTone(392.00,.18,"sine",.07,.20);
+    playTone(523.25,.34,"sine",.08,.30);
+  }
+  if(navigator.vibrate) navigator.vibrate(kind==="biometric"?40:60);
+}
+
+function playErrorSound(){
+  playTone(130,.22,"triangle",.07,0);
+  if(navigator.vibrate) navigator.vibrate([35,35,35]);
+}
+
+function playClickSound(){ playTone(220,.06,"triangle",.025,0); }
+
+function playBackgroundMusic(){
+  const audio=$("homeMusic");
+  if(!audio) return;
+  audio.volume=.28;
+  audio.play().catch(()=>{
+    // Navegadores podem bloquear autoplay. O próximo toque do usuário libera a reprodução.
+    document.addEventListener("click",()=>audio.play().catch(()=>{}),{once:true});
+  });
+}
+
+document.addEventListener("click",e=>{
+  if(e.target.closest("button")) playClickSound();
+});
+
+/* -----------------------------
    FAITH
    ----------------------------- */
+
 function renderCells(){
   $("cellsGrid").innerHTML=cells.map(cell=>`
     <div class="cell-item">
       <h4>${escapeHTML(cell.name)}</h4>
-      <p class="small muted">${escapeHTML(cell.leader)}</p>
+      <p class="small muted">Responsável: ${escapeHTML(cell.leader)}</p>
       <button class="btn btn-gold btn-full"
               onclick="joinCell('${encodeURIComponent(cell.name)}','${encodeURIComponent(cell.phone)}')">
-        🌱 Eu quero participar dessa célula!
+        💬 Falar com a responsável
       </button>
     </div>
   `).join("");
+
+  const network=$("womenNetworkGrid");
+  if(network){
+    network.innerHTML=`
+      <div class="cell-item">
+        <h4>👑 ${escapeHTML(networkLeader.name)}</h4>
+        <p class="small muted">${escapeHTML(networkLeader.leader)}</p>
+        <button class="btn btn-gold btn-full"
+          onclick="joinCell('${encodeURIComponent(networkLeader.name)}','${encodeURIComponent(networkLeader.phone)}')">
+          💬 Falar com a líder da Rede
+        </button>
+      </div>
+    `;
+  }
 }
 
 function joinCell(nameEncoded,phoneEncoded){
@@ -2871,7 +3122,7 @@ function joinCell(nameEncoded,phoneEncoded){
   const phone=decodeURIComponent(phoneEncoded);
 
   const text=encodeURIComponent(
-    "Olá, líder! Faço parte do Projeto Sementes e eu quero participar da sua célula. Como faço para começar?"
+    `A Paz seja contigo! Gostaria de participar da ${name}. Poderia me orientar sobre como participar e qual o próximo encontro?`
   );
 
   if(phone){
@@ -2895,7 +3146,7 @@ function sendPrayer(){
   }
 
   const message=encodeURIComponent(
-    `Graça e Paz, Pastor Joel! Aqui é um irmão do Projeto Sementes. Gostaria de pedir oração pelo seguinte motivo: ${text}`
+    `A Paz seja contigo! Gostaria de pedir oração pelo seguinte motivo: ${text}`
   );
 
   if(APP_CONFIG.masterWhatsapp){
@@ -2908,11 +3159,12 @@ function sendPrayer(){
 
 function baptism(){
   const message=encodeURIComponent(
-    "Pastor Joel, li a mensagem na Aba Fé do aplicativo e tomei a minha decisão: Eu quero ser batizado e selar o meu compromisso com Deus! Como posso fazer?"
+    "A Paz seja contigo! Eu quero ser batizado e gostaria de receber orientação sobre os próximos passos para realizar o batismo."
   );
 
-  if(APP_CONFIG.masterWhatsapp){
-    window.open(`https://wa.me/${APP_CONFIG.masterWhatsapp}?text=${message}`,"_blank");
+  const pastorPhone="5567999082592";
+  if(pastorPhone){
+    window.open(`https://wa.me/${pastorPhone}?text=${message}`,"_blank");
   }else{
     toast("Configure o WhatsApp do Pastor Joel.");
   }
@@ -2939,23 +3191,25 @@ function updateGameResources(){
 }
 
 function renderGameMap(){
-  $("gameMap").innerHTML=eras.map(era=>{
+  const scenes=["🌿 Jardim do Éden","🏜️ Egito","🌊 Mar Vermelho","⛺ Deserto","👑 Reino de Israel","🕊️ Profetas","✝️ Evangelhos","✨ Novo Testamento"];
+  $("gameMap").innerHTML=eras.map((era,index)=>{
     const locked=era.id>state.game.unlockedEra;
+    const scene=scenes[index]||"✨ Novo Testamento";
     return `
       <article class="era ${locked?"locked":""}">
         <div class="era-head">
           <div>
-            <h3>${era.icon} ${escapeHTML(era.title)}</h3>
-            <div class="small muted">${escapeHTML(era.books)}</div>
+            <h3>${scene}</h3>
+            <div class="small muted">${escapeHTML(era.title)} • ${escapeHTML(era.books)}</div>
           </div>
           <div>${locked?"🔒":"📖"}</div>
         </div>
         <div class="nodes">
-          <div class="node">🧩 Nó 1<br><strong>Minijogo de Contexto</strong></div>
-          <div class="node">🔍 Nó 2<br><strong>Quiz Multiplayer/Solo</strong></div>
+          <div class="node">🧩 Nó 1<br><strong>Contexto</strong></div>
+          <div class="node">🔍 Nó 2<br><strong>Quiz</strong></div>
           <div class="node">⚔️ Nó 3<br><strong>Boss: ${escapeHTML(era.boss)}</strong></div>
         </div>
-        ${!locked ? `<button class="btn btn-gold" style="margin-top:10px" onclick="playEra(${era.id})">Jogar Era ${era.id}</button>` : ""}
+        ${!locked ? `<button class="btn btn-gold" style="margin-top:10px" onclick="playEra(${era.id})">▶ Jogar Fase ${era.id}</button>` : ""}
       </article>
     `;
   }).join("");
@@ -3044,21 +3298,28 @@ function answerQuiz(qIndex,answer){
   clearInterval(window.__quizTimer);
 
   const q=quizQuestions[qIndex];
+  const options=document.querySelectorAll(".quiz-option");
+  const clicked=options[answer];
 
   if(answer===q.correct){
+    if(clicked) clicked.classList.add("correct","particle-pop");
     state.game.xp += 25;
     state.game.coins += 5;
 
     if(qIndex===2){
       state.game.unlockedEra=Math.max(state.game.unlockedEra,2);
-      state.game.cards.push("José do Egito");
+      if(!state.game.cards.includes("José do Egito")) state.game.cards.push("José do Egito");
     }
 
+    playSuccessSound("quiz");
     saveGame();
-    renderGame();
+    setTimeout(renderGame,500);
     toast("Resposta correta! XP e moedas recebidos.");
   }else{
-    toast("Resposta incorreta. Continue estudando a Palavra.");
+    if(clicked) clicked.classList.add("wrong");
+    playErrorSound();
+    toast("Resposta incorreta. A resposta correta será reforçada no próximo desafio.");
+    setTimeout(renderGame,600);
   }
 }
 
@@ -3233,8 +3494,25 @@ function generateAccess(){
   setTimeout(()=>{
     $("accessForm")?.addEventListener("submit",e=>{
       e.preventDefault();
+      const name=$("newAccessName").value.trim();
+      const login=$("newAccessLogin").value.trim();
+      const role=$("newAccessRole").value;
+      const password=$("newAccessPassword").value;
+      if(role==="guardian"){
+        const student=state.students.find(s=>s.guardian?.toLowerCase()===name.toLowerCase());
+        if(student){
+          student.accessLogin=login;
+          student.accessPassword=password;
+          saveState();
+          closeModal();
+          toast("Acesso do responsável criado e vinculado ao aluno.");
+          return;
+        }
+        toast("Não encontrei um aluno com esse responsável. Cadastre o aluno primeiro.");
+        return;
+      }
       closeModal();
-      toast("Acesso demonstrativo criado. Em produção, use o provedor de autenticação.");
+      toast("Acesso de diretoria registrado localmente. Em produção, use o provedor de autenticação.");
     });
   },0);
 }
@@ -3326,7 +3604,23 @@ function initEvents(){
     }
 
     showApp();
+    playBackgroundMusic();
     toast("Bem-vindo ao Projeto Sementes.");
+  });
+
+  $("login").addEventListener("input",()=>{
+    const isMaster=$("login").value.trim().toLowerCase()===APP_CONFIG.masterEmail.toLowerCase();
+    $("forgotBtn").classList.toggle("hidden",!isMaster);
+  });
+
+  $("togglePassword").addEventListener("click",()=>{
+    const input=$("password");
+    const visible=input.type==="text";
+    input.type=visible?"password":"text";
+    $("togglePassword").innerHTML=`<i data-lucide="${visible?"eye":"eye-off"}"></i>`;
+    $("togglePassword").setAttribute("aria-label",visible?"Mostrar senha":"Ocultar senha");
+    $("togglePassword").title=visible?"Mostrar senha":"Ocultar senha";
+    if(window.lucide) lucide.createIcons();
   });
 
   $("forgotBtn").addEventListener("click",()=>{
@@ -3357,12 +3651,6 @@ function initEvents(){
         toast("Solicitação registrada. Configure o provedor de e-mail para envio real.");
       });
     },0);
-  });
-
-  $("demoBtn").addEventListener("click",()=>{
-    $("login").value=APP_CONFIG.demoMasterLogin;
-    $("password").value=APP_CONFIG.demoMasterPassword;
-    toast("Credenciais demonstrativas preenchidas.");
   });
 
   $("logoutBtn").addEventListener("click",logout);
@@ -3493,8 +3781,8 @@ NOTAS DE IMPLEMENTAÇÃO PARA PRODUÇÃO
    utilizar backend seguro.
 
 6. WHATSAPP
-   O fluxo abre as conversas do Mestre London e do responsável com mensagem
-   previamente preenchida. O PDF é baixado no dispositivo para ser anexado.
+   O fluxo abre a conversa do Mestre London com mensagem previamente preenchida.
+   O PDF é baixado no dispositivo para ser anexado.
    O envio automático de um arquivo PDF como anexo, sem ação do usuário,
    exige WhatsApp Business/API oficial ou backend autorizado; um link wa.me
    não permite anexar um arquivo local diretamente.
