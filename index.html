@@ -3358,50 +3358,39 @@ FIM DO ARQUIVO
 -->
 <script>
   document.addEventListener("DOMContentLoaded", () => {
-    // Tenta encontrar os elementos do formulário de login e das telas
+    // Intercepta o envio do formulário de login de forma segura
     const loginForm = document.getElementById("loginForm");
-    const loginScreen = document.getElementById("loginScreen") || document.querySelector(".login-screen");
-    const mainScreen = document.getElementById("mainScreen") || document.querySelector(".main-screen");
-
-    console.log("Script de login carregado. Formulário encontrado:", !!loginForm);
-
+    
     if (loginForm) {
       loginForm.addEventListener("submit", (e) => {
         e.preventDefault();
 
-        // Pega os valores dos inputs de login e senha
-        const loginInput = document.getElementById("login") || document.querySelector("input[type='text'], input[name='login']");
-        const passwordInput = document.getElementById("password") || document.querySelector("input[type='password']");
+        const loginInput = document.getElementById("login");
+        const passwordInput = document.getElementById("password");
 
         const userValue = loginInput ? loginInput.value.trim() : "";
         const passValue = passwordInput ? passwordInput.value.trim() : "";
 
         if (userValue && passValue) {
-          console.log("Tentativa de login realizada para:", userValue);
+          // Oculta telas de login comuns por ID ou classe de forma segura
+          const loginScreens = document.querySelectorAll("#loginScreen, .login-screen, #login-container");
+          loginScreens.forEach(el => el.style.display = "none");
 
-          // Esconde a tela de login (se existir)
-          if (loginScreen) {
-            loginScreen.style.display = "none";
-          } else {
-            // Se não achar a tela exata por ID, esconde o formulário pai
-            loginForm.closest("div") ? loginForm.closest("div").style.display = "none" : null;
-          }
+          // Exibe as telas principais de forma segura
+          const mainScreens = document.querySelectorAll("#mainScreen, .main-screen, #app-container, .app-content");
+          mainScreens.forEach(el => el.style.display = "block");
 
-          // Mostra a tela principal (se existir)
-          if (mainScreen) {
-            mainScreen.style.display = "block";
-          } else {
-            // Fallback: recarrega ou avisa
-            alert("Login efetuado com sucesso! (Tela principal não localizada pelo ID exato)");
-          }
-
+          // Salva a sessão
           localStorage.setItem("userLogged", userValue);
+
+          // Se nenhuma tela principal mudou visualmente por ID, força um reload ou aviso de sucesso
+          if (mainScreens.length === 0) {
+            location.reload();
+          }
         } else {
           alert("Por favor, preencha o login e a senha.");
         }
       });
-    } else {
-      console.warn("Elemento #loginForm não foi encontrado no DOM.");
     }
   });
 </script>
