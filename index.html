@@ -1107,7 +1107,7 @@
             <canvas id="signaturePad" class="signature-pad"></canvas>
             <div class="signature-tools">
               <button class="btn" type="button" id="clearSignature">🔄 Apagar e Refazer</button>
-              <button class="btn btn-gold" type="submit">💾 Finalizar e Enviar Documento</button>
+              <button class="btn btn-gold" type="submit">💾 Finalizar Documento</button>
             </div>
           </form>
 
@@ -1361,9 +1361,18 @@
         <p class="page-sub">Painel administrativo, governança, indicadores, impacto e relatórios.</p>
 
         <div class="notice" style="margin-bottom:14px">
-          A especificação define esta aba como exclusiva para Mestre London e Pastor Joel.
-          Em produção, essa permissão deve ser validada no backend, nunca apenas no HTML.
+          <strong>Secretaria — Documentos de Matrícula</strong><br>
+          Os documentos cadastrados ficam visíveis somente para a Diretoria. A exclusão é permitida exclusivamente ao Mestre London.
+          <span class="small muted">Neste arquivo HTML, o armazenamento é local ao dispositivo; para receber documentos de outros celulares/computadores é necessário conectar um backend seguro.</span>
         </div>
+
+        <article class="card wide" style="margin-bottom:14px">
+          <div class="card-header">
+            <div><h2 class="section-title">DOCUMENTOS DE MATRÍCULA</h2><span class="small muted">Cadastro, numeração e arquivo oficial</span></div>
+            <i class="icon-gold" data-lucide="folder-lock"></i>
+          </div>
+          <div id="secretaryDocumentsList"></div>
+        </article>
 
         <div class="stats" style="margin-bottom:14px">
           <div class="card stat"><span>Alunos ativos</span><strong id="kpiStudents">0</strong></div>
@@ -1521,7 +1530,9 @@ const STORAGE_KEYS = {
   attendance: "sementes_attendance",
   enrollment: "sementes_enrollment",
   game: "sementes_game",
-  tasks: "sementes_tasks"
+  tasks: "sementes_tasks",
+  secretaryDocuments: "sementes_secretary_documents",
+  documentSequence: "sementes_document_sequence"
 };
 
 /* -----------------------------
@@ -1532,6 +1543,8 @@ let state = {
   students: [],
   attendance: [],
   enrollment: null,
+  secretaryDocuments: [],
+  documentSequence: 0,
   game: {
     oil: 5,
     coins: 0,
@@ -1775,6 +1788,8 @@ function saveState(){
   localStorage.setItem(STORAGE_KEYS.students, JSON.stringify(state.students));
   localStorage.setItem(STORAGE_KEYS.attendance, JSON.stringify(state.attendance));
   localStorage.setItem(STORAGE_KEYS.enrollment, JSON.stringify(state.enrollment));
+  localStorage.setItem(STORAGE_KEYS.secretaryDocuments, JSON.stringify(state.secretaryDocuments));
+  localStorage.setItem(STORAGE_KEYS.documentSequence, String(state.documentSequence));
   localStorage.setItem(STORAGE_KEYS.game, JSON.stringify(state.game));
 }
 
@@ -1783,11 +1798,15 @@ function loadState(){
     const students = JSON.parse(localStorage.getItem(STORAGE_KEYS.students));
     const attendance = JSON.parse(localStorage.getItem(STORAGE_KEYS.attendance));
     const enrollment = JSON.parse(localStorage.getItem(STORAGE_KEYS.enrollment));
+    const secretaryDocuments = JSON.parse(localStorage.getItem(STORAGE_KEYS.secretaryDocuments));
+    const documentSequence = Number(localStorage.getItem(STORAGE_KEYS.documentSequence) || 0);
     const game = JSON.parse(localStorage.getItem(STORAGE_KEYS.game));
 
     state.students = Array.isArray(students) ? students : [...defaultStudents];
     state.attendance = Array.isArray(attendance) ? attendance : [];
     state.enrollment = enrollment || null;
+    state.secretaryDocuments = Array.isArray(secretaryDocuments) ? secretaryDocuments : [];
+    state.documentSequence = Number.isFinite(documentSequence) ? documentSequence : 0;
     state.game = game && typeof game === "object"
       ? {...state.game,...game}
       : state.game;
@@ -1815,7 +1834,11 @@ function roleLabel(role){
 }
 
 function canSeeSecretary(){
-  return ["master","pastor"].includes(state.user?.role);
+  return ["master","director"].includes(state.user?.role);
+}
+
+function canDeleteSecretaryDocument(){
+  return state.user?.role === "master";
 }
 
 function canOperateTatame(){
@@ -2123,142 +2146,146 @@ function openWhatsAppDocument(recipientType, phone){
   return !!win;
 }
 
-function generateEnrollmentPDF(){
-  if(!window.jspdf?.jsPDF){
-    throw new Error("Biblioteca de PDF não carregada.");
-  }
-
-  const {jsPDF}=window.jspdf;
-  const e=state.enrollment;
-  const doc=new jsPDF({unit:"mm",format:"a4"});
-  const margin=15;
-  const pageWidth=210;
-  const contentWidth=pageWidth-(margin*2);
-  let y=18;
-
-  const title=(text,size=15)=>{
-    doc.setFont("helvetica","bold");
-    doc.setFontSize(size);
-    doc.setTextColor(140,106,21);
-    doc.text(text,margin,y);
-    y+=8;
-  };
-
-  const labelValue=(label,value)=>{
-    doc.setFont("helvetica","bold");
-    doc.setFontSize(9);
-    doc.setTextColor(45,45,45);
-    doc.text(label,margin,y);
-    y+=4.5;
-
-    doc.setFont("helvetica","normal");
-    const text=String(value||"Não informado");
-    const wrapped=doc.splitTextToSize(text,contentWidth);
-    doc.text(wrapped,margin,y);
-    y+=(wrapped.length*4.2)+3;
-
-    if(y>275){
-      doc.addPage();
-      y=18;
+async function getProjectLogoDataURL(){
+  try{
+    const img=[...document.images].find(el=>
+      (el.getAttribute("src")||"").includes(APP_CONFIG.logo)
+    );
+    if(!img) return "";
+    if(!img.complete){
+      await new Promise(resolve=>{
+        img.addEventListener("load",resolve,{once:true});
+        img.addEventListener("error",resolve,{once:true});
+      });
     }
-  };
-
-  const paragraph=(text)=>{
-    doc.setFont("helvetica","normal");
-    doc.setFontSize(8.5);
-    doc.setTextColor(55,55,55);
-    const wrapped=doc.splitTextToSize(String(text||""),contentWidth);
-    doc.text(wrapped,margin,y);
-    y+=(wrapped.length*4.1)+4;
-
-    if(y>275){
-      doc.addPage();
-      y=18;
-    }
-  };
-
-  doc.setFillColor(18,18,18);
-  doc.rect(0,0,210,14,"F");
-  doc.setTextColor(244,215,110);
-  doc.setFont("helvetica","bold");
-  doc.setFontSize(13);
-  doc.text("PROJETO SEMENTES — JIU-JITSU",margin,9);
-  y=22;
-
-  title("FICHA DE MATRÍCULA E AUTORIZAÇÃO",15);
-
-  labelValue("Data da matrícula",formatDate(e.date));
-  labelValue("Local",e.city);
-
-  title("DADOS DO ALUNO",12);
-  labelValue("Nome completo",e.student.name);
-  labelValue("Data de nascimento",formatDate(e.student.birth));
-  labelValue("Escola",e.student.school);
-  labelValue("Endereço",e.student.address);
-
-  title("DADOS DO RESPONSÁVEL",12);
-  labelValue("Nome completo",e.guardian.name);
-  labelValue("Grau de parentesco",e.guardian.relation);
-  labelValue("WhatsApp",e.guardian.phone);
-  labelValue("CIN / RG",e.guardian.document);
-
-  title("HISTÓRICO DE SAÚDE",12);
-  labelValue("Problema cardíaco/pressão",e.health.heart);
-  labelValue("Asma/bronquite/problemas respiratórios",e.health.respiratory);
-  labelValue("Lesão óssea, muscular ou articular",e.health.injury);
-  labelValue("Uso regular de medicamento controlado",e.health.medication);
-  labelValue("Alergia",e.health.allergy);
-  labelValue("Desmaios/tonturas durante exercícios",e.health.fainting);
-  labelValue("Detalhes",e.health.details);
-
-  title("AUTORIZAÇÕES",12);
-  paragraph("O responsável declara que autorizou a participação do menor nas atividades gratuitas de Jiu-Jitsu do Projeto Social Sementes e confirmou a ciência das condições da atividade.");
-  paragraph("O responsável declarou as informações de saúde apresentadas no cadastro e confirmou a responsabilidade pela comunicação de alterações de saúde.");
-  paragraph("O responsável confirmou o termo de autorização de uso de imagem e voz para as finalidades institucionais previstas no cadastro.");
-
-  if(y>225){
-    doc.addPage();
-    y=18;
+    if(!img.naturalWidth) return "";
+    const canvas=document.createElement("canvas");
+    canvas.width=img.naturalWidth;
+    canvas.height=img.naturalHeight;
+    const ctx=canvas.getContext("2d");
+    ctx.drawImage(img,0,0);
+    return canvas.toDataURL("image/png");
+  }catch(error){
+    console.warn("Logo não pôde ser incorporada ao PDF.",error);
+    return "";
   }
+}
 
-  title("ASSINATURA DIGITAL DO RESPONSÁVEL",12);
+function nextEnrollmentDocumentNumber(){
+  const current=Math.max(0,Number(state.documentSequence)||0);
+  state.documentSequence=current+1;
+  return `PS-${new Date().getFullYear()}/${String(state.documentSequence).padStart(4,"0")}`;
+}
 
-  if(e.signature){
-    try{
-      doc.addImage(e.signature,"PNG",margin,y,90,45);
-      y+=51;
-    }catch(_){
-      paragraph("Assinatura registrada no cadastro digital.");
-    }
-  }else{
-    paragraph("Assinatura registrada no cadastro digital.");
-  }
+function dataURItoBlob(dataURI){
+  const parts=dataURI.split(",");
+  const mime=(parts[0].match(/:(.*?);/)||[])[1]||"application/pdf";
+  const binary=atob(parts[1]);
+  const bytes=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+  return new Blob([bytes],{type:mime});
+}
 
-  doc.setFont("helvetica","normal");
-  doc.setFontSize(8);
-  doc.setTextColor(90,90,90);
-  doc.text(
-    `Documento gerado pelo aplicativo Projeto Sementes em ${new Date().toLocaleString("pt-BR")}.`,
-    margin,
-    282
-  );
-
-  const safeName=(e.student.name||"Aluno").replace(/[^a-z0-9À-ÿ]+/gi,"-");
-  const filename=`Matricula-${safeName}.pdf`;
-  const blob=doc.output("blob");
+function downloadBlob(blob,filename){
   const url=URL.createObjectURL(blob);
-
-  // Mantém uma cópia do PDF no dispositivo para anexar ao WhatsApp.
   const a=document.createElement("a");
   a.href=url;
   a.download=filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
-
   setTimeout(()=>URL.revokeObjectURL(url),120000);
+}
 
-  return {blob,url,filename};
+async function generateEnrollmentPDF(){
+  if(!window.jspdf?.jsPDF) throw new Error("Biblioteca de PDF não carregada.");
+
+  const {jsPDF}=window.jspdf;
+  const e=state.enrollment;
+  const doc=new jsPDF({unit:"mm",format:"a4",compress:true});
+  const margin=10;
+  const pageWidth=210;
+  const contentWidth=pageWidth-(margin*2);
+  let y=9;
+  const codigoMatricula=nextEnrollmentDocumentNumber();
+  e.documentNumber=codigoMatricula;
+
+  const logo=await getProjectLogoDataURL();
+  if(logo){
+    try{ doc.addImage(logo,"PNG",margin,5,17,17); }catch(_){ }
+  }
+
+  doc.setTextColor(28,45,70);
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(9.5);
+  doc.text("IGREJA DO EVANGELHO QUADRANGULAR GUAICURUS",pageWidth/2,8,{align:"center"});
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(7.2);
+  doc.text("Ministério de Esportes — Projeto Social \"Sementes\"",pageWidth/2,12,{align:"center"});
+  doc.setDrawColor(30,55,85); doc.setLineWidth(.45); doc.line(margin,20,pageWidth-margin,20);
+
+  doc.setTextColor(40,40,40);
+  doc.setFont("helvetica","bold"); doc.setFontSize(10.5);
+  doc.text("FICHA DE INSCRIÇÃO E AUTORIZAÇÃO DE PARTICIPAÇÃO",pageWidth/2,26,{align:"center"});
+  doc.setFontSize(6.5); doc.setTextColor(100,100,100);
+  doc.text(`REGISTRO Nº ${codigoMatricula}  •  ${formatDate(e.date||todayISO())}  •  ${APP_CONFIG.city}`,pageWidth/2,30,{align:"center"});
+  y=36;
+
+  const section=(text)=>{
+    doc.setFillColor(238,242,246); doc.rect(margin,y,contentWidth,5,"F");
+    doc.setTextColor(32,58,88); doc.setFont("helvetica","bold"); doc.setFontSize(7.2);
+    doc.text(text,margin+2,y+3.5); y+=7;
+  };
+  const line=(label,value,offset=31)=>{
+    doc.setTextColor(45,45,45); doc.setFont("helvetica","bold"); doc.setFontSize(6.5); doc.text(label,margin,y);
+    doc.setFont("helvetica","normal"); doc.text(String(value||"Não informado"),margin+offset,y); y+=3.8;
+  };
+  const paragraph=(text)=>{
+    doc.setFont("helvetica","normal"); doc.setFontSize(6.15); doc.setTextColor(55,55,55);
+    const wrapped=doc.splitTextToSize(String(text||""),contentWidth-2);
+    doc.text(wrapped,margin+1,y); y+=(wrapped.length*2.75)+2.1;
+  };
+
+  section("1. DADOS DO ALUNO (MENOR)");
+  line("Nome completo:",e.student.name,29); line("Data de nascimento:",formatDate(e.student.birth),39);
+  line("Escola onde estuda:",e.student.school,34); line("Endereço residencial:",e.student.address,36); y+=1;
+
+  section("2. DADOS DO RESPONSÁVEL LEGAL");
+  line("Nome do responsável:",e.guardian.name,36); line("Grau de parentesco:",e.guardian.relation,35);
+  line("Telefone/WhatsApp:",e.guardian.phone,32); line("CIN / RG:",e.guardian.document,22); y+=1;
+
+  section("3. DECLARAÇÃO DE APTIDÃO FÍSICA E HISTÓRICO DE SAÚDE");
+  const h=e.health||{};
+  line("Cardíaco/pressão:",h.heart,31); line("Respiratório:",h.respiratory,25);
+  line("Lesão óssea/muscular/articular:",h.injury,50); line("Medicamento controlado:",h.medication,42);
+  line("Alergia:",h.allergy,22); line("Desmaios/tonturas:",h.fainting,32); line("Detalhes:",h.details,22); y+=1;
+  paragraph("Declaro que as informações de saúde acima foram prestadas de forma verdadeira e completa. Comprometo-me a comunicar imediatamente à coordenação qualquer alteração no estado de saúde do menor e, quando necessário, apresentar orientação ou avaliação médica antes da prática de atividades físicas.");
+
+  section("4. TERMOS E AUTORIZAÇÕES");
+  paragraph("Eu, acima identificado(a) como responsável legal, AUTORIZO expressamente o menor sob minha tutela a participar gratuitamente das aulas de Jiu-Jitsu do Projeto Social \"Sementes\", promovido pela Igreja do Evangelho Quadrangular Guaicurus.");
+  paragraph("Declaro estar ciente de que as atividades envolvem treinos físicos e contato próprio da modalidade, sob supervisão dos responsáveis pelo projeto, e assumo o dever de informar condições de saúde ou outras circunstâncias que possam interferir na participação do menor.");
+  paragraph("AUTORIZO, de forma gratuita, a utilização da imagem e voz do menor, capturadas durante as atividades, exclusivamente para divulgação institucional, pedagógica e prestação de contas das ações do projeto, vedada a exploração comercial ou finalidade lucrativa.");
+  paragraph("Por ser esta a expressão da minha vontade, firmo o presente termo de livre e esclarecido consentimento, reconhecendo que os dados informados neste cadastro correspondem às declarações prestadas por mim.");
+
+  y+=1;
+  doc.setTextColor(45,45,45); doc.setFont("helvetica","normal"); doc.setFontSize(6.6);
+  doc.text(`${APP_CONFIG.city}, ${formatDate(e.date||todayISO())}.`,pageWidth/2,y,{align:"center"}); y+=4;
+  if(e.signature){
+    try{ doc.addImage(e.signature,"PNG",(pageWidth-42)/2,y,42,15); y+=16; }catch(_){ y+=8; }
+  }else y+=9;
+  doc.setDrawColor(80,80,80); doc.setLineWidth(.2); doc.line(pageWidth/2-35,y,pageWidth/2+35,y); y+=3;
+  doc.setFont("helvetica","bold"); doc.setFontSize(6.7); doc.text("Assinatura digital do Responsável Legal",pageWidth/2,y,{align:"center"}); y+=3.2;
+  doc.setFont("helvetica","normal"); doc.setFontSize(6.3); doc.text(`Nome legível: ${String(e.guardian.name||"")}`,pageWidth/2,y,{align:"center"});
+
+  doc.setFontSize(5.5); doc.setTextColor(115,115,115);
+  doc.text(`Documento ${codigoMatricula} — gerado digitalmente pelo aplicativo Projeto Sementes em ${new Date().toLocaleString("pt-BR")} — Corumbá/MS`,pageWidth/2,291,{align:"center"});
+
+  const safeName=(e.student.name||"Aluno").replace(/[^a-z0-9À-ÿ]+/gi,"-");
+  const filename=`Matricula-${codigoMatricula.replace(/[^a-zA-Z0-9-]/g,"-")}-${safeName}.pdf`;
+  const blob=doc.output("blob");
+  const dataUri=doc.output("datauristring");
+  downloadBlob(blob,filename);
+  return {blob,filename,codigoMatricula,dataUri};
 }
 
 function initEnrollment(){
@@ -2348,9 +2375,20 @@ function initEnrollment(){
 
     let pdf;
     try{
-      pdf=generateEnrollmentPDF();
+      pdf=await generateEnrollmentPDF();
       state.enrollment.documentGenerated=true;
       state.enrollment.documentFilename=pdf.filename;
+      state.enrollment.documentNumber=pdf.codigoMatricula;
+      state.secretaryDocuments.push({
+        id:"secretary-"+Date.now(),
+        documentNumber:pdf.codigoMatricula,
+        studentName:state.enrollment.student.name,
+        guardianName:state.enrollment.guardian.name,
+        date:state.enrollment.date,
+        filename:pdf.filename,
+        dataUri:pdf.dataUri,
+        createdAt:new Date().toISOString()
+      });
       saveState();
     }catch(error){
       console.error(error);
@@ -2360,59 +2398,28 @@ function initEnrollment(){
 
     $("enrollmentSuccess").classList.remove("hidden");
     $("enrollmentSuccess").innerHTML=`
-      <strong>✅ Documento gerado com sucesso.</strong><br>
-      O PDF foi baixado neste dispositivo como <strong>${escapeHTML(pdf.filename)}</strong>.<br>
-      <span class="small">O WhatsApp será aberto para o Mestre London e para o responsável. O arquivo PDF deve ser anexado na conversa.</span>
+      <strong>✅ Documento gerado com sucesso — ${escapeHTML(pdf.codigoMatricula)}.</strong><br>
+      <span class="small">O documento foi numerado e registrado na Secretaria.</span><br><br>
+      <span class="small" style="color:var(--gold2)">⚠️ <strong>Aviso ao Responsável:</strong> não esqueça de baixar seu Documento gerado e guardar sua via assinada.</span>
       <div class="action-row" style="margin-top:10px">
-        <button class="btn btn-gold" type="button" id="sendMasterEnrollment">💬 Mestre London</button>
-        <button class="btn" type="button" id="sendGuardianEnrollment">💬 Responsável</button>
-        <button class="btn" type="button" id="shareEnrollmentPDF">📄 Compartilhar PDF</button>
+        <button class="btn btn-gold" type="button" id="downloadEnrollmentPDF">📥 Baixar Documento</button>
       </div>
     `;
 
-    // ORDEM CORRETA: documento primeiro, biometria depois.
     $("biometricSection").classList.remove("hidden");
     $("step2Dot").classList.add("active");
     $("step1Dot").classList.remove("active");
 
-    // Abre as duas conversas com a mensagem já preenchida.
+    // A única notificação automática é para o Mestre London.
     const masterOpened=openWhatsAppDocument("master",APP_CONFIG.masterWhatsapp);
-    const guardianOpened=openWhatsAppDocument("guardian",state.enrollment.guardian.phone);
-
-    $("sendMasterEnrollment").addEventListener(
-      "click",
-      ()=>openWhatsAppDocument("master",APP_CONFIG.masterWhatsapp)
-    );
-
-    $("sendGuardianEnrollment").addEventListener(
-      "click",
-      ()=>openWhatsAppDocument("guardian",state.enrollment.guardian.phone)
-    );
-
-    $("shareEnrollmentPDF").addEventListener("click",async()=>{
-      try{
-        const file=new File([pdf.blob],pdf.filename,{type:"application/pdf"});
-
-        if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-          await navigator.share({
-            title:`Matrícula — ${state.enrollment.student.name}`,
-            text:"Documento de matrícula do Projeto Sementes.",
-            files:[file]
-          });
-        }else{
-          toast("Seu navegador não permite compartilhar arquivos diretamente. O PDF já foi baixado.");
-        }
-      }catch(error){
-        if(error?.name!=="AbortError") console.error(error);
-      }
-    });
+    $("downloadEnrollmentPDF").addEventListener("click",()=>downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename));
 
     renderStudents();
     updateKPIs();
 
     toast(
-      masterOpened || guardianOpened
-        ? "Documento gerado. WhatsApp aberto e biometria liberada."
+      masterOpened
+        ? "Documento gerado. WhatsApp do Mestre London aberto e biometria liberada."
         : "Documento gerado. Biometria liberada."
     );
 
@@ -3098,6 +3105,60 @@ function renderGame(){
 /* -----------------------------
    SECRETARIA
    ----------------------------- */
+function renderSecretaryDocuments(){
+  const container=$("secretaryDocumentsList");
+  if(!container) return;
+  if(!canSeeSecretary()){
+    container.innerHTML=`<div class="notice">Acesso restrito à Diretoria.</div>`;
+    return;
+  }
+  const docs=[...state.secretaryDocuments].reverse();
+  if(!docs.length){
+    container.innerHTML=`<div class="notice">Nenhum documento de matrícula registrado ainda.</div>`;
+    return;
+  }
+  container.innerHTML=docs.map(doc=>{
+    const deleteButton=canDeleteSecretaryDocument()
+      ? `<button class="btn" type="button" onclick="deleteSecretaryDocument('${doc.id}')">🗑️ Excluir</button>`
+      : "";
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
+        <div>
+          <strong style="color:var(--gold2)">${escapeHTML(doc.documentNumber)}</strong>
+          <div class="small" style="margin-top:4px">Aluno: <strong>${escapeHTML(doc.studentName)}</strong></div>
+          <div class="small muted">Responsável: ${escapeHTML(doc.guardianName)} • Data: ${escapeHTML(formatDate(doc.date))}</div>
+          <div class="small muted">Arquivo: ${escapeHTML(doc.filename)}</div>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-gold" type="button" onclick="downloadSecretaryDocument('${doc.id}')">📥 Baixar Documento</button>
+          ${deleteButton}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function downloadSecretaryDocument(id){
+  if(!canSeeSecretary()){ toast("Acesso restrito à Diretoria."); return; }
+  const doc=state.secretaryDocuments.find(item=>item.id===id);
+  if(!doc?.dataUri){ toast("Arquivo do documento não está disponível neste dispositivo."); return; }
+  downloadBlob(dataURItoBlob(doc.dataUri),doc.filename);
+}
+
+function deleteSecretaryDocument(id){
+  if(!canDeleteSecretaryDocument()){
+    toast("Somente o Mestre London pode excluir documentos.");
+    return;
+  }
+  const doc=state.secretaryDocuments.find(item=>item.id===id);
+  if(!doc) return;
+  if(!confirm(`Excluir o documento ${doc.documentNumber} de ${doc.studentName}?`)) return;
+  state.secretaryDocuments=state.secretaryDocuments.filter(item=>item.id!==id);
+  saveState();
+  renderSecretaryDocuments();
+  toast("Documento excluído da Secretaria.");
+}
+
 function renderDirectors(){
   $("directorsTable").innerHTML=directors.map(d=>`
     <tr>
@@ -3130,6 +3191,7 @@ function updateKPIs(){
   $("barFrequencyText").textContent=pctFreq+"%";
   $("barComplete").style.width=pctComplete+"%";
   $("barCompleteText").textContent=pctComplete+"%";
+  renderSecretaryDocuments();
 }
 
 function generateAccess(){
