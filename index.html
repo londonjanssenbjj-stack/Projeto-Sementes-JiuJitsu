@@ -3149,14 +3149,14 @@ function sendPrayer(){
     `A Paz seja contigo! Gostaria de pedir oração pelo seguinte motivo: ${text}`
   );
 
-  if(APP_CONFIG.masterWhatsapp){
-    window.open(`https://wa.me/${APP_CONFIG.masterWhatsapp}?text=${message}`,"_blank");
+  const pastorPhone="5567999082592";
+  if(pastorPhone){
+    window.open(`https://wa.me/${pastorPhone}?text=${message}`,"_blank");
     toast("Mensagem preparada para o WhatsApp.");
   }else{
-    toast("Configure o WhatsApp do Pastor Joel na Secretaria.");
+    toast("Configure o WhatsApp do Pastor Joel.");
   }
 }
-
 function baptism(){
   const message=encodeURIComponent(
     "A Paz seja contigo! Eu quero ser batizado e gostaria de receber orientação sobre os próximos passos para realizar o batismo."
