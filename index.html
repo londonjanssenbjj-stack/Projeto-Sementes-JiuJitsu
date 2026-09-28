@@ -3356,5 +3356,47 @@ NOTAS DE IMPLEMENTAÇÃO PARA PRODUÇÃO
 FIM DO ARQUIVO
 ===============================================================================
 -->
+document.addEventListener("DOMContentLoaded", () => {
+  const loginForm = document.getElementById("loginForm");
+  const loginScreen = document.getElementById("loginScreen");
+  const mainScreen = document.getElementById("mainScreen");
+  const userChip = document.getElementById("userChip");
+
+  if (loginForm) {
+    loginForm.addEventListener("submit", (e) => {
+      e.preventDefault(); // Evita o recarregamento da página
+
+      const loginInput = document.getElementById("login").value.trim();
+      const passwordInput = document.getElementById("password").value.trim();
+
+      // Validação básica de exemplo (substitua pela sua regra ou backend real)
+      if (loginInput && passwordInput) {
+        // Oculta a tela de login e exibe a tela principal
+        loginScreen.style.display = "none";
+        mainScreen.style.display = "block";
+
+        // Atualiza o chip do usuário na barra superior
+        if (userChip) {
+          userChip.textContent = loginInput;
+        }
+
+        // Salva opcionalmente no localStorage para manter a sessão
+        localStorage.setItem("userLogged", loginInput);
+      } else {
+        alert("Por favor, preencha o login e a senha.");
+      }
+    });
+  }
+
+  // Botão de Acesso de Demonstração (opcional para facilitar os testes)
+  const demoBtn = document.getElementById("demoBtn");
+  if (demoBtn) {
+    demoBtn.addEventListener("click", () => {
+      loginScreen.style.display = "none";
+      mainScreen.style.display = "block";
+      if (userChip) userChip.textContent = "Visitante / Demo";
+    });
+  }
+});  
 </body>
 </html>
