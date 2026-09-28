@@ -1482,8 +1482,8 @@
               <div><h2 class="section-title">ADMINISTRADOR</h2><span class="small muted">Fora da Diretoria</span></div>
               <i class="icon-gold" data-lucide="shield"></i>
             </div>
-            <p class="body-text"><strong>${escapeHTML(administrator.name)}</strong></p>
-            <p class="small muted">${escapeHTML(administrator.role)}</p>
+            <p class="body-text"><strong>Administrador Mestre London</strong></p>
+            <p class="small muted">Administrador</p>
             <p class="small muted">Responsável pela administração do sistema e exclusão de documentos da Secretaria.</p>
           </article>
 
@@ -1580,7 +1580,7 @@
 
 <div id="toast"></div>
 
-<audio id="homeMusic" loop preload="none" src="quando-ele-vem.mp3"></audio>
+<audio id="homeMusic" loop preload="auto" playsinline src="quando-ele-vem.mp3"></audio>
 
 <script>
 /* ============================================================
@@ -2072,7 +2072,8 @@ function openPage(pageId){
     btn.classList.toggle("active",btn.dataset.page===pageId);
   });
 
-  if(pageId==="homePage") playBackgroundMusic();
+  if(pageId==="homePage" || pageId==="faithPage") playBackgroundMusic();
+  else stopBackgroundMusic();
 
   if(pageId==="secretaryPage" && !canSeeSecretary()){
     toast("Acesso restrito ao Mestre London e Pastor Joel.");
@@ -2520,6 +2521,8 @@ function initEnrollment(){
         createdAt:new Date().toISOString()
       });
       saveState();
+      if(audioContext && audioContext.state==="suspended") audioContext.resume().catch(()=>{});
+      playSuccessSound("success");
     }catch(error){
       console.error(error);
       toast("Não foi possível gerar o PDF. Verifique a conexão e tente novamente.");
@@ -2630,6 +2633,7 @@ function captureFace(){
     faceStream=null;
   }
 
+  if(audioContext && audioContext.state==="suspended") audioContext.resume().catch(()=>{});
   playSuccessSound("biometric");
   toast("Face capturada e vinculada ao cadastro local.");
   renderStudents();
@@ -3038,6 +3042,7 @@ let audioContext=null;
 function playTone(frequency,duration=0.16,type="sine",gainValue=.055,delay=0){
   try{
     audioContext=audioContext||new (window.AudioContext||window.webkitAudioContext)();
+    if(audioContext.state==="suspended") audioContext.resume().catch(()=>{});
     const osc=audioContext.createOscillator();
     const gain=audioContext.createGain();
     osc.type=type;
@@ -3075,11 +3080,22 @@ function playClickSound(){ playTone(220,.06,"triangle",.025,0); }
 function playBackgroundMusic(){
   const audio=$("homeMusic");
   if(!audio) return;
+  audio.src=APP_CONFIG.homeMusic;
   audio.volume=.28;
-  audio.play().catch(()=>{
-    // Navegadores podem bloquear autoplay. O próximo toque do usuário libera a reprodução.
-    document.addEventListener("click",()=>audio.play().catch(()=>{}),{once:true});
-  });
+  audio.muted=false;
+  audio.load();
+  const promise=audio.play();
+  if(promise && promise.catch){
+    promise.catch(()=>{
+      // O iPhone bloqueia áudio automático fora de uma ação do usuário.
+      // Os botões de navegação/login são ações do usuário e tentam novamente.
+    });
+  }
+}
+
+function stopBackgroundMusic(){
+  const audio=$("homeMusic");
+  if(audio){ audio.pause(); }
 }
 
 document.addEventListener("click",e=>{
@@ -3149,14 +3165,14 @@ function sendPrayer(){
     `A Paz seja contigo! Gostaria de pedir oração pelo seguinte motivo: ${text}`
   );
 
-  const pastorPhone="5567999082592";
-  if(pastorPhone){
-    window.open(`https://wa.me/${pastorPhone}?text=${message}`,"_blank");
+  if(APP_CONFIG.masterWhatsapp){
+    window.open(`https://wa.me/${APP_CONFIG.masterWhatsapp}?text=${message}`,"_blank");
     toast("Mensagem preparada para o WhatsApp.");
   }else{
-    toast("Configure o WhatsApp do Pastor Joel.");
+    toast("Configure o WhatsApp do Pastor Joel na Secretaria.");
   }
 }
+
 function baptism(){
   const message=encodeURIComponent(
     "A Paz seja contigo! Eu quero ser batizado e gostaria de receber orientação sobre os próximos passos para realizar o batismo."
@@ -3236,7 +3252,7 @@ function playEra(eraId){
     `Era ${eraId} iniciada`,
     `<p class="body-text">Você gastou 1 gota de Azeite e ganhou 10 XP + 2 moedas.</p>
      <p class="small muted">Cada Era possui 3 nós: contexto, quiz e Boss Battle.</p>
-     <button class="btn btn-gold" onclick="closeModal();openQuiz()">Abrir Quiz</button>`
+     <button class="btn btn-gold" type="button" onclick="openQuiz()">Abrir Quiz</button>`
   );
 }
 
@@ -3277,9 +3293,10 @@ function renderQuiz(){
 }
 
 function openQuiz(){
-  renderQuiz();
   closeModal();
   openPage("gamePage");
+  renderQuiz();
+  window.scrollTo({top:0,behavior:"smooth"});
 
   let seconds=20;
   clearInterval(window.__quizTimer);
@@ -3603,8 +3620,9 @@ function initEvents(){
       return;
     }
 
-    showApp();
+    // O submit do login é uma ação do usuário; aproveitamos este gesto para liberar o áudio no iPhone.
     playBackgroundMusic();
+    showApp();
     toast("Bem-vindo ao Projeto Sementes.");
   });
 
@@ -3733,6 +3751,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(window.lucide) lucide.createIcons();
 
   restoreSession();
+  // Se a sessão já estiver aberta, a tela inicial tenta iniciar o louvor.
+  if(state.user) setTimeout(()=>playBackgroundMusic(),80);
 });
 </script>
 
