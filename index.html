@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -2261,7 +2262,7 @@ function generateEnrollmentPDF(){
   a.remove();
 
   setTimeout(()=>URL.revokeObjectURL(url),120000);
-  return {blob, url, filename, codigoMatricula};
+  return {blob, filename, codigoMatricula};
 }
 $("enrollmentSuccess").classList.remove("hidden");
     $("enrollmentSuccess").innerHTML=`
@@ -2454,6 +2455,7 @@ function initEnrollment(){
 
   $("clearSignature").addEventListener("click",clearSignature);
 }
+
 
 /* -----------------------------
    CAMERA / FACE
@@ -3283,21 +3285,40 @@ function generateReport(){
 /* -----------------------------
    EVENTOS
    ----------------------------- */
-function initEvents(){
+function initAuth(){
+  const form = $("loginForm");
+  if(!form) return;
+  if(form.dataset.authInitialized === "1") return;
+  form.dataset.authInitialized = "1";
 
-  $("loginForm").addEventListener("submit",e=>{
+  form.addEventListener("submit", e => {
     e.preventDefault();
-
-    const ok=loginDemo($("login").value,$("password").value);
-
+    const login = $("login")?.value || "";
+    const password = $("password")?.value || "";
+    const ok = loginDemo(login, password);
     if(!ok){
       toast("Login ou senha inválidos.");
       return;
     }
-
     showApp();
     toast("Bem-vindo ao Projeto Sementes.");
   });
+}
+
+function initEvents(){
+
+  if($("loginForm") && $("loginForm").dataset.authInitialized !== "1"){
+    $("loginForm").addEventListener("submit",e=>{
+      e.preventDefault();
+      const ok=loginDemo($("login").value,$("password").value);
+      if(!ok){
+        toast("Login ou senha inválidos.");
+        return;
+      }
+      showApp();
+      toast("Bem-vindo ao Projeto Sementes.");
+    });
+  }
 
   $("forgotBtn").addEventListener("click",()=>{
     modal(
@@ -3407,6 +3428,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   seedState();
   restoreGame();
 
+  initAuth();
   initEvents();
   initTabs();
   initEnrollment();
