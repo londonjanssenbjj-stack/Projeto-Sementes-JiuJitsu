@@ -3356,47 +3356,54 @@ NOTAS DE IMPLEMENTAÇÃO PARA PRODUÇÃO
 FIM DO ARQUIVO
 ===============================================================================
 -->
-document.addEventListener("DOMContentLoaded", () => {
-  const loginForm = document.getElementById("loginForm");
-  const loginScreen = document.getElementById("loginScreen");
-  const mainScreen = document.getElementById("mainScreen");
-  const userChip = document.getElementById("userChip");
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // Tenta encontrar os elementos do formulário de login e das telas
+    const loginForm = document.getElementById("loginForm");
+    const loginScreen = document.getElementById("loginScreen") || document.querySelector(".login-screen");
+    const mainScreen = document.getElementById("mainScreen") || document.querySelector(".main-screen");
 
-  if (loginForm) {
-    loginForm.addEventListener("submit", (e) => {
-      e.preventDefault(); // Evita o recarregamento da página
+    console.log("Script de login carregado. Formulário encontrado:", !!loginForm);
 
-      const loginInput = document.getElementById("login").value.trim();
-      const passwordInput = document.getElementById("password").value.trim();
+    if (loginForm) {
+      loginForm.addEventListener("submit", (e) => {
+        e.preventDefault();
 
-      // Validação básica de exemplo (substitua pela sua regra ou backend real)
-      if (loginInput && passwordInput) {
-        // Oculta a tela de login e exibe a tela principal
-        loginScreen.style.display = "none";
-        mainScreen.style.display = "block";
+        // Pega os valores dos inputs de login e senha
+        const loginInput = document.getElementById("login") || document.querySelector("input[type='text'], input[name='login']");
+        const passwordInput = document.getElementById("password") || document.querySelector("input[type='password']");
 
-        // Atualiza o chip do usuário na barra superior
-        if (userChip) {
-          userChip.textContent = loginInput;
+        const userValue = loginInput ? loginInput.value.trim() : "";
+        const passValue = passwordInput ? passwordInput.value.trim() : "";
+
+        if (userValue && passValue) {
+          console.log("Tentativa de login realizada para:", userValue);
+
+          // Esconde a tela de login (se existir)
+          if (loginScreen) {
+            loginScreen.style.display = "none";
+          } else {
+            // Se não achar a tela exata por ID, esconde o formulário pai
+            loginForm.closest("div") ? loginForm.closest("div").style.display = "none" : null;
+          }
+
+          // Mostra a tela principal (se existir)
+          if (mainScreen) {
+            mainScreen.style.display = "block";
+          } else {
+            // Fallback: recarrega ou avisa
+            alert("Login efetuado com sucesso! (Tela principal não localizada pelo ID exato)");
+          }
+
+          localStorage.setItem("userLogged", userValue);
+        } else {
+          alert("Por favor, preencha o login e a senha.");
         }
-
-        // Salva opcionalmente no localStorage para manter a sessão
-        localStorage.setItem("userLogged", loginInput);
-      } else {
-        alert("Por favor, preencha o login e a senha.");
-      }
-    });
-  }
-
-  // Botão de Acesso de Demonstração (opcional para facilitar os testes)
-  const demoBtn = document.getElementById("demoBtn");
-  if (demoBtn) {
-    demoBtn.addEventListener("click", () => {
-      loginScreen.style.display = "none";
-      mainScreen.style.display = "block";
-      if (userChip) userChip.textContent = "Visitante / Demo";
-    });
-  }
-});  
+      });
+    } else {
+      console.warn("Elemento #loginForm não foi encontrado no DOM.");
+    }
+  });
+</script>
 </body>
 </html>
