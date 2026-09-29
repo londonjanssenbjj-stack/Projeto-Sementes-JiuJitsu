@@ -1646,7 +1646,7 @@ const STORAGE_KEYS = {
   enrollment: "sementes_enrollment",
   game: "sementes_game",
   tasks: "sementes_tasks",
-  secretaryDocuments: "sementes_secretary_documents_v10",
+  secretaryDocuments: "sementes_secretary_documents_v11",
   documentSequence: "sementes_document_sequence_v10",
   accesses: "sementes_accesses"
 };
@@ -2588,7 +2588,8 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   addPage(
     "FICHA DE INSCRIÇÃO E AUTORIZAÇÃO DE PARTICIPAÇÃO",
     "Documento particular de matrícula e autorizações do responsável legal.",
-    ()=>{
+    (api)=>{
+      const {section,labelLine,two,paragraph,bullet,push}=api; let y=api.y;
       section("1. DADOS DO ALUNO (MENOR)");
       labelLine("Nome completo",e.student?.name);
       two("Data de nascimento",formatDate(e.student?.birth),"Escola",e.student?.school);
@@ -2622,8 +2623,10 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   addPage(
     "DECLARAÇÃO DE APTIDÃO FÍSICA E HISTÓRICO DE SAÚDE",
     "Informações declaradas pelo responsável legal para fins de segurança durante a prática esportiva.",
-    ()=>{
+    (api)=>{
+      const {section,labelLine,two,paragraph,bullet,push}=api; let y=api.y;
       section("4. QUESTIONÁRIO DE SAÚDE");
+      y=api.y;
       const rows=[
         ["Problema cardíaco ou de pressão arterial",health.heart],
         ["Asma, bronquite ou problema respiratório",health.respiratory],
@@ -2644,6 +2647,7 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
         push(cmdText("F1",7.3,M,y,line)); y-=11;
       }
       y-=8;
+      api.y=y;
 
       section("5. DECLARAÇÃO DO RESPONSÁVEL");
       paragraph(
@@ -2652,6 +2656,7 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
       paragraph(
         "A presente declaração tem finalidade de registro e segurança da atividade esportiva e não substitui avaliação ou atestado médico quando este for exigido por profissional de saúde, pela legislação ou pelas regras da atividade."
       );
+      y=api.y;
 
       y-=20;
       push(cmdText("F1",7.3,M,y,`Corumbá - MS, ${formatDate(e.date||todayISO())}`));
@@ -2666,7 +2671,8 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   addPage(
     "TERMO DE AUTORIZAÇÃO DE USO DE IMAGEM E VOZ",
     "Autorização específica do responsável legal para utilização institucional.",
-    ()=>{
+    (api)=>{
+      const {section,labelLine,two,paragraph,bullet,push}=api; let y=api.y;
       section("6. AUTORIZAÇÃO DE USO DE IMAGEM E VOZ");
       paragraph(
         "Eu, responsável legal pelo menor identificado neste documento, AUTORIZO, de forma gratuita, a captação e utilização de sua imagem e voz em fotografias, vídeos e demais registros realizados durante as atividades do Projeto Social \"Sementes\"."
@@ -2685,6 +2691,7 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
       paragraph(
         "O presente documento integra o registro de matrícula do Projeto Social \"Sementes\" e é identificado pelo número único informado no cabeçalho e no rodapé de todas as páginas."
       );
+      y=api.y;
 
       y-=8;
       if(signature){
@@ -2832,11 +2839,13 @@ function initEnrollment(){
 
     if(!$("imageConsent").checked){
       toast("É necessário confirmar o termo de imagem.");
+      if(finalizeButton){ finalizeButton.disabled=false; finalizeButton.textContent="💾 Finalizar Documento"; }
       return;
     }
 
     if(!$("enrollmentForm").checkValidity()){
       $("enrollmentForm").reportValidity();
+      if(finalizeButton){ finalizeButton.disabled=false; finalizeButton.textContent="💾 Finalizar Documento"; }
       return;
     }
 
@@ -2910,6 +2919,8 @@ function initEnrollment(){
     const pdfBlob=dataURItoBlob(pdf.dataUri);
     const pdfUrl=URL.createObjectURL(pdfBlob);
     window.__enrollmentPdfUrl=pdfUrl;
+
+    if(finalizeButton){ finalizeButton.disabled=true; finalizeButton.textContent="📄 Documento gerado — baixe para continuar"; }
 
     successBox.innerHTML=`
       <div style="font-size:22px;font-weight:900;line-height:1.25;color:#b5f3c7">📄 DOCUMENTO GERADO — AGUARDANDO SALVAMENTO</div>
@@ -3172,6 +3183,9 @@ function resetEnrollmentFormAfterCompletion(){
   // o registro definitivo do aluno e do documento na Secretaria.
   state.enrollment=null;
   saveState();
+
+  const finalizeButton=document.querySelector('#enrollmentForm button[type="submit"]');
+  if(finalizeButton){ finalizeButton.disabled=false; finalizeButton.textContent="💾 Finalizar Documento"; }
 
   const firstField=$("studentName");
   if(firstField){
