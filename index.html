@@ -581,7 +581,14 @@
       .topbar-inner{flex-wrap:wrap;padding:8px 0}
       .user-chip{margin-left:auto}
     }
-  </style>
+  
+    /* V8 — Secretaria ocupa toda a largura disponível e documentos maiores */
+    #secretaryPage{width:100%;max-width:none;}
+    #secretaryPage .card.wide{width:100%;max-width:none;}
+    #secretaryDocumentsList{width:100%;display:flex;flex-direction:column;gap:14px;}
+    #secretaryDocumentsList > .card{width:100%;min-height:150px;padding:20px;}
+    #secretaryDocumentsList .action-row{flex-wrap:wrap;}
+</style>
 </head>
 
 <body>
@@ -1476,7 +1483,7 @@
 
           <article class="card gold-border">
             <div class="card-header">
-              <div><h2 class="section-title">ADMINISTRADOR</h2><span class="small muted">Fora da Diretoria</span></div>
+              <div><h2 class="section-title">DESENVOLVEDOR</h2><span class="small muted">Fora da Diretoria</span></div>
               <i class="icon-gold" data-lucide="shield"></i>
             </div>
             <p class="body-text"><strong>Desenvolvedor</strong></p>
@@ -1598,7 +1605,7 @@
 
 <div id="toast"></div>
 
-<audio id="homeMusic" autoplay loop preload="auto" playsinline src="quando-ele-vem.mp3"></audio>
+<audio id="homeMusic" autoplay loop preload="auto" playsinline style="display:none" src="quando-ele-vem.mp3"></audio>
 
 <script>
 /* ============================================================
@@ -1992,7 +1999,9 @@ function loginDemo(login,password){
   const normalized = login.trim().toLowerCase();
 
   if(
-    normalized === APP_CONFIG.demoMasterLogin.toLowerCase() &&
+    (normalized === APP_CONFIG.demoMasterLogin.toLowerCase() ||
+     normalized === APP_CONFIG.masterName.toLowerCase() ||
+     normalized === APP_CONFIG.masterDisplayName.toLowerCase()) &&
     password === APP_CONFIG.demoMasterPassword
   ){
     state.user = {
@@ -2291,9 +2300,12 @@ function buildEnrollmentMessage(recipientType){
   const data=formatDate(e?.date || todayISO());
 
   if(recipientType==="master"){
-    return `Olá, Mestre London! 🌱🥋
+    return `Mensagem App Projeto Sementes
+A Paz seja contigo!
 
-A matrícula do aluno ${aluno} foi finalizada e assinada pelo responsável ${responsavel} em ${data}.
+Cadastro realizado do aluno ${aluno}.
+Responsável: ${responsavel}.
+Data: ${data}.
 Número do documento: ${e?.documentNumber || "não informado"}.
 
 O documento da matrícula foi gerado pelo aplicativo Projeto Sementes.`;
@@ -2367,8 +2379,28 @@ function downloadBlob(blob,filename){
   setTimeout(()=>URL.revokeObjectURL(url),120000);
 }
 
+async function ensureJsPdfLoaded(){
+  if(window.jspdf?.jsPDF) return true;
+  const urls=[
+    "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+    "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"
+  ];
+  for(const src of urls){
+    try{
+      await new Promise((resolve,reject)=>{
+        const script=document.createElement("script");
+        script.src=src; script.async=true;
+        script.onload=()=>resolve(); script.onerror=reject;
+        document.head.appendChild(script);
+      });
+      if(window.jspdf?.jsPDF) return true;
+    }catch(_){}
+  }
+  return false;
+}
+
 async function generateEnrollmentPDF(){
-  if(!window.jspdf?.jsPDF) throw new Error("Biblioteca de PDF não carregada.");
+  if(!(await ensureJsPdfLoaded())) throw new Error("Biblioteca de PDF não carregada.");
 
   const {jsPDF}=window.jspdf;
   const e=state.enrollment;
@@ -2377,7 +2409,7 @@ async function generateEnrollmentPDF(){
   const pageWidth=210;
   const contentWidth=pageWidth-(margin*2);
   let y=9;
-  const codigoMatricula=nextEnrollmentDocumentNumber();
+  const codigoMatricula=e.documentNumber || nextEnrollmentDocumentNumber();
   e.documentNumber=codigoMatricula;
 
   const logo=await getProjectLogoDataURL();
@@ -2545,6 +2577,16 @@ function initEnrollment(){
 
     saveState();
 
+    // Reserva o número antes da geração para que cadastro, PDF e mensagem usem o mesmo número.
+    state.enrollment.documentNumber=nextEnrollmentDocumentNumber();
+
+    // Abre o destino do Mestre London dentro do gesto do botão, evitando bloqueio de pop-up.
+    let masterWindow=null;
+    try{ masterWindow=window.open("about:blank","_blank"); }catch(_){}
+
+    // Sinal sonoro no próprio toque do botão; o iPhone costuma bloquear áudio criado depois de awaits.
+    playSuccessSound("finalize");
+
     let pdf;
     try{
       pdf=await generateEnrollmentPDF();
@@ -2565,20 +2607,22 @@ function initEnrollment(){
       renderSecretaryDocuments();
     }catch(error){
       console.error(error);
-      toast("Não foi possível gerar o PDF. Verifique a conexão e tente novamente.");
+      try{ if(masterWindow && !masterWindow.closed) masterWindow.close(); }catch(_){}
+      toast("Não foi possível gerar o documento PDF. Verifique sua conexão e tente novamente.");
       return;
     }
 
     $("enrollmentSuccess").classList.remove("hidden");
     $("enrollmentSuccess").innerHTML=`
-      <strong>🔊 Documento confirmado e cadastrado — ${escapeHTML(pdf.codigoMatricula)}.</strong><br>
-      <span class="small">O documento foi numerado e registrado na Secretaria. A notificação é enviada somente ao Administrador Mestre London.</span><br><br>
+      <strong>🔊 Cadastro realizado. Documento confirmado e cadastrado.</strong><br>
+      <span class="small">Número do documento: <strong>${escapeHTML(pdf.codigoMatricula)}</strong>.</span><br>
+      <span class="small">O documento foi registrado na Secretaria.</span><br><br>
       <span class="small" style="color:var(--gold2)">⚠️ <strong>Aviso ao Responsável:</strong> não esqueça de baixar seu Documento gerado e guardar sua via assinada.</span>
       <div class="action-row" style="margin-top:10px">
         <button class="btn btn-gold" type="button" id="downloadEnrollmentPDF">📥 Baixar Documento</button>
-      </div>
-    `;
+      </div>`;
 
+    // A biometria é liberada imediatamente após o cadastro do documento.
     $("biometricSection").classList.remove("hidden");
     $("biometricSection").style.display="block";
     $("biometricSection").hidden=false;
@@ -2588,22 +2632,22 @@ function initEnrollment(){
     $("step2Dot").classList.add("active");
     $("step1Dot").classList.remove("active");
 
-    // O documento fica disponível para download; a notificação é somente para o Mestre London.
-    const masterOpened=openWhatsAppDocument("master",APP_CONFIG.masterWhatsapp);
-    await playSuccessSound("finalize");
-    toast("🔊 Documento confirmado e cadastrado.");
-    $("downloadEnrollmentPDF")?.addEventListener("click",()=>downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename));
+    // Abre WhatsApp somente para o Mestre London, com cadastro + número do documento.
+    const number=normalizeWhatsAppNumber(APP_CONFIG.masterWhatsapp);
+    const masterMessage=encodeURIComponent(buildEnrollmentMessage("master"));
+    const masterUrl=`https://wa.me/${number}?text=${masterMessage}`;
+    if(masterWindow && !masterWindow.closed){
+      masterWindow.location.href=masterUrl;
+    }else{
+      // Se o Safari bloqueou a janela, deixamos um link manual sem abrir o responsável.
+      toast("Cadastro realizado. O navegador bloqueou a abertura automática do WhatsApp do Mestre London.");
+    }
 
+    $("downloadEnrollmentPDF")?.addEventListener("click",()=>downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename));
     renderStudents();
     updateKPIs();
+    toast(`Cadastro realizado — ${pdf.codigoMatricula}. Biometria liberada.`);
 
-    toast(
-      masterOpened
-        ? "Documento finalizado. Mestre London notificado e biometria liberada."
-        : "Documento finalizado. Biometria liberada."
-    );
-
-    // A biometria fica visível imediatamente. O responsável toca em "Abrir câmera" para autorizar o acesso.
     setTimeout(()=>$("biometricSection").scrollIntoView({behavior:"smooth",block:"center"}),250);
   });
 
@@ -3180,12 +3224,26 @@ function playBackgroundMusic(){
     if(audio.getAttribute("src")!==APP_CONFIG.homeMusic) audio.setAttribute("src",APP_CONFIG.homeMusic);
     if(!musicReady){
       musicReady=true;
-      audio.addEventListener("error",()=>toast("Não foi possível carregar quando-ele-vem.mp3. Verifique se o arquivo está na mesma pasta do HTML."),{once:true});
+      audio.addEventListener("error",()=>console.warn("Áudio do louvor não carregado: quando-ele-vem.mp3"),{once:true});
     }
     const promise=audio.play();
-    return promise.then(()=>true).catch(error=>{
-      console.warn("Louvor bloqueado pelo navegador ou arquivo ausente",error);
-      return false;
+    return promise.then(()=>true).catch(async error=>{
+      console.warn("Louvor aguardando liberação do navegador ou carregamento do arquivo",error);
+      try{
+        await new Promise(resolve=>{
+          let done=false;
+          const finish=()=>{ if(done) return; done=true; audio.removeEventListener("canplay",finish); audio.removeEventListener("loadeddata",finish); resolve(); };
+          audio.addEventListener("canplay",finish,{once:true});
+          audio.addEventListener("loadeddata",finish,{once:true});
+          setTimeout(finish,1200);
+          audio.load();
+        });
+        await audio.play();
+        return true;
+      }catch(e2){
+        console.warn("Louvor não iniciou automaticamente",e2);
+        return false;
+      }
     });
   }catch(error){
     console.warn(error);
@@ -3460,8 +3518,10 @@ async function answerQuiz(qIndex,answer){
         updateGameResources();
         renderGameMap();
         renderQuiz();
-        toast(`🎉 Era ${era} concluída! A Era ${era+1} foi liberada.`);
-        setTimeout(()=>$("quizBox")?.scrollIntoView({behavior:"smooth",block:"center"}),120);
+        await playSuccessSound("finalize");
+        toast(`🎉 Era ${era} concluída! A Era ${era+1} foi liberada e iniciada.`);
+        startQuizTimer();
+        setTimeout(()=>$("quizBox")?.scrollIntoView({behavior:"smooth",block:"center"}),220);
       }else{
         state.game.currentEra=0;
         state.game.currentNode=0;
