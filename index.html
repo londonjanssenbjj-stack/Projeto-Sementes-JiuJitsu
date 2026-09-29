@@ -1596,7 +1596,10 @@
 
 <div id="toast"></div>
 
-<audio id="homeMusic" autoplay loop preload="auto" playsinline style="display:none" src="quando-ele-vem.mp3"></audio>
+<audio id="homeMusic" loop preload="auto" playsinline style="display:none">
+  <source src="Quando%20Ele%20Vem.mp3.mp3.aac" type="audio/aac">
+  <source src="quando-ele-vem.mp3" type="audio/mpeg">
+</audio>
 
 <script>
 /* ============================================================
@@ -1633,7 +1636,7 @@ const APP_CONFIG = {
   demoMasterPassword: "12381314*Lj",
 
   logo: "logo_projeto_sementes.png",
-  homeMusic: "quando-ele-vem.mp3"
+  homeMusic: "Quando%20Ele%20Vem.mp3.mp3.aac"
 };
 
 const STORAGE_KEYS = {
@@ -2090,8 +2093,8 @@ function showApp(){
 
   renderAll();
   if(state.user?.role) {
-    // O login é uma ação do usuário; esta tentativa ocorre dentro do mesmo fluxo.
-    playBackgroundMusic();
+    // A tela inicial é aberta após o login; o louvor toca somente em Início e Fé.
+    openPage("homePage");
   }
 }
 
@@ -2467,13 +2470,13 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   y-=66;
 
   // Title
-  push(pdfTextCommand("F2",11,M,y,"TERMO DE MATRÍCULA, RESPONSABILIDADE, APTIDÃO FÍSICA E AUTORIZAÇÃO DE USO DE IMAGEM E VOZ"));
-  push(pdfTextCommand("F1",7.2,M,y-14,"Documento particular de matrícula e autorizações do responsável legal"));
+  push(pdfTextCommand("F2",11,M,y,"TERMO DE MATRÍCULA E AUTORIZAÇÕES DO RESPONSÁVEL LEGAL"));
+  push(pdfTextCommand("F1",7.1,M,y-14,`Documento de matrícula e registro eletrônico — ${codigoMatricula}`));
   y-=31;
 
   function section(title){
-    push(`0.91 0.93 0.96 rg ${M} ${y-17} ${W-2*M} 19 re f 0 0 0 rg`);
-    push(pdfTextCommand("F2",8.2,M+7,y-11,title));
+    push(`0.94 0.94 0.94 rg ${M} ${y-17} ${W-2*M} 18 re f 0 0 0 rg`);
+    push(pdfTextCommand("F2",7.8,M+7,y-11,title));
     y-=25;
   }
   function row(label,value){
@@ -2516,8 +2519,7 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
     ["Problema cardíaco ou pressão arterial",h.heart],
     ["Asma, bronquite ou problema respiratório crônico",h.respiratory],
     ["Lesão óssea, muscular ou articular recorrente",h.injury],
-    ["Uso regular de medicamento controlado",h.medication],
-    ["Alergia a medicamento ou substância",h.allergy],
+    ["Uso de medicamento controlado ou alergia relevante",(h.medication==="SIM"||h.allergy==="SIM")?"SIM":"NÃO"],
     ["Desmaio ou tontura durante exercício físico",h.fainting]
   ];
   healthRows.forEach((r,i)=>{
@@ -2536,9 +2538,9 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
 
   // Signature area
   const sigBoxY=Math.max(76,y-84);
-  push(`0.86 0.86 0.86 rg ${M} ${sigBoxY} 245 58 re S 0 0 0 rg`);
+  push(`0.72 0.72 0.72 rg ${M} ${sigBoxY} 245 52 re S 0 0 0 rg`);
   if(signature){
-    const sw=215, sh=Math.min(45,Math.round(sw*(signature.height/signature.width)));
+    const sw=205, sh=Math.min(40,Math.round(sw*(signature.height/signature.width)));
     push(`q ${sw} 0 0 ${sh} ${M+15} ${sigBoxY+8} cm /ImSig Do Q`);
   }
   push(pdfTextCommand("F2",7.4,M,sigBoxY-10,"Assinatura do Responsável Legal"));
@@ -2764,10 +2766,8 @@ function initEnrollment(){
       return;
     }
 
-    // Finalização: primeiro confirma visualmente o cadastro e mostra o próprio PDF.
-    // O arquivo NÃO é baixado automaticamente. O responsável decide salvar ou compartilhar.
-    await playSuccessSound("finalize");
-
+    // Etapa 1: o responsável recebe o documento e precisa tocar em BAIXAR DOCUMENTO.
+    // Somente depois dessa ação o cadastro é confirmado e a biometria é liberada.
     const successBox=$("enrollmentSuccess");
     successBox.classList.remove("hidden");
     successBox.style.display="block";
@@ -2777,64 +2777,87 @@ function initEnrollment(){
     window.__enrollmentPdfUrl=pdfUrl;
 
     successBox.innerHTML=`
-      <div style="font-size:22px;font-weight:900;line-height:1.25;color:#b5f3c7">✅ CADASTRO REALIZADO COM SUCESSO</div>
+      <div style="font-size:22px;font-weight:900;line-height:1.25;color:#b5f3c7">📄 DOCUMENTO PRONTO PARA SALVAR</div>
       <div class="notice" style="margin-top:12px;font-size:18px;line-height:1.5;border:2px solid var(--gold);padding:18px">
-        <strong style="font-size:21px">⚠️ AVISO IMPORTANTE</strong><br>
-        <strong>Baixe o documento agora e salve no seu celular.</strong><br>
-        Depois de salvar, você poderá encaminhar o documento pelo WhatsApp ou outro aplicativo.
+        <strong style="font-size:21px">⚠️ AVISO IMPORTANTE AO RESPONSÁVEL</strong><br>
+        Antes de continuar, <strong>baixe e salve o documento no seu celular</strong> ou encaminhe-o para um local seguro.
+        <br><br>
+        <strong>O cadastro somente será confirmado depois que você tocar em “BAIXAR DOCUMENTO”.</strong>
       </div>
-      <div style="margin-top:14px;border:2px solid var(--gold);border-radius:14px;overflow:hidden;background:#fff">
+      <div style="margin-top:14px;border:1px solid #d7d7d7;border-radius:12px;overflow:hidden;background:#fff">
         <iframe id="enrollmentPdfViewer" title="Documento de matrícula" src="${pdfUrl}"
-          style="display:block;width:100%;height:620px;border:0;background:#fff"></iframe>
+          style="display:block;width:100%;height:560px;border:0;background:#fff"></iframe>
       </div>
       <div class="action-row" style="margin-top:14px">
-        <button class="btn btn-gold" type="button" id="downloadEnrollmentPDF" style="width:100%;min-height:58px;font-size:18px;font-weight:800">📥 BAIXAR DOCUMENTO</button>
+        <button class="btn btn-gold" type="button" id="downloadEnrollmentPDF"
+          style="width:100%;min-height:60px;font-size:19px;font-weight:900">
+          📥 BAIXAR DOCUMENTO
+        </button>
       </div>
-      <div class="small muted" style="margin-top:9px;text-align:center">
-        Toque em <strong>BAIXAR DOCUMENTO</strong> para salvar o arquivo no celular. No iPhone, se aparecer o menu de compartilhamento, escolha <strong>Salvar em Arquivos</strong>.
+      <div id="downloadStepStatus" class="small muted" style="margin-top:10px;text-align:center">
+        Toque no botão acima para salvar ou encaminhar o documento.
       </div>`;
 
     $("downloadEnrollmentPDF")?.addEventListener("click",async()=>{
+      const button=$("downloadEnrollmentPDF");
+      if(button.dataset.completed==="1") return;
+      let savedOrShared=false;
       try{
         const file=new File([pdfBlob],pdf.filename,{type:"application/pdf"});
-        // No iPhone/iPad, a folha nativa permite escolher "Salvar em Arquivos".
         if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-          await navigator.share({title:`Documento ${pdf.codigoMatricula}`,text:"Baixar e salvar o Documento de Matrícula — Projeto Sementes.",files:[file]});
-          toast("Documento encaminhado para o menu do celular. Escolha 'Salvar em Arquivos' para guardar.");
-          return;
+          await navigator.share({
+            title:`Documento ${pdf.codigoMatricula}`,
+            text:"Documento de Matrícula — Projeto Sementes. Salve no celular ou encaminhe para um local seguro.",
+            files:[file]
+          });
+          savedOrShared=true;
+        }else{
+          downloadBlob(pdfBlob,pdf.filename);
+          savedOrShared=true;
         }
       }catch(error){
-        if(error?.name==="AbortError") return;
+        if(error?.name==="AbortError"){
+          toast("Documento não foi salvo. Toque em BAIXAR DOCUMENTO para tentar novamente.");
+          return;
+        }
+        downloadBlob(pdfBlob,pdf.filename);
+        savedOrShared=true;
       }
-      // Fallback para navegadores sem compartilhamento de arquivos.
-      downloadBlob(pdfBlob,pdf.filename);
-      toast("Documento baixado. Salve o arquivo no celular.");
+
+      if(!savedOrShared) return;
+      button.dataset.completed="1";
+      button.disabled=true;
+      button.textContent="✅ DOCUMENTO BAIXADO / ENCAMINHADO";
+      const stepStatus=$("downloadStepStatus");
+      if(stepStatus) stepStatus.innerHTML="<strong style='color:#b5f3c7'>Documento salvo ou encaminhado. Agora o cadastro será confirmado.</strong>";
+
+      await playSuccessSound("finalize");
+      successBox.insertAdjacentHTML("afterbegin",
+        `<div id="registrationSuccess" style="margin:12px 0;font-size:21px;font-weight:900;color:#b5f3c7">
+          ✅ CADASTRO REALIZADO COM SUCESSO
+        </div>`);
+
+      const biometricSection=$("biometricSection");
+      biometricSection.classList.remove("hidden");
+      biometricSection.style.display="block";
+      biometricSection.hidden=false;
+      biometricSection.setAttribute("aria-hidden","false");
+      $("startCamera").disabled=false;
+      $("captureFace").disabled=false;
+      $("step2Dot").classList.add("active");
+      $("step1Dot").classList.remove("active");
+      renderStudents();
+      updateKPIs();
+      renderSecretaryDocuments();
+      toast("Cadastro realizado com sucesso. Agora faça a biometria.");
+
+      setTimeout(()=>{
+        biometricSection.scrollIntoView({behavior:"smooth",block:"start"});
+        $("startCamera")?.focus();
+      },700);
     });
 
-    // Agora libera a etapa 2. O documento continua visível acima para ser salvo/encaminhado.
-    const biometricSection=$("biometricSection");
-    biometricSection.classList.remove("hidden");
-    biometricSection.style.display="block";
-    biometricSection.hidden=false;
-    biometricSection.setAttribute("aria-hidden","false");
-    $("startCamera").disabled=false;
-    $("captureFace").disabled=false;
-    $("step2Dot").classList.add("active");
-    $("step1Dot").classList.remove("active");
-
-    renderStudents();
-    updateKPIs();
-    renderSecretaryDocuments();
-    toast(`Cadastro realizado com sucesso — ${pdf.codigoMatricula}. Biometria liberada.`);
-
-    // Leva o responsável automaticamente para a biometria após o aviso de cadastro.
-    setTimeout(async()=>{
-      biometricSection.scrollIntoView({behavior:"smooth",block:"start"});
-      // Tentativa automática. No iPhone/Safari a permissão pode exigir um toque;
-      // nesse caso o botão Abrir câmera permanece disponível.
-      try{ await startCamera(); }catch(_){}
-    },1800);
-    });
+  });
 
   $("clearSignature").addEventListener("click",clearSignature);
 }
@@ -2953,7 +2976,11 @@ function resetEnrollmentFormAfterCompletion(){
     success.innerHTML=`<div style="font-size:20px;font-weight:900;color:#b5f3c7">✅ CADASTRO E BIOMETRIA REALIZADOS COM SUCESSO</div>
       <div class="small" style="margin-top:7px">Os campos foram limpos e o sistema está pronto para um novo cadastro.</div>`;
   }
-  toast("Cadastro e biometria realizados com sucesso. Todos os campos foram limpos.");
+  const firstField=$("studentName");
+  if(firstField){
+    setTimeout(()=>{ firstField.focus(); firstField.scrollIntoView({behavior:"smooth",block:"center"}); },150);
+  }
+  toast("Cadastro Biometrico realizado com sucesso. Todos os campos foram limpos.");
 }
 
 async function openClassCamera(){
@@ -3437,10 +3464,9 @@ function playBackgroundMusic(){
     audio.preload="auto";
     audio.volume=.30;
     audio.muted=false;
-    if(audio.getAttribute("src")!==APP_CONFIG.homeMusic) audio.setAttribute("src",APP_CONFIG.homeMusic);
     if(!musicReady){
       musicReady=true;
-      audio.addEventListener("error",()=>console.warn("Áudio do louvor não carregado: quando-ele-vem.mp3"),{once:true});
+      audio.addEventListener("error",()=>console.warn("Louvor não carregado. Confira o arquivo de áudio no GitHub Pages."),{once:true});
     }
     const promise=audio.play();
     return promise.then(()=>true).catch(async error=>{
@@ -4068,7 +4094,7 @@ function generateReport(){
     #secretaryDocumentsList > .card{min-height:175px;padding:22px;}
     #enrollmentSuccess iframe{background:#fff;}
     #enrollmentSuccess{overflow:hidden;}
-</style>
+\n/* V7 — fluxo de matrícula e apresentação formal */\n#enrollmentSuccess{font-size:16px;line-height:1.45;}\n#enrollmentSuccess .notice{box-shadow:none;}\n#enrollmentSuccess iframe{height:560px;}\n</style>
       </head>
       <body>
         <h1>Projeto Sementes — ${escapeHTML(type)}</h1>
