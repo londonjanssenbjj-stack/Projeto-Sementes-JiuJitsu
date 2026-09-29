@@ -2340,12 +2340,18 @@ async function getProjectLogoDataURL(){
       (el.getAttribute("src")||"").includes(APP_CONFIG.logo)
     );
     if(!img) return "";
+
+    // Nunca deixe a geração do PDF presa esperando uma imagem externa/local.
     if(!img.complete){
-      await new Promise(resolve=>{
-        img.addEventListener("load",resolve,{once:true});
-        img.addEventListener("error",resolve,{once:true});
-      });
+      await Promise.race([
+        new Promise(resolve=>{
+          img.addEventListener("load",resolve,{once:true});
+          img.addEventListener("error",resolve,{once:true});
+        }),
+        new Promise(resolve=>setTimeout(resolve,2500))
+      ]);
     }
+
     if(!img.naturalWidth) return "";
     const canvas=document.createElement("canvas");
     canvas.width=img.naturalWidth;
@@ -2393,16 +2399,19 @@ async function ensureJsPdfLoaded(){
   ];
   for(const src of urls){
     try{
-      await new Promise((resolve,reject)=>{
-        const script=document.createElement("script");
-        script.src=src; script.async=true;
-        script.onload=()=>resolve(); script.onerror=reject;
-        document.head.appendChild(script);
-      });
+      await Promise.race([
+        new Promise((resolve,reject)=>{
+          const script=document.createElement("script");
+          script.src=src; script.async=true;
+          script.onload=()=>resolve(); script.onerror=reject;
+          document.head.appendChild(script);
+        }),
+        new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout")),8000))
+      ]);
       if(window.jspdf?.jsPDF) return true;
     }catch(_){}
   }
-  return false;
+  return !!window.jspdf?.jsPDF;
 }
 
 async function generateEnrollmentPDF(){
@@ -2498,21 +2507,44 @@ async function generateEnrollmentPDF(){
 }
 
 function openEnrollmentPDFPreview(pdf, existingWindow=null){
-  if(!pdf?.dataUri) return false;
+  if(!pdf?.blob && !pdf?.dataUri) return false;
   try{
-    const blob=dataURItoBlob(pdf.dataUri);
+    // Usa diretamente o Blob produzido pelo jsPDF. Isso evita uma segunda conversão
+    // dataURI -> Blob e funciona melhor no Safari/iPhone.
+    const blob=pdf.blob instanceof Blob ? pdf.blob : dataURItoBlob(pdf.dataUri);
     const url=URL.createObjectURL(blob);
-    const win=existingWindow && !existingWindow.closed ? existingWindow : window.open("about:blank","_blank");
-    if(!win) return false;
-    win.document.title=`Documento ${pdf.codigoMatricula} — Projeto Sementes`;
-    win.location.href=url;
-    // Mantém a URL disponível por tempo suficiente para visualizar, salvar ou compartilhar.
+    const win=existingWindow && !existingWindow.closed
+      ? existingWindow
+      : window.open("about:blank","_blank");
+
+    if(!win){
+      URL.revokeObjectURL(url);
+      return false;
+    }
+
+    try{
+      win.document.title=`Documento ${pdf.codigoMatricula} — Projeto Sementes`;
+    }catch(_){}
+
+    // Navega a aba já autorizada pelo toque do usuário para o PDF real.
+    win.location.replace(url);
+
+    // Não revogar imediatamente: o Safari pode ainda estar carregando o PDF.
     setTimeout(()=>URL.revokeObjectURL(url),30*60*1000);
     return true;
   }catch(error){
     console.error("Erro ao abrir visualização do PDF",error);
     return false;
   }
+}
+
+function showPDFPreviewError(win,error){
+  if(!win || win.closed) return;
+  try{
+    win.document.open();
+    win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Documento</title><style>body{font-family:Arial;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;margin:0}div{max-width:430px;padding:28px}button{padding:13px 18px;border:0;border-radius:10px;background:#d4af37;font-weight:700}</style></head><body><div><h2>⚠️ Não foi possível gerar o documento</h2><p>O cadastro foi mantido no aplicativo. Volte para a tela anterior e tente finalizar novamente.</p></div></body></html>`);
+    win.document.close();
+  }catch(_){}
 }
 
 function renderEnrollmentCompletion(pdf, options={}){
@@ -2741,14 +2773,16 @@ function initEnrollment(){
       saveState();
       renderSecretaryDocuments();
     }catch(error){
-      console.error(error);
-      toast("Não foi possível gerar o documento PDF. Verifique sua conexão e tente novamente.");
+      console.error("Falha na geração da matrícula:",error);
+      showPDFPreviewError(pdfPreviewWindow,error);
+      toast("Não foi possível gerar o documento PDF. O cadastro foi mantido; tente novamente.");
       return;
     }
 
-    // Mostra o documento ao responsável, oferece download/aviso e libera a biometria.
-    // A nova aba já aberta pelo clique recebe o PDF imediatamente.
-    if(!openEnrollmentPDFPreview(pdf,pdfPreviewWindow)){
+    // O PDF já está pronto. Só agora a aba intermediária recebe o arquivo real.
+    // A tela original também é atualizada imediatamente para liberar a biometria.
+    const previewOpened=openEnrollmentPDFPreview(pdf,pdfPreviewWindow);
+    if(!previewOpened){
       if(pdfPreviewWindow && !pdfPreviewWindow.closed) pdfPreviewWindow.close();
       toast("O navegador bloqueou a visualização automática. Use o botão 'Abrir Documento / Visualizar'.");
     }
