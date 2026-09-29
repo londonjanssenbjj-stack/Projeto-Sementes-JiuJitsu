@@ -2497,6 +2497,24 @@ async function generateEnrollmentPDF(){
   return {blob,filename,codigoMatricula,dataUri};
 }
 
+function openEnrollmentPDFPreview(pdf, existingWindow=null){
+  if(!pdf?.dataUri) return false;
+  try{
+    const blob=dataURItoBlob(pdf.dataUri);
+    const url=URL.createObjectURL(blob);
+    const win=existingWindow && !existingWindow.closed ? existingWindow : window.open("about:blank","_blank");
+    if(!win) return false;
+    win.document.title=`Documento ${pdf.codigoMatricula} — Projeto Sementes`;
+    win.location.href=url;
+    // Mantém a URL disponível por tempo suficiente para visualizar, salvar ou compartilhar.
+    setTimeout(()=>URL.revokeObjectURL(url),30*60*1000);
+    return true;
+  }catch(error){
+    console.error("Erro ao abrir visualização do PDF",error);
+    return false;
+  }
+}
+
 function renderEnrollmentCompletion(pdf, options={}){
   if(!pdf) return;
   const successBox=$("enrollmentSuccess");
@@ -2518,13 +2536,19 @@ function renderEnrollmentCompletion(pdf, options={}){
     </div>
     <div class="small" style="margin-top:10px">Número do documento: <strong>${escapeHTML(pdf.codigoMatricula)}</strong></div>
     <div class="action-row" style="margin-top:14px">
-      <button class="btn btn-gold" type="button" id="downloadEnrollmentPDF">📥 Baixar Documento</button>
+      <button class="btn btn-gold" type="button" id="openEnrollmentPDF">📄 Abrir Documento / Visualizar</button>
+      <button class="btn" type="button" id="downloadEnrollmentPDF">📥 Salvar / Baixar PDF</button>
       ${canWhatsApp ? `<button class="btn btn-success" type="button" id="whatsappEnrollmentNotice">📲 Avisar Responsável no WhatsApp</button>` : ""}
     </div>
     <div class="small muted" style="margin-top:10px">
       ${canWhatsApp ? "O WhatsApp abrirá a conversa com o responsável para confirmação do envio." : "Cadastre o WhatsApp do responsável para habilitar o aviso."}
     </div>`;
 
+  $("openEnrollmentPDF")?.addEventListener("click",()=>{
+    if(!openEnrollmentPDFPreview(pdf)){
+      toast("O navegador bloqueou a nova aba. Permita pop-ups para visualizar o documento.");
+    }
+  });
   $("downloadEnrollmentPDF")?.addEventListener("click",()=>downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename));
   $("whatsappEnrollmentNotice")?.addEventListener("click",()=>{
     if(!openWhatsAppDocument("guardian",phone)){
@@ -2675,6 +2699,16 @@ function initEnrollment(){
     // O cadastro agora é registrado somente no próprio sistema e na Secretaria.
     // Nenhuma mensagem é aberta ou enviada ao Mestre London neste momento.
 
+    // Abre a nova aba enquanto o clique do usuário ainda está ativo.
+    // Depois que o PDF for gerado, essa mesma aba receberá o documento para visualização.
+    const pdfPreviewWindow=window.open("about:blank","_blank");
+    if(pdfPreviewWindow){
+      try{
+        pdfPreviewWindow.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Gerando documento...</title><style>body{font-family:Arial;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center}div{max-width:420px;padding:25px}</style></head><body><div><h2>📄 Gerando documento...</h2><p>Aguarde. O documento da matrícula será aberto nesta página para visualizar, salvar ou compartilhar.</p></div></body></html>`);
+        pdfPreviewWindow.document.close();
+      }catch(_){}
+    }
+
     // Sinal sonoro no próprio toque do botão; o iPhone costuma bloquear áudio criado depois de awaits.
     playSuccessSound("finalize");
 
@@ -2713,6 +2747,11 @@ function initEnrollment(){
     }
 
     // Mostra o documento ao responsável, oferece download/aviso e libera a biometria.
+    // A nova aba já aberta pelo clique recebe o PDF imediatamente.
+    if(!openEnrollmentPDFPreview(pdf,pdfPreviewWindow)){
+      if(pdfPreviewWindow && !pdfPreviewWindow.closed) pdfPreviewWindow.close();
+      toast("O navegador bloqueou a visualização automática. Use o botão 'Abrir Documento / Visualizar'.");
+    }
     renderEnrollmentCompletion(pdf);
     renderStudents();
     updateKPIs();
