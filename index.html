@@ -1196,7 +1196,7 @@
             </div>
 
             <div class="action-row" style="margin-top:10px">
-              <button class="btn btn-gold" type="button" id="startCamera">Abrir câmera</button>
+              <button class="btn btn-gold" type="button" id="startCamera">📷 Abrir câmera / Iniciar biometria</button>
               <button class="btn" type="button" id="captureFace">Capturar Face</button>
             </div>
 
@@ -2405,9 +2405,91 @@ async function ensureJsPdfLoaded(){
   return false;
 }
 
-async function generateEnrollmentPDF(){
-  if(!(await ensureJsPdfLoaded())) throw new Error("Biblioteca de PDF não carregada.");
+function pdfEscapeText(value){
+  return String(value||"")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^\x20-\x7E]/g,"")
+    .replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
+}
 
+async function buildFallbackPDF(lines){
+  // PDF mínimo de uma página, sem dependência externa. Serve como contingência
+  // quando o CDN do jsPDF não está acessível no GitHub Pages/iPhone.
+  const safe=lines.map(pdfEscapeText);
+  const streamLines=["BT","/F1 8 Tf","10 0 0 10 36 805 Tm"];
+  safe.forEach((line,i)=>{
+    if(i>0) streamLines.push("0 -11 Td");
+    streamLines.push(`(${line}) Tj`);
+  });
+  streamLines.push("ET");
+  const stream=streamLines.join("\n");
+  const objs=[
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
+  ];
+  let pdf="%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
+  const offsets=[0];
+  objs.forEach((obj,i)=>{ offsets[i+1]=pdf.length; pdf+=`${i+1} 0 obj\n${obj}\nendobj\n`; });
+  const xref=pdf.length;
+  pdf+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`;
+  for(let i=1;i<=objs.length;i++) pdf+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";
+  pdf+=`trailer\n<< /Size ${objs.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  const bytes=new TextEncoder().encode(pdf);
+  const blob=new Blob([bytes],{type:"application/pdf"});
+  const reader=new FileReader();
+  const dataUri=await new Promise((resolve,reject)=>{ reader.onload=()=>resolve(reader.result); reader.onerror=reject; reader.readAsDataURL(blob); });
+  return {blob,dataUri};
+}
+
+async function generateEnrollmentPDFFallback(){
+  const e=state.enrollment;
+  const codigoMatricula=e.documentNumber || nextEnrollmentDocumentNumber();
+  e.documentNumber=codigoMatricula;
+  const lines=[
+    "PROJETO SEMENTES — IGREJA DO EVANGELHO QUADRANGULAR GUAICURUS",
+    "FICHA DE INSCRICAO E AUTORIZACAO DE PARTICIPACAO",
+    `REGISTRO: ${codigoMatricula} | ${formatDate(e.date||todayISO())} | ${APP_CONFIG.city}`,
+    "",
+    "1. DADOS DO ALUNO",
+    `Nome: ${e.student?.name||"Nao informado"}`,
+    `Nascimento: ${formatDate(e.student?.birth)}`,
+    `Escola: ${e.student?.school||"Nao informado"}`,
+    `Endereco: ${e.student?.address||"Nao informado"}`,
+    "",
+    "2. RESPONSAVEL LEGAL",
+    `Nome: ${e.guardian?.name||"Nao informado"}`,
+    `Parentesco: ${e.guardian?.relation||"Nao informado"}`,
+    `Telefone: ${e.guardian?.phone||"Nao informado"}`,
+    `CIN/RG: ${e.guardian?.document||"Nao informado"}`,
+    "",
+    "3. DECLARACOES E AUTORIZACOES",
+    "O responsavel legal autoriza a participacao do menor nas aulas de Jiu-Jitsu do Projeto Social Sementes.",
+    "Declara estar ciente das atividades fisicas e de contato da modalidade e compromete-se a informar alteracoes de saude.",
+    "Autoriza, de forma gratuita, o uso de imagem e voz do menor para fins institucionais, pedagogicos e de prestacao de contas, vedada exploracao comercial.",
+    "As informacoes de saude foram prestadas pelo responsavel, que declara sua veracidade e completude.",
+    "",
+    `Local: ${APP_CONFIG.city} | Data: ${formatDate(e.date||todayISO())}`,
+    `Assinatura digital registrada: ${e.signature?"SIM":"NAO"}`,
+    `Documento ${codigoMatricula} gerado pelo aplicativo Projeto Sementes.`,
+    "Documento gerado em uma unica folha."
+  ];
+  const out=await buildFallbackPDF(lines);
+  const safeName=(e.student?.name||"Aluno").replace(/[^a-z0-9À-ÿ]+/gi,"-");
+  const filename=`Matricula-${codigoMatricula.replace(/[^a-zA-Z0-9-]/g,"-")}-${safeName}.pdf`;
+  return {blob:out.blob,filename,codigoMatricula,dataUri:out.dataUri};
+}
+
+async function generateEnrollmentPDF(){
+  const loaded=await ensureJsPdfLoaded();
+  if(!loaded || !window.jspdf?.jsPDF){
+    console.warn("jsPDF indisponivel; usando gerador PDF interno.");
+    return await generateEnrollmentPDFFallback();
+  }
+
+  try{
   const {jsPDF}=window.jspdf;
   const e=state.enrollment;
   const doc=new jsPDF({unit:"mm",format:"a4",compress:true});
@@ -2495,6 +2577,10 @@ async function generateEnrollmentPDF(){
   // O documento não é baixado automaticamente. Ele será disponibilizado
   // no aviso de finalização para o responsável salvar/compartilhar no celular.
   return {blob,filename,codigoMatricula,dataUri};
+  }catch(error){
+    console.warn("Falha no jsPDF; usando gerador PDF interno.",error);
+    return await generateEnrollmentPDFFallback();
+  }
 }
 
 function initEnrollment(){
@@ -2633,7 +2719,7 @@ function initEnrollment(){
       renderSecretaryDocuments();
     }catch(error){
       console.error(error);
-      toast("Não foi possível gerar o documento PDF. Verifique sua conexão e tente novamente.");
+      toast("O documento não pôde ser gerado. O sistema tentou o gerador interno; recarregue a página e tente novamente.");
       return;
     }
 
@@ -2702,8 +2788,11 @@ function initEnrollment(){
     toast(`Cadastro realizado com sucesso — ${pdf.codigoMatricula}. Biometria liberada.`);
 
     // Leva o responsável automaticamente para a biometria após o aviso de cadastro.
-    setTimeout(()=>{
+    setTimeout(async()=>{
       biometricSection.scrollIntoView({behavior:"smooth",block:"start"});
+      // Tentativa automática. No iPhone/Safari a permissão pode exigir um toque;
+      // nesse caso o botão Abrir câmera permanece disponível.
+      try{ await startCamera(); }catch(_){}
     },1800);
     });
 
