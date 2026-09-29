@@ -2340,18 +2340,12 @@ async function getProjectLogoDataURL(){
       (el.getAttribute("src")||"").includes(APP_CONFIG.logo)
     );
     if(!img) return "";
-
-    // Nunca deixe a geração do PDF presa esperando uma imagem externa/local.
     if(!img.complete){
-      await Promise.race([
-        new Promise(resolve=>{
-          img.addEventListener("load",resolve,{once:true});
-          img.addEventListener("error",resolve,{once:true});
-        }),
-        new Promise(resolve=>setTimeout(resolve,2500))
-      ]);
+      await new Promise(resolve=>{
+        img.addEventListener("load",resolve,{once:true});
+        img.addEventListener("error",resolve,{once:true});
+      });
     }
-
     if(!img.naturalWidth) return "";
     const canvas=document.createElement("canvas");
     canvas.width=img.naturalWidth;
@@ -2394,29 +2388,21 @@ function downloadBlob(blob,filename){
 async function ensureJsPdfLoaded(){
   if(window.jspdf?.jsPDF) return true;
   const urls=[
-    "https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js",
     "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
     "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"
   ];
   for(const src of urls){
     try{
-      const loaded=await new Promise(resolve=>{
+      await new Promise((resolve,reject)=>{
         const script=document.createElement("script");
-        script.src=src;
-        script.async=true;
-        let done=false;
-        const finish=value=>{ if(done) return; done=true; resolve(value); };
-        script.onload=()=>finish(!!window.jspdf?.jsPDF);
-        script.onerror=()=>finish(false);
+        script.src=src; script.async=true;
+        script.onload=()=>resolve(); script.onerror=reject;
         document.head.appendChild(script);
-        setTimeout(()=>finish(!!window.jspdf?.jsPDF),12000);
       });
-      if(loaded) return true;
-    }catch(error){
-      console.warn("Falha ao carregar jsPDF:",src,error);
-    }
+      if(window.jspdf?.jsPDF) return true;
+    }catch(_){}
   }
-  return !!window.jspdf?.jsPDF;
+  return false;
 }
 
 async function generateEnrollmentPDF(){
@@ -2509,196 +2495,6 @@ async function generateEnrollmentPDF(){
   // O documento não é baixado automaticamente. Ele será disponibilizado
   // no aviso de finalização para o responsável salvar/compartilhar no celular.
   return {blob,filename,codigoMatricula,dataUri};
-}
-
-function openEnrollmentPDFPreview(pdf, existingWindow=null){
-  if(!pdf?.blob && !pdf?.dataUri) return false;
-  try{
-    // Usa diretamente o Blob produzido pelo jsPDF. Isso evita uma segunda conversão
-    // dataURI -> Blob e funciona melhor no Safari/iPhone.
-    const blob=pdf.blob instanceof Blob ? pdf.blob : dataURItoBlob(pdf.dataUri);
-    const url=URL.createObjectURL(blob);
-    const win=existingWindow && !existingWindow.closed
-      ? existingWindow
-      : window.open("about:blank","_blank");
-
-    if(!win){
-      URL.revokeObjectURL(url);
-      return false;
-    }
-
-    try{
-      win.document.title=`Documento ${pdf.codigoMatricula} — Projeto Sementes`;
-    }catch(_){}
-
-    // Navega a aba já autorizada pelo toque do usuário para o PDF real.
-    win.location.replace(url);
-
-    // Não revogar imediatamente: o Safari pode ainda estar carregando o PDF.
-    setTimeout(()=>URL.revokeObjectURL(url),30*60*1000);
-    return true;
-  }catch(error){
-    console.error("Erro ao abrir visualização do PDF",error);
-    return false;
-  }
-}
-
-function showPDFPreviewError(win,error){
-  if(!win || win.closed) return;
-  try{
-    win.document.open();
-    win.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Documento</title><style>body{font-family:Arial;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;margin:0}div{max-width:430px;padding:28px}button{padding:13px 18px;border:0;border-radius:10px;background:#d4af37;font-weight:700}</style></head><body><div><h2>⚠️ Não foi possível gerar o documento</h2><p>O cadastro foi mantido no aplicativo. Volte para a tela anterior e tente finalizar novamente.</p></div></body></html>`);
-    win.document.close();
-  }catch(_){}
-}
-
-function buildEnrollmentPrintableHTML(){
-  const e=state.enrollment||{};
-  const h=e.health||{};
-  const signature=e.signature||"";
-  const esc=value=>escapeHTML(String(value??"Não informado"));
-  return `<!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Matricula ${esc(e.documentNumber||"")} — Projeto Sementes</title>
-<style>
-@page{size:A4;margin:12mm}body{font-family:Arial,Helvetica,sans-serif;color:#222;background:#fff;margin:0;padding:20px;line-height:1.45}
-.wrap{max-width:780px;margin:auto}.head{text-align:center;border-bottom:2px solid #243b5a;padding-bottom:12px;margin-bottom:18px}.head h1{font-size:18px;margin:0}.head p{font-size:12px;margin:4px 0}.title{text-align:center;font-size:16px;font-weight:800;margin:18px 0}.section{background:#eef2f6;color:#203a58;font-weight:800;padding:7px;margin-top:14px}.row{display:flex;gap:10px;border-bottom:1px solid #eee;padding:6px 0;font-size:12px}.label{font-weight:700;min-width:190px}.terms{font-size:11px;text-align:justify}.signature{text-align:center;margin-top:25px}.signature img{max-width:180px;max-height:80px}.line{width:260px;border-top:1px solid #444;margin:5px auto}.foot{font-size:9px;color:#777;text-align:center;margin-top:28px}.actions{position:sticky;top:0;background:#fff;padding:10px 0;text-align:center;border-bottom:1px solid #ddd;margin-bottom:15px}.actions button{padding:11px 15px;margin:4px;border:0;border-radius:9px;background:#d4af37;font-weight:700}.actions .dark{background:#222;color:#fff}@media print{.actions{display:none}body{padding:0}}
-</style></head><body><div class="wrap">
-<div class="actions"><button onclick="window.print()">🖨️ Salvar como PDF / Imprimir</button><button class="dark" onclick="if(navigator.share){navigator.share({title:document.title,text:'Documento de matrícula — Projeto Sementes'}).catch(()=>{})}else{alert('Use o botão de compartilhar do navegador.')}" >📤 Compartilhar</button></div>
-<div class="head"><h1>IGREJA DO EVANGELHO QUADRANGULAR GUAICURUS</h1><p>Ministério de Esportes — Projeto Social “Sementes”</p></div>
-<div class="title">FICHA DE INSCRIÇÃO E AUTORIZAÇÃO DE PARTICIPAÇÃO</div>
-<div style="text-align:center;font-size:11px">REGISTRO Nº <strong>${esc(e.documentNumber)}</strong> • ${esc(formatDate(e.date||todayISO()))} • ${esc(APP_CONFIG.city)}</div>
-<div class="section">1. DADOS DO ALUNO (MENOR)</div>
-<div class="row"><span class="label">Nome completo:</span><span>${esc(e.student?.name)}</span></div>
-<div class="row"><span class="label">Data de nascimento:</span><span>${esc(formatDate(e.student?.birth))}</span></div>
-<div class="row"><span class="label">Escola onde estuda:</span><span>${esc(e.student?.school)}</span></div>
-<div class="row"><span class="label">Endereço residencial:</span><span>${esc(e.student?.address)}</span></div>
-<div class="section">2. DADOS DO RESPONSÁVEL LEGAL</div>
-<div class="row"><span class="label">Nome do responsável:</span><span>${esc(e.guardian?.name)}</span></div>
-<div class="row"><span class="label">Grau de parentesco:</span><span>${esc(e.guardian?.relation)}</span></div>
-<div class="row"><span class="label">Telefone/WhatsApp:</span><span>${esc(e.guardian?.phone)}</span></div>
-<div class="row"><span class="label">CIN / RG:</span><span>${esc(e.guardian?.document)}</span></div>
-<div class="section">3. DECLARAÇÃO DE APTIDÃO FÍSICA E HISTÓRICO DE SAÚDE</div>
-<div class="row"><span class="label">Cardíaco/pressão:</span><span>${esc(h.heart)}</span></div>
-<div class="row"><span class="label">Respiratório:</span><span>${esc(h.respiratory)}</span></div>
-<div class="row"><span class="label">Lesão:</span><span>${esc(h.injury)}</span></div>
-<div class="row"><span class="label">Medicamento controlado:</span><span>${esc(h.medication)}</span></div>
-<div class="row"><span class="label">Alergia:</span><span>${esc(h.allergy)}</span></div>
-<div class="row"><span class="label">Desmaios/tonturas:</span><span>${esc(h.fainting)}</span></div>
-<div class="row"><span class="label">Detalhes:</span><span>${esc(h.details)}</span></div>
-<div class="section">4. TERMOS E AUTORIZAÇÕES</div>
-<div class="terms"><p>Eu, acima identificado(a) como responsável legal, AUTORIZO expressamente o menor sob minha tutela a participar gratuitamente das aulas de Jiu-Jitsu do Projeto Social “Sementes”, promovido pela Igreja do Evangelho Quadrangular Guaicurus.</p><p>Declaro estar ciente de que as atividades envolvem treinos físicos e contato próprio da modalidade, sob supervisão dos responsáveis pelo projeto.</p><p>AUTORIZO, de forma gratuita, a utilização da imagem e voz do menor, capturadas durante as atividades, exclusivamente para divulgação institucional, pedagógica e prestação de contas das ações do projeto, vedada a exploração comercial.</p><p>Por ser esta a expressão da minha vontade, firmo o presente termo, reconhecendo que os dados informados correspondem às declarações prestadas por mim.</p></div>
-<div class="signature"><div>${esc(APP_CONFIG.city)}, ${esc(formatDate(e.date||todayISO()))}.</div>${signature?`<img src="${signature}" alt="Assinatura"><div class="line"></div>`:`<div style="height:70px"></div><div class="line"></div>`}<strong>Assinatura digital do Responsável Legal</strong><div style="font-size:11px">Nome legível: ${esc(e.guardian?.name)}</div></div>
-<div class="foot">Documento ${esc(e.documentNumber)} — Projeto Sementes — Corumbá/MS</div>
-</div></body></html>`;
-}
-
-function openEnrollmentPrintablePreview(existingWindow=null){
-  try{
-    const html=buildEnrollmentPrintableHTML();
-    const win=existingWindow && !existingWindow.closed ? existingWindow : window.open("about:blank","_blank");
-    if(!win) return false;
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
-    return true;
-  }catch(error){
-    console.error("Erro ao abrir documento alternativo:",error);
-    return false;
-  }
-}
-
-function renderEnrollmentCompletion(pdf, options={}){
-  if(!pdf) return;
-  const successBox=$("enrollmentSuccess");
-  if(!successBox) return;
-
-  const phone=state.enrollment?.guardian?.phone || "";
-  const normalized=normalizeWhatsAppNumber(phone);
-  const canWhatsApp=!!normalized;
-  const bioDone=options.biometricDone===true;
-
-  successBox.classList.remove("hidden");
-  successBox.style.display="block";
-  const fallback=pdf.printableFallback===true;
-  successBox.innerHTML=`
-    <div style="font-size:22px;font-weight:900;line-height:1.25">📄 MATRÍCULA FINALIZADA</div>
-    <div class="success-notice" style="margin-top:12px;font-size:15px;line-height:1.55">
-      <strong>Olá, ${escapeHTML(state.enrollment?.guardian?.name || "Responsável")}!</strong><br>
-      O cadastro de <strong>${escapeHTML(state.enrollment?.student?.name || "aluno")}</strong> foi finalizado e o documento foi aberto para visualização.
-      ${fallback ? "No iPhone, use <strong>Salvar como PDF / Imprimir</strong> para gerar o PDF e depois compartilhar." : "Salve o PDF no celular ou compartilhe pelo WhatsApp."}
-    </div>
-    <div class="small" style="margin-top:10px">Número do documento: <strong>${escapeHTML(pdf.codigoMatricula)}</strong></div>
-    <div class="action-row" style="margin-top:14px">
-      <button class="btn btn-gold" type="button" id="openEnrollmentPDF">📄 Abrir Documento / Visualizar</button>
-      ${fallback ? `<button class="btn" type="button" id="printEnrollmentDocument">🖨️ Salvar como PDF / Imprimir</button>` : `<button class="btn" type="button" id="downloadEnrollmentPDF">📥 Salvar / Baixar PDF</button>`}
-      ${canWhatsApp ? `<button class="btn btn-success" type="button" id="whatsappEnrollmentNotice">📲 Avisar Responsável no WhatsApp</button>` : ""}
-    </div>
-    <div class="small muted" style="margin-top:10px">
-      ${canWhatsApp ? "O WhatsApp abrirá a conversa com o responsável para confirmação do envio." : "Cadastre o WhatsApp do responsável para habilitar o aviso."}
-    </div>`;
-
-  $("openEnrollmentPDF")?.addEventListener("click",()=>{
-    const ok=pdf.printableFallback===true
-      ? openEnrollmentPrintablePreview()
-      : openEnrollmentPDFPreview(pdf);
-    if(!ok) toast("O navegador bloqueou a visualização. Permita pop-ups para visualizar o documento.");
-  });
-  $("downloadEnrollmentPDF")?.addEventListener("click",()=>{
-    if(pdf.dataUri) downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename);
-    else toast("Use 'Salvar como PDF / Imprimir' para salvar o documento.");
-  });
-  $("printEnrollmentDocument")?.addEventListener("click",()=>window.print());
-  $("whatsappEnrollmentNotice")?.addEventListener("click",()=>{
-    if(!openWhatsAppDocument("guardian",phone)){
-      toast("Não foi possível abrir o WhatsApp. Verifique o número do responsável.");
-    }
-  });
-
-  const biometricSection=$("biometricSection");
-  if(biometricSection){
-    biometricSection.classList.remove("hidden");
-    biometricSection.style.display="block";
-    biometricSection.hidden=false;
-    biometricSection.setAttribute("aria-hidden","false");
-    biometricSection.scrollIntoView({behavior:"smooth",block:"center"});
-  }
-  $("startCamera")?.removeAttribute("disabled");
-  $("captureFace")?.removeAttribute("disabled");
-  $("step2Dot")?.classList.add("active");
-  $("step1Dot")?.classList.remove("active");
-
-  if(bioDone){
-    const status=$("biometricStatus");
-    if(status){
-      status.classList.remove("hidden");
-      status.innerHTML="🔊 <strong>Biometria realizada.</strong> Cadastro concluído.";
-    }
-  }
-}
-
-function restoreEnrollmentUI(){
-  const e=state.enrollment;
-  if(!e?.documentGenerated || !e.documentNumber) return;
-
-  const doc=state.secretaryDocuments.find(d=>d.documentNumber===e.documentNumber);
-  if(!doc?.dataUri && !doc?.printableHtml) return;
-
-  const pdf=doc.dataUri ? {
-    dataUri:doc.dataUri,
-    filename:doc.filename || e.documentFilename || `Matricula-${e.documentNumber}.pdf`,
-    codigoMatricula:e.documentNumber
-  } : {
-    dataUri:"",
-    filename:doc.filename || e.documentFilename || `Matricula-${e.documentNumber}.html`,
-    codigoMatricula:e.documentNumber,
-    printableFallback:true,
-    printableHtml:doc.printableHtml
-  };
-
-  const student=state.students.find(s=>s.id===state.user?.studentId) ||
-    state.students.find(s=>s.name?.toLowerCase()===e.student?.name?.toLowerCase());
-  renderEnrollmentCompletion(pdf,{biometricDone:!!student?.face});
 }
 
 function initEnrollment(){
@@ -2804,16 +2600,6 @@ function initEnrollment(){
     // O cadastro agora é registrado somente no próprio sistema e na Secretaria.
     // Nenhuma mensagem é aberta ou enviada ao Mestre London neste momento.
 
-    // Abre a nova aba enquanto o clique do usuário ainda está ativo.
-    // Depois que o PDF for gerado, essa mesma aba receberá o documento para visualização.
-    const pdfPreviewWindow=window.open("about:blank","_blank");
-    if(pdfPreviewWindow){
-      try{
-        pdfPreviewWindow.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Gerando documento...</title><style>body{font-family:Arial;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center}div{max-width:420px;padding:25px}</style></head><body><div><h2>📄 Gerando documento...</h2><p>Aguarde. O documento da matrícula será aberto nesta página para visualizar, salvar ou compartilhar.</p></div></body></html>`);
-        pdfPreviewWindow.document.close();
-      }catch(_){}
-    }
-
     // Sinal sonoro no próprio toque do botão; o iPhone costuma bloquear áudio criado depois de awaits.
     playSuccessSound("finalize");
 
@@ -2846,56 +2632,79 @@ function initEnrollment(){
       saveState();
       renderSecretaryDocuments();
     }catch(error){
-      console.error("Falha na geração do PDF:",error);
-      // Fallback específico para iPhone/Safari/WhatsApp: mesmo que uma CDN de jsPDF
-      // esteja bloqueada, o responsável recebe o documento completo em uma página
-      // imprimível, com opção nativa de Salvar como PDF e Compartilhar.
-      const fallbackOpened=openEnrollmentPrintablePreview(pdfPreviewWindow);
-      if(fallbackOpened){
-        const printableHtml=buildEnrollmentPrintableHTML();
-        state.enrollment.documentGenerated=true;
-        state.enrollment.documentFilename=`Matricula-${state.enrollment.documentNumber||"documento"}.html`;
-        state.secretaryDocuments.push({
-          id:"secretary-"+Date.now(),
-          documentNumber:state.enrollment.documentNumber,
-          studentName:state.enrollment.student.name,
-          guardianName:state.enrollment.guardian.name,
-          date:state.enrollment.date,
-          filename:state.enrollment.documentFilename,
-          dataUri:"",
-          printableHtml,
-          createdAt:new Date().toISOString()
-        });
-        saveState();
-        renderSecretaryDocuments();
-        renderEnrollmentCompletion({
-          blob:null,
-          dataUri:"",
-          filename:state.enrollment.documentFilename,
-          codigoMatricula:state.enrollment.documentNumber,
-          printableFallback:true,
-          printableHtml
-        });
-        toast("Documento aberto para visualizar. Use 'Salvar como PDF / Imprimir' no iPhone.");
-      }else{
-        showPDFPreviewError(pdfPreviewWindow,error);
-        toast("Não foi possível abrir o documento. Tente novamente.");
-      }
+      console.error(error);
+      toast("Não foi possível gerar o documento PDF. Verifique sua conexão e tente novamente.");
       return;
     }
 
-    // O PDF já está pronto. Só agora a aba intermediária recebe o arquivo real.
-    // A tela original também é atualizada imediatamente para liberar a biometria.
-    const previewOpened=openEnrollmentPDFPreview(pdf,pdfPreviewWindow);
-    if(!previewOpened){
-      if(pdfPreviewWindow && !pdfPreviewWindow.closed) pdfPreviewWindow.close();
-      toast("O navegador bloqueou a visualização automática. Use o botão 'Abrir Documento / Visualizar'.");
-    }
-    renderEnrollmentCompletion(pdf);
+    // Finalização: primeiro confirma visualmente o cadastro e mostra o próprio PDF.
+    // O arquivo NÃO é baixado automaticamente. O responsável decide salvar ou compartilhar.
+    await playSuccessSound("finalize");
+
+    const successBox=$("enrollmentSuccess");
+    successBox.classList.remove("hidden");
+    successBox.style.display="block";
+
+    const pdfBlob=dataURItoBlob(pdf.dataUri);
+    const pdfUrl=URL.createObjectURL(pdfBlob);
+    window.__enrollmentPdfUrl=pdfUrl;
+
+    successBox.innerHTML=`
+      <div style="font-size:22px;font-weight:900;line-height:1.25;color:#b5f3c7">✅ CADASTRO REALIZADO COM SUCESSO</div>
+      <div class="notice" style="margin-top:12px;font-size:17px;line-height:1.45">
+        <strong>📄 DOCUMENTO GERADO — Nº ${escapeHTML(pdf.codigoMatricula)}</strong><br>
+        O documento está abaixo. <strong>Salve no seu celular ou encaminhe para o responsável.</strong>
+      </div>
+      <div style="margin-top:14px;border:2px solid var(--gold);border-radius:14px;overflow:hidden;background:#fff">
+        <iframe id="enrollmentPdfViewer" title="Documento de matrícula" src="${pdfUrl}"
+          style="display:block;width:100%;height:620px;border:0;background:#fff"></iframe>
+      </div>
+      <div class="action-row" style="margin-top:12px">
+        <button class="btn btn-gold" type="button" id="downloadEnrollmentPDF">📥 Salvar Documento</button>
+        <button class="btn btn-blue" type="button" id="shareEnrollmentPDF">📤 Encaminhar / Compartilhar</button>
+      </div>
+      <div class="small muted" style="margin-top:8px">
+        No celular, use <strong>Salvar Documento</strong> ou <strong>Encaminhar / Compartilhar</strong>.
+      </div>`;
+
+    $("downloadEnrollmentPDF")?.addEventListener("click",()=>downloadBlob(pdfBlob,pdf.filename));
+    $("shareEnrollmentPDF")?.addEventListener("click",async()=>{
+      try{
+        const file=new File([pdfBlob],pdf.filename,{type:"application/pdf"});
+        if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+          await navigator.share({title:`Documento ${pdf.codigoMatricula}`,text:"Documento de matrícula — Projeto Sementes",files:[file]});
+        }else{
+          downloadBlob(pdfBlob,pdf.filename);
+          toast("O compartilhamento não está disponível neste navegador. O documento foi preparado para salvar.");
+        }
+      }catch(error){
+        if(error?.name!=="AbortError"){
+          downloadBlob(pdfBlob,pdf.filename);
+          toast("Use o documento salvo para encaminhar pelo WhatsApp ou outro aplicativo.");
+        }
+      }
+    });
+
+    // Agora libera a etapa 2. O documento continua visível acima para ser salvo/encaminhado.
+    const biometricSection=$("biometricSection");
+    biometricSection.classList.remove("hidden");
+    biometricSection.style.display="block";
+    biometricSection.hidden=false;
+    biometricSection.setAttribute("aria-hidden","false");
+    $("startCamera").disabled=false;
+    $("captureFace").disabled=false;
+    $("step2Dot").classList.add("active");
+    $("step1Dot").classList.remove("active");
+
     renderStudents();
     updateKPIs();
     renderSecretaryDocuments();
-    toast(`Cadastro realizado — ${pdf.codigoMatricula}. Biometria liberada.`);
+    toast(`Cadastro realizado com sucesso — ${pdf.codigoMatricula}. Biometria liberada.`);
+
+    // Leva o responsável automaticamente para a biometria após o aviso de cadastro.
+    setTimeout(()=>{
+      biometricSection.scrollIntoView({behavior:"smooth",block:"start"});
+    },1800);
     });
 
   $("clearSignature").addEventListener("click",clearSignature);
@@ -2974,11 +2783,12 @@ async function captureFace(){
   const biometricStatus=$("biometricStatus");
   if(biometricStatus){
     biometricStatus.classList.remove("hidden");
-    biometricStatus.innerHTML="🔊 <strong>Biometria realizada.</strong> A captura foi realizada e vinculada ao cadastro.";
+    biometricStatus.innerHTML="🔊 <strong>BIOMETRIA REALIZADA COM SUCESSO</strong><br>Biometria vinculada ao cadastro do aluno.";
   }
-  toast("🔊 Biometria realizada.");
+  toast("🔊 Biometria realizada com sucesso.");
   renderStudents();
-  setTimeout(resetEnrollmentFormAfterCompletion,700);
+  saveState();
+  setTimeout(resetEnrollmentFormAfterCompletion,1200);
 }
 
 function resetEnrollmentFormAfterCompletion(){
@@ -2989,15 +2799,32 @@ function resetEnrollmentFormAfterCompletion(){
   if(preview){ preview.src=""; preview.classList.add("hidden"); }
   const video=$("cameraVideo");
   if(video) video.srcObject=null;
-  // Mantém os avisos de documento e biometria na tela, mas limpa os campos para um novo cadastro.
+
+  // Depois da biometria, todos os campos da matrícula ficam vazios para o próximo cadastro.
+  // Os avisos de sucesso permanecem por alguns instantes e depois a etapa 2 é fechada.
+  $("step1Dot").classList.add("active");
+  $("step2Dot").classList.remove("active");
+  $("enrollmentDate").textContent=`${APP_CONFIG.city}, ${formatDate(todayISO())}`;
+
   const bio=$("biometricSection");
-  if(bio){ bio.classList.remove("hidden"); bio.style.display="block"; bio.setAttribute("aria-hidden","false"); }
+  if(bio){
+    bio.classList.add("hidden");
+    bio.style.display="none";
+    bio.setAttribute("aria-hidden","true");
+  }
+
   const status=$("biometricStatus");
   if(status){
-    status.classList.remove("hidden");
-    status.innerHTML="🔊 <strong>Biometria realizada.</strong> Cadastro concluído. Os campos foram limpos para o próximo atendimento.";
+    status.classList.add("hidden");
+    status.innerHTML="🔊 <strong>Biometria realizada com sucesso.</strong>";
   }
-  $("enrollmentDate").textContent=`${APP_CONFIG.city}, ${formatDate(todayISO())}`;
+
+  const success=$("enrollmentSuccess");
+  if(success){
+    success.innerHTML=`<div style="font-size:20px;font-weight:900;color:#b5f3c7">✅ CADASTRO E BIOMETRIA REALIZADOS COM SUCESSO</div>
+      <div class="small" style="margin-top:7px">Os campos foram limpos e o sistema está pronto para um novo cadastro.</div>`;
+  }
+  toast("Cadastro e biometria realizados com sucesso. Todos os campos foram limpos.");
 }
 
 async function openClassCamera(){
@@ -3892,21 +3719,8 @@ function renderSecretaryDocuments(){
 function downloadSecretaryDocument(id){
   if(!canSeeSecretary()){ toast("Acesso restrito à Diretoria."); return; }
   const doc=state.secretaryDocuments.find(item=>item.id===id);
-  if(!doc) return;
-  if(doc.dataUri){
-    downloadBlob(dataURItoBlob(doc.dataUri),doc.filename);
-    return;
-  }
-  if(doc.printableHtml){
-    const win=window.open("about:blank","_blank");
-    if(!win){ toast("Permita pop-ups para visualizar o documento."); return; }
-    win.document.open();
-    win.document.write(doc.printableHtml);
-    win.document.close();
-    toast("Documento aberto. Use 'Salvar como PDF / Imprimir' para salvar.");
-    return;
-  }
-  toast("Arquivo do documento não está disponível neste dispositivo.");
+  if(!doc?.dataUri){ toast("Arquivo do documento não está disponível neste dispositivo."); return; }
+  downloadBlob(dataURItoBlob(doc.dataUri),doc.filename);
 }
 
 function deleteSecretaryDocument(id){
@@ -4123,6 +3937,8 @@ function generateReport(){
     #enrollmentSuccess{font-size:17px;line-height:1.45;}
     #enrollmentSuccess .notice{border-width:2px;}
     #secretaryDocumentsList > .card{min-height:175px;padding:22px;}
+    #enrollmentSuccess iframe{background:#fff;}
+    #enrollmentSuccess{overflow:hidden;}
 </style>
       </head>
       <body>
@@ -4295,8 +4111,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   initTabs();
   initEnrollment();
   setupSignature();
-  // Se a página foi recarregada após a matrícula, restaura o documento e a etapa de biometria.
-  restoreEnrollmentUI();
 
   if(window.lucide) lucide.createIcons();
 
