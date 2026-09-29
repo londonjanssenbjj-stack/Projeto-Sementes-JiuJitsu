@@ -2408,13 +2408,28 @@ function pdfEscapeText(value){
 }
 
 async function buildFallbackPDF(lines){
-  // Gerador PDF local: não depende de internet, CDN, jsPDF ou servidor.
-  // Todos os offsets da tabela xref são calculados em bytes para funcionar também no iPhone/Safari.
-  const safe=lines.map(pdfEscapeText);
-  const streamLines=["BT","/F1 8 Tf","10 0 0 10 36 805 Tm"];
+  // Gerador PDF local, sem CDN. Usa escala de texto 1:1 para evitar o problema
+  // de texto gigante no visualizador do iPhone e quebra linhas longas para caber
+  // corretamente em uma única folha A4.
+  const encoder=new TextEncoder();
+  const maxChars=92;
+  const safe=[];
+  for(const raw of lines){
+    const clean=pdfEscapeText(raw);
+    if(!clean){ safe.push(""); continue; }
+    let rest=clean;
+    while(rest.length>maxChars){
+      let cut=rest.lastIndexOf(" ",maxChars);
+      if(cut<45) cut=maxChars;
+      safe.push(rest.slice(0,cut));
+      rest=rest.slice(cut).trimStart();
+    }
+    safe.push(rest);
+  }
+  const streamLines=["BT","/F1 9 Tf","1 0 0 1 36 805 Tm"];
   safe.forEach((line,i)=>{
     if(i>0) streamLines.push("0 -11 Td");
-    streamLines.push(`(${line}) Tj`);
+    if(line) streamLines.push(`(${line}) Tj`);
   });
   streamLines.push("ET");
   const stream=streamLines.join("\n");
@@ -2422,10 +2437,9 @@ async function buildFallbackPDF(lines){
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
     "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
-    `<< /Length ${new TextEncoder().encode(stream).length} >>\nstream\n${stream}\nendstream`,
+    `<< /Length ${encoder.encode(stream).length} >>\nstream\n${stream}\nendstream`,
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
   ];
-  const encoder=new TextEncoder();
   const chunks=[];
   const pushText=t=>chunks.push(encoder.encode(t));
   pushText("%PDF-1.4\n");
