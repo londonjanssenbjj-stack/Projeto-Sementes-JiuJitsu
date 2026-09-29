@@ -8,13 +8,8 @@
   <title>Projeto Sementes — Jiu-Jitsu</title>
 
   <!-- FONTES -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- ÍCONES -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
     :root{
@@ -2413,8 +2408,8 @@ function pdfEscapeText(value){
 }
 
 async function buildFallbackPDF(lines){
-  // PDF mínimo de uma página, sem dependência externa. Serve como contingência
-  // quando o CDN do jsPDF não está acessível no GitHub Pages/iPhone.
+  // Gerador PDF local: não depende de internet, CDN, jsPDF ou servidor.
+  // Todos os offsets da tabela xref são calculados em bytes para funcionar também no iPhone/Safari.
   const safe=lines.map(pdfEscapeText);
   const streamLines=["BT","/F1 8 Tf","10 0 0 10 36 805 Tm"];
   safe.forEach((line,i)=>{
@@ -2423,27 +2418,39 @@ async function buildFallbackPDF(lines){
   });
   streamLines.push("ET");
   const stream=streamLines.join("\n");
-  const objs=[
+  const objects=[
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
     "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
-    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    `<< /Length ${new TextEncoder().encode(stream).length} >>\nstream\n${stream}\nendstream`,
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
   ];
-  let pdf="%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
+  const encoder=new TextEncoder();
+  const chunks=[];
+  const pushText=t=>chunks.push(encoder.encode(t));
+  pushText("%PDF-1.4\n");
   const offsets=[0];
-  objs.forEach((obj,i)=>{ offsets[i+1]=pdf.length; pdf+=`${i+1} 0 obj\n${obj}\nendobj\n`; });
-  const xref=pdf.length;
-  pdf+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`;
-  for(let i=1;i<=objs.length;i++) pdf+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";
-  pdf+=`trailer\n<< /Size ${objs.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
-  const bytes=new TextEncoder().encode(pdf);
-  const blob=new Blob([bytes],{type:"application/pdf"});
-  const reader=new FileReader();
-  const dataUri=await new Promise((resolve,reject)=>{ reader.onload=()=>resolve(reader.result); reader.onerror=reject; reader.readAsDataURL(blob); });
+  let byteLength=encoder.encode("%PDF-1.4\n").length;
+  for(let i=0;i<objects.length;i++){
+    offsets[i+1]=byteLength;
+    const chunk=encoder.encode(`${i+1} 0 obj\n${objects[i]}\nendobj\n`);
+    chunks.push(chunk);
+    byteLength+=chunk.length;
+  }
+  const xrefOffset=byteLength;
+  let xref=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
+  for(let i=1;i<=objects.length;i++) xref+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";
+  xref+=`trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  pushText(xref);
+  const blob=new Blob(chunks,{type:"application/pdf"});
+  const dataUri=await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(reader.error||new Error("Falha ao preparar o PDF."));
+    reader.readAsDataURL(blob);
+  });
   return {blob,dataUri};
 }
-
 async function generateEnrollmentPDFFallback(){
   const e=state.enrollment;
   const codigoMatricula=e.documentNumber || nextEnrollmentDocumentNumber();
@@ -2474,7 +2481,7 @@ async function generateEnrollmentPDFFallback(){
     `Local: ${APP_CONFIG.city} | Data: ${formatDate(e.date||todayISO())}`,
     `Assinatura digital registrada: ${e.signature?"SIM":"NAO"}`,
     `Documento ${codigoMatricula} gerado pelo aplicativo Projeto Sementes.`,
-    "Documento gerado em uma unica folha."
+    "Documento gerado localmente em uma unica folha, sem depender de conexao."
   ];
   const out=await buildFallbackPDF(lines);
   const safeName=(e.student?.name||"Aluno").replace(/[^a-z0-9À-ÿ]+/gi,"-");
@@ -2483,106 +2490,9 @@ async function generateEnrollmentPDFFallback(){
 }
 
 async function generateEnrollmentPDF(){
-  const loaded=await ensureJsPdfLoaded();
-  if(!loaded || !window.jspdf?.jsPDF){
-    console.warn("jsPDF indisponivel; usando gerador PDF interno.");
-    return await generateEnrollmentPDFFallback();
-  }
-
-  try{
-  const {jsPDF}=window.jspdf;
-  const e=state.enrollment;
-  const doc=new jsPDF({unit:"mm",format:"a4",compress:true});
-  const margin=10;
-  const pageWidth=210;
-  const contentWidth=pageWidth-(margin*2);
-  let y=9;
-  const codigoMatricula=e.documentNumber || nextEnrollmentDocumentNumber();
-  e.documentNumber=codigoMatricula;
-
-  const logo=await getProjectLogoDataURL();
-  if(logo){
-    try{ doc.addImage(logo,"PNG",margin,5,17,17); }catch(_){ }
-  }
-
-  doc.setTextColor(28,45,70);
-  doc.setFont("helvetica","bold");
-  doc.setFontSize(9.5);
-  doc.text("IGREJA DO EVANGELHO QUADRANGULAR GUAICURUS",pageWidth/2,8,{align:"center"});
-  doc.setFont("helvetica","normal");
-  doc.setFontSize(7.2);
-  doc.text("Ministério de Esportes — Projeto Social \"Sementes\"",pageWidth/2,12,{align:"center"});
-  doc.setDrawColor(30,55,85); doc.setLineWidth(.45); doc.line(margin,20,pageWidth-margin,20);
-
-  doc.setTextColor(40,40,40);
-  doc.setFont("helvetica","bold"); doc.setFontSize(10.5);
-  doc.text("FICHA DE INSCRIÇÃO E AUTORIZAÇÃO DE PARTICIPAÇÃO",pageWidth/2,26,{align:"center"});
-  doc.setFontSize(6.5); doc.setTextColor(100,100,100);
-  doc.text(`REGISTRO Nº ${codigoMatricula}  •  ${formatDate(e.date||todayISO())}  •  ${APP_CONFIG.city}`,pageWidth/2,30,{align:"center"});
-  y=36;
-
-  const section=(text)=>{
-    doc.setFillColor(238,242,246); doc.rect(margin,y,contentWidth,5,"F");
-    doc.setTextColor(32,58,88); doc.setFont("helvetica","bold"); doc.setFontSize(7.2);
-    doc.text(text,margin+2,y+3.5); y+=7;
-  };
-  const line=(label,value,offset=31)=>{
-    doc.setTextColor(45,45,45); doc.setFont("helvetica","bold"); doc.setFontSize(6.5); doc.text(label,margin,y);
-    doc.setFont("helvetica","normal"); doc.text(String(value||"Não informado"),margin+offset,y); y+=3.8;
-  };
-  const paragraph=(text)=>{
-    doc.setFont("helvetica","normal"); doc.setFontSize(6.15); doc.setTextColor(55,55,55);
-    const wrapped=doc.splitTextToSize(String(text||""),contentWidth-2);
-    doc.text(wrapped,margin+1,y); y+=(wrapped.length*2.75)+2.1;
-  };
-
-  section("1. DADOS DO ALUNO (MENOR)");
-  line("Nome completo:",e.student.name,29); line("Data de nascimento:",formatDate(e.student.birth),39);
-  line("Escola onde estuda:",e.student.school,34); line("Endereço residencial:",e.student.address,36); y+=1;
-
-  section("2. DADOS DO RESPONSÁVEL LEGAL");
-  line("Nome do responsável:",e.guardian.name,36); line("Grau de parentesco:",e.guardian.relation,35);
-  line("Telefone/WhatsApp:",e.guardian.phone,32); line("CIN / RG:",e.guardian.document,22); y+=1;
-
-  section("3. DECLARAÇÃO DE APTIDÃO FÍSICA E HISTÓRICO DE SAÚDE");
-  const h=e.health||{};
-  line("Cardíaco/pressão:",h.heart,31); line("Respiratório:",h.respiratory,25);
-  line("Lesão óssea/muscular/articular:",h.injury,50); line("Medicamento controlado:",h.medication,42);
-  line("Alergia:",h.allergy,22); line("Desmaios/tonturas:",h.fainting,32); line("Detalhes:",h.details,22); y+=1;
-  paragraph("Declaro que as informações de saúde acima foram prestadas de forma verdadeira e completa. Comprometo-me a comunicar imediatamente à coordenação qualquer alteração no estado de saúde do menor e, quando necessário, apresentar orientação ou avaliação médica antes da prática de atividades físicas.");
-
-  section("4. TERMOS E AUTORIZAÇÕES");
-  paragraph("Eu, acima identificado(a) como responsável legal, AUTORIZO expressamente o menor sob minha tutela a participar gratuitamente das aulas de Jiu-Jitsu do Projeto Social \"Sementes\", promovido pela Igreja do Evangelho Quadrangular Guaicurus.");
-  paragraph("Declaro estar ciente de que as atividades envolvem treinos físicos e contato próprio da modalidade, sob supervisão dos responsáveis pelo projeto, e assumo o dever de informar condições de saúde ou outras circunstâncias que possam interferir na participação do menor.");
-  paragraph("AUTORIZO, de forma gratuita, a utilização da imagem e voz do menor, capturadas durante as atividades, exclusivamente para divulgação institucional, pedagógica e prestação de contas das ações do projeto, vedada a exploração comercial ou finalidade lucrativa.");
-  paragraph("Por ser esta a expressão da minha vontade, firmo o presente termo de livre e esclarecido consentimento, reconhecendo que os dados informados neste cadastro correspondem às declarações prestadas por mim.");
-
-  y+=1;
-  doc.setTextColor(45,45,45); doc.setFont("helvetica","normal"); doc.setFontSize(6.6);
-  doc.text(`${APP_CONFIG.city}, ${formatDate(e.date||todayISO())}.`,pageWidth/2,y,{align:"center"}); y+=4;
-  if(e.signature){
-    try{ doc.addImage(e.signature,"PNG",(pageWidth-42)/2,y,42,15); y+=16; }catch(_){ y+=8; }
-  }else y+=9;
-  doc.setDrawColor(80,80,80); doc.setLineWidth(.2); doc.line(pageWidth/2-35,y,pageWidth/2+35,y); y+=3;
-  doc.setFont("helvetica","bold"); doc.setFontSize(6.7); doc.text("Assinatura digital do Responsável Legal",pageWidth/2,y,{align:"center"}); y+=3.2;
-  doc.setFont("helvetica","normal"); doc.setFontSize(6.3); doc.text(`Nome legível: ${String(e.guardian.name||"")}`,pageWidth/2,y,{align:"center"});
-
-  doc.setFontSize(5.5); doc.setTextColor(115,115,115);
-  doc.text(`Documento ${codigoMatricula} — gerado digitalmente pelo aplicativo Projeto Sementes em ${new Date().toLocaleString("pt-BR")} — Corumbá/MS`,pageWidth/2,291,{align:"center"});
-
-  const safeName=(e.student.name||"Aluno").replace(/[^a-z0-9À-ÿ]+/gi,"-");
-  const filename=`Matricula-${codigoMatricula.replace(/[^a-zA-Z0-9-]/g,"-")}-${safeName}.pdf`;
-  const blob=doc.output("blob");
-  const dataUri=doc.output("datauristring");
-  // O documento não é baixado automaticamente. Ele será disponibilizado
-  // no aviso de finalização para o responsável salvar/compartilhar no celular.
-  return {blob,filename,codigoMatricula,dataUri};
-  }catch(error){
-    console.warn("Falha no jsPDF; usando gerador PDF interno.",error);
-    return await generateEnrollmentPDFFallback();
-  }
+  // A matrícula deve funcionar mesmo sem conexão. O PDF é gerado localmente.
+  return await generateEnrollmentPDFFallback();
 }
-
 function initEnrollment(){
   $("enrollmentDate").textContent = `${APP_CONFIG.city}, ${formatDate(todayISO())}`;
 
@@ -2719,7 +2629,7 @@ function initEnrollment(){
       renderSecretaryDocuments();
     }catch(error){
       console.error(error);
-      toast("O documento não pôde ser gerado. O sistema tentou o gerador interno; recarregue a página e tente novamente.");
+      toast("Não foi possível preparar o documento. Tente finalizar novamente.");
       return;
     }
 
@@ -4088,7 +3998,7 @@ function initEvents(){
     $("togglePassword").innerHTML=`<i data-lucide="${visible?"eye":"eye-off"}"></i>`;
     $("togglePassword").setAttribute("aria-label",visible?"Mostrar senha":"Ocultar senha");
     $("togglePassword").title=visible?"Mostrar senha":"Ocultar senha";
-    if(window.lucide) lucide.createIcons();
+    if(window.lucide?.createIcons) window.lucide?.createIcons?.();
   });
 
   $("forgotBtn").addEventListener("click",()=>{
@@ -4185,7 +4095,7 @@ function renderAll(){
     });
   });
 
-  if(window.lucide) lucide.createIcons();
+  if(window.lucide?.createIcons) window.lucide?.createIcons?.();
 }
 
 /* -----------------------------
@@ -4201,7 +4111,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   initEnrollment();
   setupSignature();
 
-  if(window.lucide) lucide.createIcons();
+  if(window.lucide?.createIcons) window.lucide?.createIcons?.();
 
   restoreSession();
 });
