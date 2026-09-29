@@ -2527,7 +2527,7 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
     if(pageSubtitle) push(cmdText("F1",7.4,M,y-15,pageSubtitle));
     y-=36;
 
-    drawBody({
+    const bodyApi={
       push,
       get y(){return y;},
       set y(v){y=v;},
@@ -2571,7 +2571,11 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
         }
         y-=2;
       }
-    });
+    };
+    // Expose the drawing helpers as locals because the document body uses the
+    // concise form section(...), labelLine(...), two(...), paragraph(...).
+    const {section,labelLine,two,paragraph,bullet}=bodyApi;
+    drawBody(bodyApi);
 
     // Footer
     push(cmdLine(M,43,RIGHT,43));
@@ -2946,7 +2950,8 @@ function initEnrollment(){
       renderSecretaryDocuments();
     }catch(error){
       console.error(error);
-      toast("Não foi possível preparar o documento. Tente finalizar novamente.");
+      console.error("Falha detalhada ao gerar o documento:", error?.stack || error);
+      toast("Não foi possível gerar o documento. Revise os dados da matrícula e tente finalizar novamente.");
       return;
     }
 
@@ -4278,7 +4283,7 @@ function generateReport(){
     #secretaryDocumentsList > .card{min-height:175px;padding:22px;}
     #enrollmentSuccess iframe{background:#fff;}
     #enrollmentSuccess{overflow:hidden;}
-\n/* V7 — fluxo de matrícula e apresentação formal */\n#enrollmentSuccess{font-size:16px;line-height:1.45;}\n#enrollmentSuccess .notice{box-shadow:none;}\n#enrollmentSuccess iframe{height:560px;}\n</style>
+\n/* V9 — documento oficial e fluxo de matrícula */\n#enrollmentSuccess{font-size:16px;line-height:1.45;}\n#enrollmentSuccess .notice{box-shadow:none;}\n#enrollmentSuccess iframe{height:560px;}\n</style>
       </head>
       <body>
         <h1>Projeto Sementes — ${escapeHTML(type)}</h1>
