@@ -2497,6 +2497,81 @@ async function generateEnrollmentPDF(){
   return {blob,filename,codigoMatricula,dataUri};
 }
 
+function renderEnrollmentCompletion(pdf, options={}){
+  if(!pdf) return;
+  const successBox=$("enrollmentSuccess");
+  if(!successBox) return;
+
+  const phone=state.enrollment?.guardian?.phone || "";
+  const normalized=normalizeWhatsAppNumber(phone);
+  const canWhatsApp=!!normalized;
+  const bioDone=options.biometricDone===true;
+
+  successBox.classList.remove("hidden");
+  successBox.style.display="block";
+  successBox.innerHTML=`
+    <div style="font-size:22px;font-weight:900;line-height:1.25">📄 MATRÍCULA FINALIZADA</div>
+    <div class="success-notice" style="margin-top:12px;font-size:15px;line-height:1.55">
+      <strong>Olá, ${escapeHTML(state.enrollment?.guardian?.name || "Responsável")}!</strong><br>
+      O cadastro de <strong>${escapeHTML(state.enrollment?.student?.name || "aluno")}</strong> foi finalizado e o documento foi gerado.
+      Salve o PDF no celular ou compartilhe pelo WhatsApp.
+    </div>
+    <div class="small" style="margin-top:10px">Número do documento: <strong>${escapeHTML(pdf.codigoMatricula)}</strong></div>
+    <div class="action-row" style="margin-top:14px">
+      <button class="btn btn-gold" type="button" id="downloadEnrollmentPDF">📥 Baixar Documento</button>
+      ${canWhatsApp ? `<button class="btn btn-success" type="button" id="whatsappEnrollmentNotice">📲 Avisar Responsável no WhatsApp</button>` : ""}
+    </div>
+    <div class="small muted" style="margin-top:10px">
+      ${canWhatsApp ? "O WhatsApp abrirá a conversa com o responsável para confirmação do envio." : "Cadastre o WhatsApp do responsável para habilitar o aviso."}
+    </div>`;
+
+  $("downloadEnrollmentPDF")?.addEventListener("click",()=>downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename));
+  $("whatsappEnrollmentNotice")?.addEventListener("click",()=>{
+    if(!openWhatsAppDocument("guardian",phone)){
+      toast("Não foi possível abrir o WhatsApp. Verifique o número do responsável.");
+    }
+  });
+
+  const biometricSection=$("biometricSection");
+  if(biometricSection){
+    biometricSection.classList.remove("hidden");
+    biometricSection.style.display="block";
+    biometricSection.hidden=false;
+    biometricSection.setAttribute("aria-hidden","false");
+    biometricSection.scrollIntoView({behavior:"smooth",block:"center"});
+  }
+  $("startCamera")?.removeAttribute("disabled");
+  $("captureFace")?.removeAttribute("disabled");
+  $("step2Dot")?.classList.add("active");
+  $("step1Dot")?.classList.remove("active");
+
+  if(bioDone){
+    const status=$("biometricStatus");
+    if(status){
+      status.classList.remove("hidden");
+      status.innerHTML="🔊 <strong>Biometria realizada.</strong> Cadastro concluído.";
+    }
+  }
+}
+
+function restoreEnrollmentUI(){
+  const e=state.enrollment;
+  if(!e?.documentGenerated || !e.documentNumber) return;
+
+  const doc=state.secretaryDocuments.find(d=>d.documentNumber===e.documentNumber);
+  if(!doc?.dataUri) return;
+
+  const pdf={
+    dataUri:doc.dataUri,
+    filename:doc.filename || e.documentFilename || `Matricula-${e.documentNumber}.pdf`,
+    codigoMatricula:e.documentNumber
+  };
+
+  const student=state.students.find(s=>s.id===state.user?.studentId) ||
+    state.students.find(s=>s.name?.toLowerCase()===e.student?.name?.toLowerCase());
+  renderEnrollmentCompletion(pdf,{biometricDone:!!student?.face});
+}
+
 function initEnrollment(){
   $("enrollmentDate").textContent = `${APP_CONFIG.city}, ${formatDate(todayISO())}`;
 
@@ -2637,33 +2712,8 @@ function initEnrollment(){
       return;
     }
 
-    const successBox=$("enrollmentSuccess");
-    successBox.classList.remove("hidden");
-    successBox.style.display="block";
-    successBox.innerHTML=`
-      <div style="font-size:22px;font-weight:900;line-height:1.25">📄 DOCUMENTO GERADO</div>
-      <div class="notice" style="margin-top:14px;font-size:18px;line-height:1.45">
-        <strong>⚠️ AO FINALIZAR O DOCUMENTO, ELE SERÁ GERADO NESTE MOMENTO.</strong><br>
-        Encaminhe para <strong>salvar no seu celular</strong> e, se necessário, compartilhar o documento.
-      </div>
-      <div class="small" style="margin-top:10px">Número do documento: <strong>${escapeHTML(pdf.codigoMatricula)}</strong></div>
-      <div class="action-row" style="margin-top:14px">
-        <button class="btn btn-gold" type="button" id="downloadEnrollmentPDF">📥 Baixar Documento</button>
-      </div>`;
-
-    // A biometria é liberada imediatamente após o cadastro do documento.
-    const biometricSection=$("biometricSection");
-    biometricSection.classList.remove("hidden");
-    biometricSection.style.display="block";
-    biometricSection.hidden=false;
-    biometricSection.setAttribute("aria-hidden","false");
-    biometricSection.scrollIntoView({behavior:"smooth",block:"center"});
-    $("startCamera").disabled=false;
-    $("captureFace").disabled=false;
-    $("step2Dot").classList.add("active");
-    $("step1Dot").classList.remove("active");
-
-    $("downloadEnrollmentPDF")?.addEventListener("click",()=>downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename));
+    // Mostra o documento ao responsável, oferece download/aviso e libera a biometria.
+    renderEnrollmentCompletion(pdf);
     renderStudents();
     updateKPIs();
     renderSecretaryDocuments();
@@ -4054,6 +4104,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   initTabs();
   initEnrollment();
   setupSignature();
+  // Se a página foi recarregada após a matrícula, restaura o documento e a etapa de biometria.
+  restoreEnrollmentUI();
 
   if(window.lucide) lucide.createIcons();
 
