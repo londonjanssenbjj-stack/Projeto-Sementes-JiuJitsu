@@ -91,7 +91,7 @@
       font-size:12px;
       letter-spacing:.8px;
       margin-bottom:24px;
-    } 
+    }
     .login-card,.card{
       background:linear-gradient(145deg,rgba(31,31,31,.97),rgba(19,19,19,.98));
       border:1px solid var(--border);
@@ -608,11 +608,11 @@
 
         <form id="loginForm">
           <div class="field">
-            <label for="login">Login</label>
+            <label for="login">Login (Nome do Responsável)</label>
             <div class="input-wrap">
               <i data-lucide="user-round"></i>
               <input id="login" class="input" autocomplete="username" required
-                     placeholder="Digite seu login">
+                     placeholder="Digite o nome do responsável">
             </div>
           </div>
 
@@ -695,11 +695,6 @@
       <section id="homePage" class="page active">
         <h1 class="page-title">Bem-vindo à família Sementes</h1>
         <p class="page-sub">Disciplina, valores cristãos, jiu-jitsu e fortalecimento das famílias.</p>
-        <div class="notice" style="margin-bottom:14px">
-          🎵 <strong>Momento de Louvor</strong><br>
-          <span class="small">“Quando Ele Vem” — Ana Nóbrega. A reprodução automática depende do arquivo de áudio autorizado estar junto do HTML e das permissões do navegador.</span>
-        </div>
-
         <div class="bento">
 
           <article class="card wide gold-border">
@@ -1187,6 +1182,9 @@
               <strong>Passo 2 de 2 — Validação Biométrica.</strong>
               Posicione o rosto do aluno dentro da moldura em local iluminado.
             </div>
+            <div id="biometricStatus" class="success-notice hidden" style="margin-top:10px">
+              🔊 <strong>Biometria confirmada.</strong> A captura foi vinculada ao cadastro.
+            </div>
 
             <div class="camera-box" style="margin-top:12px">
               <video id="cameraVideo" autoplay playsinline muted></video>
@@ -1343,7 +1341,7 @@
           </article>
           <article class="card">
             <div class="card-header">
-              <div><h2 class="section-title">CLAMOR E CUIDADO PASTORAL</h2><span class="small muted">Pedido de Oração ao Pastor Joel</span></div>
+              <div><h2 class="section-title">CLAMOR E CUIDADO PASTORAL</h2><span class="small muted">Pedido de oração</span></div>
               <i class="icon-gold" data-lucide="hand-heart"></i>
             </div>
             <textarea id="prayerRequest" class="textarea" placeholder="Escreva seu pedido de oração..."></textarea>
@@ -1372,7 +1370,7 @@
               O batismo nas águas é o passo público de fé, obediência e salvação, confirmando que a sua vida
               agora pertence a Jesus Cristo.
             </p>
-            <button class="btn btn-gold" id="baptismBtn">🌊 EU QUERO SER BATIZADO</button>
+            <button class="btn btn-gold" id="baptismBtn">🌊 QUERO SER BATIZADO</button>
           </article>
         </div>
       </section>
@@ -1478,24 +1476,45 @@
 
           <article class="card gold-border">
             <div class="card-header">
-              <div><h2 class="section-title">ADMINISTRADOR</h2><span class="small muted"></span></div>
+              <div><h2 class="section-title">ADMINISTRADOR</h2><span class="small muted">Fora da Diretoria</span></div>
               <i class="icon-gold" data-lucide="shield"></i>
             </div>
+            <p class="body-text"><strong>Desenvolvedor</strong></p>
             <p class="body-text"><strong>Administrador Mestre London</strong></p>
-            <p class="small muted">Administrador</p>
-            <p class="small muted">Responsável pela administração do sistema e exclusão de documentos da Secretaria.</p>
+            <p class="small muted">Responsável pelo desenvolvimento e administração do sistema e documentos da Secretaria.</p>
           </article>
 
           <article class="card">
             <div class="card-header">
-              <div><h2 class="section-title">CONTROLE DE ACESSOS</h2><span class="small muted">Credenciais</span></div>
+              <div><h2 class="section-title">CONTROLE DE ACESSOS</h2><span class="small muted">Acessos dos responsáveis</span></div>
               <i class="icon-gold" data-lucide="key-round"></i>
             </div>
             <button class="btn btn-gold btn-full" id="generateAccess">➕ Gerar Novo Acesso</button>
             <p class="small muted" style="margin-top:10px">
-              Definição de login (Nome do Responsavel) e senha provisória. Em produção, a senha deve ser gerada
-              e armazenada pelo provedor de autenticação.
+              O login do responsável será o nome do responsável. Somente o Administrador Mestre London pode gerar novos acessos.
             </p>
+          </article>
+
+          <article class="card wide" id="masterManagementCard">
+            <div class="card-header">
+              <div><h2 class="section-title">EXCLUSÃO DE CADASTROS E ACESSOS</h2><span class="small muted">Somente Mestre London</span></div>
+              <i class="icon-gold" data-lucide="trash-2"></i>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label>Aluno para excluir</label>
+                <select id="deleteStudentSelect" class="select"></select>
+              </div>
+              <div class="field">
+                <label>Acesso do responsável para excluir</label>
+                <select id="deleteAccessSelect" class="select"></select>
+              </div>
+            </div>
+            <div class="action-row" style="margin-top:10px">
+              <button class="btn" id="deleteStudentBtn" type="button">🗑️ Excluir Cadastro do Aluno</button>
+              <button class="btn" id="deleteAccessBtn" type="button">🗑️ Excluir Acesso</button>
+            </div>
+            <p class="small muted" style="margin-top:10px">Estas operações são liberadas exclusivamente para o Administrador Mestre London.</p>
           </article>
 
           <article class="card wide">
@@ -1579,7 +1598,7 @@
 
 <div id="toast"></div>
 
-<audio id="homeMusic" loop preload="auto" playsinline src="quando-ele-vem.mp3"></audio>
+<audio id="homeMusic" autoplay loop preload="auto" playsinline src="quando-ele-vem.mp3"></audio>
 
 <script>
 /* ============================================================
@@ -1627,7 +1646,8 @@ const STORAGE_KEYS = {
   game: "sementes_game",
   tasks: "sementes_tasks",
   secretaryDocuments: "sementes_secretary_documents",
-  documentSequence: "sementes_document_sequence"
+  documentSequence: "sementes_document_sequence",
+  accesses: "sementes_accesses"
 };
 
 /* -----------------------------
@@ -1640,12 +1660,15 @@ let state = {
   enrollment: null,
   secretaryDocuments: [],
   documentSequence: 0,
+  accesses: [],
   game: {
     oil: 5,
     coins: 0,
     streak: 0,
     xp: 0,
     unlockedEra: 1,
+    currentEra: 0,
+    currentNode: 0,
     cards: ["Adão"],
     lastDay: ""
   }
@@ -1896,6 +1919,7 @@ function saveState(){
   localStorage.setItem(STORAGE_KEYS.enrollment, JSON.stringify(state.enrollment));
   localStorage.setItem(STORAGE_KEYS.secretaryDocuments, JSON.stringify(state.secretaryDocuments));
   localStorage.setItem(STORAGE_KEYS.documentSequence, String(state.documentSequence));
+  localStorage.setItem(STORAGE_KEYS.accesses, JSON.stringify(state.accesses));
   localStorage.setItem(STORAGE_KEYS.game, JSON.stringify(state.game));
 }
 
@@ -1906,6 +1930,7 @@ function loadState(){
     const enrollment = JSON.parse(localStorage.getItem(STORAGE_KEYS.enrollment));
     const secretaryDocuments = JSON.parse(localStorage.getItem(STORAGE_KEYS.secretaryDocuments));
     const documentSequence = Number(localStorage.getItem(STORAGE_KEYS.documentSequence) || 0);
+    const accesses = JSON.parse(localStorage.getItem(STORAGE_KEYS.accesses));
     const game = JSON.parse(localStorage.getItem(STORAGE_KEYS.game));
 
     state.students = Array.isArray(students) ? students : [...defaultStudents];
@@ -1913,6 +1938,7 @@ function loadState(){
     state.enrollment = enrollment || null;
     state.secretaryDocuments = Array.isArray(secretaryDocuments) ? secretaryDocuments : [];
     state.documentSequence = Number.isFinite(documentSequence) ? documentSequence : 0;
+    state.accesses = Array.isArray(accesses) ? accesses : [];
     state.game = game && typeof game === "object"
       ? {...state.game,...game}
       : state.game;
@@ -1941,6 +1967,10 @@ function roleLabel(role){
 
 function canSeeSecretary(){
   return ["master","director"].includes(state.user?.role);
+}
+
+function isMaster(){
+  return state.user?.role === "master";
 }
 
 function canDeleteSecretaryDocument(){
@@ -2074,8 +2104,14 @@ function openPage(pageId){
     btn.classList.toggle("active",btn.dataset.page===pageId);
   });
 
-  if(pageId==="homePage" || pageId==="faithPage") playBackgroundMusic();
-  else stopBackgroundMusic();
+  if(pageId==="homePage" || pageId==="faithPage") {
+    playBackgroundMusic();
+  } else stopBackgroundMusic();
+
+  if(pageId==="secretaryPage") {
+    renderSecretaryDocuments();
+    renderMasterManagement();
+  }
 
   if(pageId==="secretaryPage" && !canSeeSecretary()){
     toast("Acesso restrito ao Mestre London e Pastor Joel.");
@@ -2258,6 +2294,7 @@ function buildEnrollmentMessage(recipientType){
     return `Olá, Mestre London! 🌱🥋
 
 A matrícula do aluno ${aluno} foi finalizada e assinada pelo responsável ${responsavel} em ${data}.
+Número do documento: ${e?.documentNumber || "não informado"}.
 
 O documento da matrícula foi gerado pelo aplicativo Projeto Sementes.`;
   }
@@ -2525,6 +2562,7 @@ function initEnrollment(){
         createdAt:new Date().toISOString()
       });
       saveState();
+      renderSecretaryDocuments();
     }catch(error){
       console.error(error);
       toast("Não foi possível gerar o PDF. Verifique a conexão e tente novamente.");
@@ -2533,7 +2571,7 @@ function initEnrollment(){
 
     $("enrollmentSuccess").classList.remove("hidden");
     $("enrollmentSuccess").innerHTML=`
-      <strong>✅ Documento gerado com sucesso — ${escapeHTML(pdf.codigoMatricula)}.</strong><br>
+      <strong>🔊 Documento confirmado e cadastrado — ${escapeHTML(pdf.codigoMatricula)}.</strong><br>
       <span class="small">O documento foi numerado e registrado na Secretaria. A notificação é enviada somente ao Administrador Mestre London.</span><br><br>
       <span class="small" style="color:var(--gold2)">⚠️ <strong>Aviso ao Responsável:</strong> não esqueça de baixar seu Documento gerado e guardar sua via assinada.</span>
       <div class="action-row" style="margin-top:10px">
@@ -2543,6 +2581,7 @@ function initEnrollment(){
 
     $("biometricSection").classList.remove("hidden");
     $("biometricSection").style.display="block";
+    $("biometricSection").hidden=false;
     $("biometricSection").setAttribute("aria-hidden","false");
     $("startCamera").disabled=false;
     $("captureFace").disabled=false;
@@ -2552,8 +2591,8 @@ function initEnrollment(){
     // O documento fica disponível para download; a notificação é somente para o Mestre London.
     const masterOpened=openWhatsAppDocument("master",APP_CONFIG.masterWhatsapp);
     await playSuccessSound("finalize");
-    toast("🔊 Documento finalizado com sucesso.");
-    $("downloadEnrollmentPDF").addEventListener("click",()=>downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename));
+    toast("🔊 Documento confirmado e cadastrado.");
+    $("downloadEnrollmentPDF")?.addEventListener("click",()=>downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename));
 
     renderStudents();
     updateKPIs();
@@ -2641,8 +2680,33 @@ async function captureFace(){
   }
 
   await playSuccessSound("biometric");
-  toast("🔊 Biometria confirmada com sucesso. Face capturada e vinculada ao cadastro local.");
+  const biometricStatus=$("biometricStatus");
+  if(biometricStatus){
+    biometricStatus.classList.remove("hidden");
+    biometricStatus.innerHTML="🔊 <strong>Biometria confirmada.</strong> A captura foi realizada e vinculada ao cadastro.";
+  }
+  toast("🔊 Biometria confirmada.");
   renderStudents();
+  setTimeout(resetEnrollmentFormAfterCompletion,700);
+}
+
+function resetEnrollmentFormAfterCompletion(){
+  const form=$("enrollmentForm");
+  if(form) form.reset();
+  clearSignature();
+  const preview=$("facePreview");
+  if(preview){ preview.src=""; preview.classList.add("hidden"); }
+  const video=$("cameraVideo");
+  if(video) video.srcObject=null;
+  // Mantém os avisos de documento e biometria na tela, mas limpa os campos para um novo cadastro.
+  const bio=$("biometricSection");
+  if(bio){ bio.classList.remove("hidden"); bio.style.display="block"; bio.setAttribute("aria-hidden","false"); }
+  const status=$("biometricStatus");
+  if(status){
+    status.classList.remove("hidden");
+    status.innerHTML="🔊 <strong>Biometria confirmada.</strong> Cadastro concluído. Os campos foram limpos para o próximo atendimento.";
+  }
+  $("enrollmentDate").textContent=`${APP_CONFIG.city}, ${formatDate(todayISO())}`;
 }
 
 async function openClassCamera(){
@@ -3078,7 +3142,12 @@ async function playTone(frequency,duration=0.16,type="sine",gainValue=.055,delay
 async function playSuccessSound(kind="success"){
   const ready=await ensureAudioReady();
   if(!ready) return false;
-  if(kind==="biometric"){
+  if(kind==="finalize"){
+    await playTone(523.25,.16,"sine",.08,0);
+    await playTone(659.25,.16,"sine",.08,.10);
+    await playTone(783.99,.22,"sine",.09,.20);
+    await playTone(1046.50,.30,"sine",.10,.32);
+  }else if(kind==="biometric"){
     await playTone(523.25,.18,"sine",.07,0);
     await playTone(659.25,.18,"sine",.07,.11);
     await playTone(783.99,.28,"sine",.075,.22);
@@ -3100,26 +3169,30 @@ async function playErrorSound(){
 function playClickSound(){ ensureAudioReady().then(()=>playTone(220,.06,"triangle",.025,0)); }
 
 let musicReady=false;
-async function playBackgroundMusic(){
+function playBackgroundMusic(){
   const audio=$("homeMusic");
-  if(!audio) return false;
+  if(!audio) return Promise.resolve(false);
   try{
     audio.loop=true;
     audio.preload="auto";
     audio.volume=.30;
     audio.muted=false;
-    if(audio.getAttribute("src")!==APP_CONFIG.homeMusic) audio.src=APP_CONFIG.homeMusic;
+    if(audio.getAttribute("src")!==APP_CONFIG.homeMusic) audio.setAttribute("src",APP_CONFIG.homeMusic);
     if(!musicReady){
       musicReady=true;
-      audio.addEventListener("error",()=>toast("Não foi possível carregar o arquivo quando-ele-vem.mp3."),{once:true});
+      audio.addEventListener("error",()=>toast("Não foi possível carregar quando-ele-vem.mp3. Verifique se o arquivo está na mesma pasta do HTML."),{once:true});
     }
-    await audio.play();
-    return true;
+    const promise=audio.play();
+    return promise.then(()=>true).catch(error=>{
+      console.warn("Louvor bloqueado pelo navegador ou arquivo ausente",error);
+      return false;
+    });
   }catch(error){
-    console.warn("Louvor bloqueado ou arquivo ausente",error);
-    return false;
+    console.warn(error);
+    return Promise.resolve(false);
   }
 }
+
 function stopBackgroundMusic(){
   const audio=$("homeMusic");
   if(audio) audio.pause();
@@ -3150,7 +3223,7 @@ function renderCells(){
       <p class="small muted">Responsável: ${escapeHTML(cell.leader)}</p>
       <button class="btn btn-gold btn-full"
               onclick="joinCell('${encodeURIComponent(cell.name)}','${encodeURIComponent(cell.phone)}')">
-        💬 Falar com a responsável
+        👥 Eu quero participar da Célula!
       </button>
     </div>
   `).join("");
@@ -3159,11 +3232,11 @@ function renderCells(){
   if(network){
     network.innerHTML=`
       <div class="cell-item">
-        <h4>👑 ${escapeHTML(networkLeader.name)}</h4>
+        <h4>👥 ${escapeHTML(networkLeader.name)}</h4>
         <p class="small muted">${escapeHTML(networkLeader.leader)}</p>
         <button class="btn btn-gold btn-full"
           onclick="joinCell('${encodeURIComponent(networkLeader.name)}','${encodeURIComponent(networkLeader.phone)}')">
-          💬 Falar com a líder da Rede
+          👥 Eu quero participar da Rede Mulheres
         </button>
       </div>
     `;
@@ -3175,7 +3248,9 @@ function joinCell(nameEncoded,phoneEncoded){
   const phone=decodeURIComponent(phoneEncoded);
 
   const text=encodeURIComponent(
-    `A Paz seja contigo! Gostaria de participar da ${name}. Poderia me orientar sobre como participar e qual o próximo encontro?`
+    `Mensagem App Projeto Sementes
+A Paz seja contigo!
+Eu quero participar da ${name}. Poderia me orientar sobre como participar e qual o próximo encontro?`
   );
 
   if(phone){
@@ -3199,12 +3274,15 @@ function sendPrayer(){
   }
 
   const message=encodeURIComponent(
-    `A Paz seja contigo! Gostaria de pedir oração pelo seguinte motivo: ${text}`
+    `Mensagem App Projeto Sementes
+A Paz seja contigo!
+Gostaria de pedir oração pelo seguinte motivo: ${text}`
   );
 
-  if(APP_CONFIG.masterWhatsapp){
-    window.open(`https://wa.me/${APP_CONFIG.masterWhatsapp}?text=${message}`,"_blank");
-    toast("Mensagem preparada para o WhatsApp.");
+  const pastorPhone="5567999082592";
+  if(pastorPhone){
+    window.open(`https://wa.me/${pastorPhone}?text=${message}`,"_blank");
+    toast("Mensagem preparada para o WhatsApp do Pastor Joel.");
   }else{
     toast("Configure o WhatsApp do Pastor Joel na Secretaria.");
   }
@@ -3212,7 +3290,7 @@ function sendPrayer(){
 
 function baptism(){
   const message=encodeURIComponent(
-    "A Paz seja contigo! Eu quero ser batizado e gostaria de receber orientação sobre os próximos passos para realizar o batismo."
+    "Mensagem App Projeto Sementes\nA Paz seja contigo!\nEu quero ser batizado e gostaria de receber orientação sobre os próximos passos para realizar o batismo."
   );
 
   const pastorPhone="5567999082592";
@@ -3278,19 +3356,15 @@ function playEra(eraId){
   state.game.xp += 10;
   state.game.coins += 2;
   state.game.currentEra=eraId;
+  state.game.currentNode=0;
   saveGame();
   updateGameResources();
-
-  // Abre o desafio diretamente. Isso evita que o modal interrompa a navegação no iPhone.
   openPage("gamePage");
   renderGameMap();
   renderQuiz();
-  toast(`Era ${eraId} iniciada. Você ganhou 10 XP + 2 moedas.`);
   startQuizTimer();
-  setTimeout(()=>{
-    const quiz=$("quizBox");
-    if(quiz) quiz.scrollIntoView({behavior:"smooth",block:"center"});
-  },120);
+  toast(`Era ${eraId} iniciada. Nó 1 de 3.`);
+  setTimeout(()=>$("quizBox")?.scrollIntoView({behavior:"smooth",block:"center"}),100);
 }
 
 function refillWord(){
@@ -3311,21 +3385,34 @@ function answerRefill(correct){
   }
 }
 
+function getCurrentQuiz(){
+  const node=Math.max(0,Math.min(2,Number(state.game.currentNode)||0));
+  return quizQuestions[node] || quizQuestions[0];
+}
+
 function renderQuiz(){
   const box=$("quizBox");
   if(!box) return;
-  const q=quizQuestions[0];
+  const era=Number(state.game.currentEra)||0;
+  if(!era){
+    box.innerHTML=`<div class="notice">Escolha uma fase liberada no mapa para iniciar o desafio.</div>`;
+    return;
+  }
+  const q=getCurrentQuiz();
+  const node=(Number(state.game.currentNode)||0)+1;
   box.innerHTML=`
     <div class="timer" id="quizTimer">20</div>
+    <p class="small muted">Era ${era} • Nó ${node} de 3</p>
     <p class="body-text"><strong>${escapeHTML(q.question)}</strong></p>
     <div>
-      ${q.options.map((opt,i)=>`<button class="btn quiz-option" type="button" onclick="answerQuiz(0,${i})">${String.fromCharCode(65+i)}) ${escapeHTML(opt)}</button>`).join("")}
+      ${q.options.map((opt,i)=>`<button class="btn quiz-option" type="button" onclick="answerQuiz(${Number(state.game.currentNode)||0},${i})">${String.fromCharCode(65+i)}) ${escapeHTML(opt)}</button>`).join("")}
     </div>`;
 }
 
 function openQuiz(){
   closeModal();
   openPage("gamePage");
+  if(!state.game.currentEra) state.game.currentEra=1;
   renderQuiz();
   startQuizTimer();
   setTimeout(()=>$("quizBox")?.scrollIntoView({behavior:"smooth",block:"center"}),120);
@@ -3342,14 +3429,14 @@ function startQuizTimer(){
     if(el) el.textContent=Math.max(seconds,0);
     if(seconds<=0){
       clearInterval(window.__quizTimer);
-      toast("Tempo encerrado.");
+      toast("Tempo encerrado. Responda novamente.");
     }
   },1000);
 }
 
 async function answerQuiz(qIndex,answer){
   clearInterval(window.__quizTimer);
-  const q=quizQuestions[qIndex];
+  const q=quizQuestions[qIndex] || quizQuestions[0];
   const options=document.querySelectorAll(".quiz-option");
   const clicked=options[answer];
 
@@ -3358,23 +3445,47 @@ async function answerQuiz(qIndex,answer){
     state.game.xp += 25;
     state.game.coins += 5;
     state.game.streak += 1;
-    if(qIndex===2){
-      state.game.unlockedEra=Math.max(state.game.unlockedEra,2);
-      if(!state.game.cards.includes("José do Egito")) state.game.cards.push("José do Egito");
-    }
     await playSuccessSound("quiz");
-    saveGame();
-    updateGameResources();
-    toast("Resposta correta! XP e moedas recebidos.");
-    setTimeout(()=>{renderGame();openPage("gamePage");},500);
-  }else{
-    if(clicked) clicked.classList.add("wrong");
-    await playErrorSound();
-    state.game.streak=0;
-    saveGame();
-    updateGameResources();
-    toast("Resposta incorreta. Tente novamente na próxima fase.");
+
+    const node=Number(state.game.currentNode)||0;
+    const era=Number(state.game.currentEra)||1;
+    if(node>=2){
+      if(era < eras.length){
+        state.game.unlockedEra=Math.max(state.game.unlockedEra,era+1);
+        state.game.currentEra=era+1;
+        state.game.currentNode=0;
+        const cardName=eras[era-1]?.card;
+        if(cardName && !state.game.cards.includes(cardName)) state.game.cards.push(cardName);
+        saveGame();
+        updateGameResources();
+        renderGameMap();
+        renderQuiz();
+        toast(`🎉 Era ${era} concluída! A Era ${era+1} foi liberada.`);
+        setTimeout(()=>$("quizBox")?.scrollIntoView({behavior:"smooth",block:"center"}),120);
+      }else{
+        state.game.currentEra=0;
+        state.game.currentNode=0;
+        saveGame();
+        renderGame();
+        toast("🏆 Viagem concluída! Todas as Eras foram liberadas.");
+      }
+    }else{
+      state.game.currentNode=node+1;
+      saveGame();
+      renderQuiz();
+      startQuizTimer();
+      toast(`Resposta correta! Nó ${state.game.currentNode+1} de 3.`);
+    }
+    renderCardsAlbum();
+    return;
   }
+
+  if(clicked) clicked.classList.add("wrong");
+  await playErrorSound();
+  state.game.streak=0;
+  saveGame();
+  updateGameResources();
+  toast("Resposta incorreta. Tente novamente.");
 }
 
 function renderCardsAlbum(){
@@ -3505,9 +3616,66 @@ function updateKPIs(){
   renderSecretaryDocuments();
 }
 
+function renderMasterManagement(){
+  const card=$("masterManagementCard");
+  const generateBtn=$("generateAccess");
+  if(generateBtn) generateBtn.style.display=isMaster()?"":"none";
+  if(!card) return;
+  card.style.display=isMaster()?"block":"none";
+  if(!isMaster()) return;
+  const ds=$("deleteStudentSelect");
+  const da=$("deleteAccessSelect");
+  if(ds){
+    ds.innerHTML=state.students.length
+      ? state.students.map(s=>`<option value="${escapeHTML(s.id)}">${escapeHTML(s.name)} — ${escapeHTML(s.guardian||"Sem responsável")}</option>`).join("")
+      : `<option value="">Nenhum cadastro</option>`;
+  }
+  if(da){
+    const accesses=state.accesses.length ? state.accesses : state.students.filter(s=>s.accessLogin).map(s=>({id:"legacy-"+s.id,studentId:s.id,name:s.guardian||s.name,login:s.accessLogin,role:"guardian"}));
+    da.innerHTML=accesses.length
+      ? accesses.map(a=>`<option value="${escapeHTML(a.id)}">${escapeHTML(a.name)} — ${escapeHTML(a.login)}</option>`).join("")
+      : `<option value="">Nenhum acesso</option>`;
+  }
+}
+
+function deleteStudentAdmin(){
+  if(!isMaster()){ toast("Somente o Administrador Mestre London pode excluir cadastros."); return; }
+  const id=$("deleteStudentSelect")?.value;
+  const student=state.students.find(s=>s.id===id);
+  if(!student) return;
+  if(!confirm(`Excluir definitivamente o cadastro de ${student.name}?`)) return;
+  state.students=state.students.filter(s=>s.id!==id);
+  state.accesses=state.accesses.filter(a=>a.studentId!==id);
+  state.secretaryDocuments=state.secretaryDocuments.filter(d=>d.studentName!==student.name);
+  saveState();
+  renderAll();
+  renderMasterManagement();
+  toast("Cadastro do aluno excluído.");
+}
+
+function deleteAccessAdmin(){
+  if(!isMaster()){ toast("Somente o Administrador Mestre London pode excluir acessos."); return; }
+  const id=$("deleteAccessSelect")?.value;
+  const access=state.accesses.find(a=>a.id===id);
+  if(!access){
+    const legacy=state.students.find(s=>s.accessLogin);
+    if(!legacy) return;
+    if(!confirm(`Excluir o acesso de ${legacy.guardian||legacy.name}?`)) return;
+    delete legacy.accessLogin; delete legacy.accessPassword;
+    saveState(); renderMasterManagement(); toast("Acesso excluído."); return;
+  }
+  const student=state.students.find(s=>s.id===access.studentId);
+  if(!confirm(`Excluir o acesso de ${access.name}?`)) return;
+  if(student){ delete student.accessLogin; delete student.accessPassword; }
+  state.accesses=state.accesses.filter(a=>a.id!==id);
+  saveState();
+  renderMasterManagement();
+  toast("Acesso excluído.");
+}
+
 function generateAccess(){
-  if(!canSeeSecretary()){
-    toast("Acesso restrito.");
+  if(!isMaster()){
+    toast("Somente o Administrador Mestre London pode gerar novos acessos.");
     return;
   }
 
@@ -3521,16 +3689,10 @@ function generateAccess(){
             <input id="newAccessName" class="input" required>
           </div>
           <div class="field">
-            <label>Login (CPF ou celular)</label>
-            <input id="newAccessLogin" class="input" required>
+            <label>Login (Nome do Responsável)</label>
+            <input id="newAccessLogin" class="input" required placeholder="Nome completo do responsável">
           </div>
-          <div class="field">
-            <label>Nível</label>
-            <select id="newAccessRole" class="select">
-              <option value="guardian">Responsável</option>
-              <option value="director">Diretoria</option>
-            </select>
-          </div>
+          <input type="hidden" id="newAccessRole" value="guardian">
           <div class="field">
             <label>Senha provisória</label>
             <input id="newAccessPassword" class="input" required>
@@ -3545,7 +3707,7 @@ function generateAccess(){
     $("accessForm")?.addEventListener("submit",e=>{
       e.preventDefault();
       const name=$("newAccessName").value.trim();
-      const login=$("newAccessLogin").value.trim();
+      const login=($("newAccessLogin").value.trim() || name);
       const role=$("newAccessRole").value;
       const password=$("newAccessPassword").value;
       if(role==="guardian"){
@@ -3553,6 +3715,8 @@ function generateAccess(){
         if(student){
           student.accessLogin=login;
           student.accessPassword=password;
+          state.accesses=state.accesses.filter(a=>a.studentId!==student.id);
+          state.accesses.push({id:"access-"+Date.now(),studentId:student.id,name,login,role:"guardian"});
           saveState();
           closeModal();
           toast("Acesso do responsável criado e vinculado ao aluno.");
@@ -3653,9 +3817,10 @@ function initEvents(){
       return;
     }
 
-    // O submit do login é uma ação do usuário; aproveitamos este gesto para liberar o áudio no iPhone.
-    showApp();
+    // O submit do login é uma ação do usuário. Disparamos o louvor imediatamente, antes de qualquer renderização pesada.
     playBackgroundMusic();
+    showApp();
+    setTimeout(()=>playBackgroundMusic(),0);
     toast("Bem-vindo ao Projeto Sementes.");
   });
 
@@ -3734,6 +3899,8 @@ function initEvents(){
   $("captureClassPhoto").addEventListener("click",captureClassPhoto);
 
   $("generateAccess").addEventListener("click",generateAccess);
+  $("deleteStudentBtn")?.addEventListener("click",deleteStudentAdmin);
+  $("deleteAccessBtn")?.addEventListener("click",deleteAccessAdmin);
   $("generateReport").addEventListener("click",generateReport);
 
   $("modalClose").addEventListener("click",closeModal);
@@ -3754,6 +3921,7 @@ function renderAll(){
   renderGame();
   renderDirectors();
   updateKPIs();
+  renderMasterManagement();
 
   const tasks=JSON.parse(localStorage.getItem(STORAGE_KEYS.tasks)||"{}");
   document.querySelectorAll("[data-task]").forEach(box=>{
