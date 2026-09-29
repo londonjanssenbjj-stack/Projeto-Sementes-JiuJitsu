@@ -1646,8 +1646,8 @@ const STORAGE_KEYS = {
   enrollment: "sementes_enrollment",
   game: "sementes_game",
   tasks: "sementes_tasks",
-  secretaryDocuments: "sementes_secretary_documents",
-  documentSequence: "sementes_document_sequence",
+  secretaryDocuments: "sementes_secretary_documents_v10",
+  documentSequence: "sementes_document_sequence_v10",
   accesses: "sementes_accesses"
 };
 
@@ -1936,7 +1936,7 @@ function loadState(){
     const attendance = JSON.parse(localStorage.getItem(STORAGE_KEYS.attendance));
     const enrollment = JSON.parse(localStorage.getItem(STORAGE_KEYS.enrollment));
     const secretaryDocuments = JSON.parse(localStorage.getItem(STORAGE_KEYS.secretaryDocuments));
-    const documentSequence = Number(localStorage.getItem(STORAGE_KEYS.documentSequence) || 0);
+    const documentSequence = Number(localStorage.getItem(STORAGE_KEYS.documentSequence) || localStorage.getItem("sementes_document_sequence") || 0);
     const accesses = JSON.parse(localStorage.getItem(STORAGE_KEYS.accesses));
     const game = JSON.parse(localStorage.getItem(STORAGE_KEYS.game));
 
@@ -2819,11 +2819,14 @@ function initEnrollment(){
 
   $("enrollmentForm").addEventListener("submit",async e=>{
     e.preventDefault();
+    const finalizeButton=document.querySelector("#enrollmentForm button[type=\"submit\"]");
+    if(finalizeButton){ finalizeButton.disabled=true; finalizeButton.textContent="⏳ Gerando documento..."; }
     // Ativa o áudio enquanto o toque em "Finalizar Documento" ainda é uma ação do usuário.
     await ensureAudioReady();
 
     if(signatureIsEmpty()){
       toast("Faça a assinatura no painel antes de finalizar.");
+      if(finalizeButton){ finalizeButton.disabled=false; finalizeButton.textContent="💾 Finalizar Documento"; }
       return;
     }
 
@@ -2872,52 +2875,14 @@ function initEnrollment(){
       documentFilename:""
     };
 
-    let student=state.students.find(
-      s=>s.name.toLowerCase()===state.enrollment.student.name.toLowerCase()
-    );
-
-    if(!student){
-      student={
-        id:"student-"+Date.now(),
-        name:state.enrollment.student.name,
-        birth:state.enrollment.student.birth,
-        school:state.enrollment.student.school,
-        address:state.enrollment.student.address,
-        guardian:state.enrollment.guardian.name,
-        guardianRelation:state.enrollment.guardian.relation,
-        phone:state.enrollment.guardian.phone,
-        guardianDocument:state.enrollment.guardian.document,
-        documentNumber:"",
-        enrollmentDate:todayISO(),
-        belt:"Branca",
-        degrees:0,
-        status:"pending",
-        startDate:todayISO(),
-        face:"",
-        health
-      };
-      state.students.push(student);
-    }else{
-      // Só fica verde depois da biometria.
-      student.status=student.face ? "complete" : "pending";
-      student.health=health;
-      student.school=state.enrollment.student.school;
-      student.address=state.enrollment.student.address;
-      student.guardian=state.enrollment.guardian.name;
-      student.guardianRelation=state.enrollment.guardian.relation;
-      student.guardianDocument=state.enrollment.guardian.document;
-      student.phone=state.enrollment.guardian.phone;
-    }
-
+    // O cadastro permanece PENDENTE até o responsável salvar/encaminhar o documento.
+    // Só depois da ação de download/compartilhamento o aluno e o documento entram na Secretaria.
     saveState();
 
-    // Reserva o número antes da geração para que cadastro, PDF e mensagem usem o mesmo número.
+    // Reserva um número único para este documento. O número será mantido mesmo se o usuário
+    // fechar a tela antes de salvar, evitando duplicidade documental.
     state.enrollment.documentNumber=nextEnrollmentDocumentNumber();
 
-    // O cadastro agora é registrado somente no próprio sistema e na Secretaria.
-    // Nenhuma mensagem é aberta ou enviada ao Mestre London neste momento.
-
-    // Sinal sonoro no próprio toque do botão; o iPhone costuma bloquear áudio criado depois de awaits.
     playSuccessSound("finalize");
 
     let pdf;
@@ -2926,32 +2891,13 @@ function initEnrollment(){
       state.enrollment.documentGenerated=true;
       state.enrollment.documentFilename=pdf.filename;
       state.enrollment.documentNumber=pdf.codigoMatricula;
-      const enrolledStudent=state.students.find(st=>st.name.toLowerCase()===state.enrollment.student.name.toLowerCase());
-      if(enrolledStudent){
-        enrolledStudent.documentNumber=pdf.codigoMatricula;
-        enrolledStudent.enrollmentDate=state.enrollment.date;
-        enrolledStudent.school=state.enrollment.student.school;
-        enrolledStudent.address=state.enrollment.student.address;
-        enrolledStudent.guardian=state.enrollment.guardian.name;
-        enrolledStudent.phone=state.enrollment.guardian.phone;
-        enrolledStudent.guardianRelation=state.enrollment.guardian.relation;
-      }
-      state.secretaryDocuments.push({
-        id:"secretary-"+Date.now(),
-        documentNumber:pdf.codigoMatricula,
-        studentName:state.enrollment.student.name,
-        guardianName:state.enrollment.guardian.name,
-        date:state.enrollment.date,
-        filename:pdf.filename,
-        dataUri:pdf.dataUri,
-        createdAt:new Date().toISOString()
-      });
       saveState();
-      renderSecretaryDocuments();
     }catch(error){
       console.error(error);
       console.error("Falha detalhada ao gerar o documento:", error?.stack || error);
       toast("Não foi possível gerar o documento. Revise os dados da matrícula e tente finalizar novamente.");
+      const finalizeButton=$('#enrollmentForm button[type="submit"]');
+      if(finalizeButton){ finalizeButton.disabled=false; finalizeButton.textContent="💾 Finalizar Documento"; }
       return;
     }
 
@@ -2966,7 +2912,7 @@ function initEnrollment(){
     window.__enrollmentPdfUrl=pdfUrl;
 
     successBox.innerHTML=`
-      <div style="font-size:22px;font-weight:900;line-height:1.25;color:#b5f3c7">📄 DOCUMENTO PRONTO PARA SALVAR</div>
+      <div style="font-size:22px;font-weight:900;line-height:1.25;color:#b5f3c7">📄 DOCUMENTO GERADO — AGUARDANDO SALVAMENTO</div>
       <div class="notice" style="margin-top:12px;font-size:18px;line-height:1.5;border:2px solid var(--gold);padding:18px">
         <strong style="font-size:21px">⚠️ AVISO IMPORTANTE AO RESPONSÁVEL</strong><br>
         Antes de continuar, <strong>baixe e salve o documento no seu celular</strong> ou encaminhe-o para um local seguro.
@@ -2984,7 +2930,7 @@ function initEnrollment(){
         </button>
       </div>
       <div id="downloadStepStatus" class="small muted" style="margin-top:10px;text-align:center">
-        Toque no botão acima para salvar ou encaminhar o documento.
+        O documento ainda não foi confirmado. Toque em <strong>BAIXAR DOCUMENTO</strong> para salvar ou encaminhar e continuar o cadastro.
       </div>`;
 
     $("downloadEnrollmentPDF")?.addEventListener("click",async()=>{
@@ -3014,11 +2960,68 @@ function initEnrollment(){
       }
 
       if(!savedOrShared) return;
+
+      // Somente agora o cadastro é efetivado e aparece na Secretaria.
+      const pending=state.enrollment;
+      let enrolledStudent=state.students.find(st=>
+        st.name.toLowerCase()===pending.student.name.toLowerCase()
+      );
+      if(!enrolledStudent){
+        enrolledStudent={
+          id:"student-"+Date.now(),
+          name:pending.student.name,
+          birth:pending.student.birth,
+          school:pending.student.school,
+          address:pending.student.address,
+          guardian:pending.guardian.name,
+          guardianRelation:pending.guardian.relation,
+          guardianDocument:pending.guardian.document,
+          phone:pending.guardian.phone,
+          documentNumber:pdf.codigoMatricula,
+          enrollmentDate:pending.date,
+          belt:"Branca",
+          degrees:0,
+          status:"pending",
+          startDate:pending.date,
+          face:"",
+          health:pending.health
+        };
+        state.students.push(enrolledStudent);
+      }else{
+        enrolledStudent.birth=pending.student.birth;
+        enrolledStudent.school=pending.student.school;
+        enrolledStudent.address=pending.student.address;
+        enrolledStudent.guardian=pending.guardian.name;
+        enrolledStudent.guardianRelation=pending.guardian.relation;
+        enrolledStudent.guardianDocument=pending.guardian.document;
+        enrolledStudent.phone=pending.guardian.phone;
+        enrolledStudent.documentNumber=pdf.codigoMatricula;
+        enrolledStudent.enrollmentDate=pending.date;
+        enrolledStudent.health=pending.health;
+        enrolledStudent.status=enrolledStudent.face ? "complete" : "pending";
+      }
+
+      const alreadyInSecretary=state.secretaryDocuments.some(doc=>doc.documentNumber===pdf.codigoMatricula);
+      if(!alreadyInSecretary){
+        state.secretaryDocuments.push({
+          id:"secretary-"+Date.now(),
+          documentNumber:pdf.codigoMatricula,
+          studentName:pending.student.name,
+          guardianName:pending.guardian.name,
+          date:pending.date,
+          filename:pdf.filename,
+          dataUri:pdf.dataUri,
+          createdAt:new Date().toISOString()
+        });
+      }
+      saveState();
+      renderSecretaryDocuments();
+
       button.dataset.completed="1";
       button.disabled=true;
       button.textContent="✅ DOCUMENTO BAIXADO / ENCAMINHADO";
       const stepStatus=$("downloadStepStatus");
-      if(stepStatus) stepStatus.innerHTML="<strong style='color:#b5f3c7'>Documento salvo ou encaminhado. Agora o cadastro será confirmado.</strong>";
+      if(stepStatus) stepStatus.innerHTML="<strong style='color:#b5f3c7'>Documento salvo ou encaminhado. Cadastro confirmado com sucesso. A biometria será iniciada agora.</strong>";
 
       await playSuccessSound("finalize");
       successBox.insertAdjacentHTML("afterbegin",
@@ -3165,11 +3168,16 @@ function resetEnrollmentFormAfterCompletion(){
     success.innerHTML=`<div style="font-size:20px;font-weight:900;color:#b5f3c7">✅ CADASTRO E BIOMETRIA REALIZADOS COM SUCESSO</div>
       <div class="small" style="margin-top:7px">Os campos foram limpos e o sistema está pronto para um novo cadastro.</div>`;
   }
+  // O processo foi concluído: remove o rascunho da matrícula e mantém apenas
+  // o registro definitivo do aluno e do documento na Secretaria.
+  state.enrollment=null;
+  saveState();
+
   const firstField=$("studentName");
   if(firstField){
     setTimeout(()=>{ firstField.focus(); firstField.scrollIntoView({behavior:"smooth",block:"center"}); },150);
   }
-  toast("Cadastro Biometrico realizado com sucesso. Todos os campos foram limpos.");
+  toast("Cadastro Biométrico realizado com sucesso. Todos os campos foram limpos.");
 }
 
 async function openClassCamera(){
