@@ -1179,10 +1179,7 @@
             </div>
           </form>
 
-          <div id="enrollmentSuccess" class="success-notice hidden" style="margin-top:16px">
-            Documento registrado neste dispositivo. Em uma implantação com backend, o PDF deve ser enviado
-            ao responsável e ao Mestre London e os dados devem ser gravados no banco seguro.
-          </div>
+          <div id="enrollmentSuccess" class="success-notice hidden" style="margin-top:16px"></div>
 
           <div id="biometricSection" class="hidden" style="margin-top:22px">
             <div class="notice">
@@ -1483,11 +1480,11 @@
 
           <article class="card gold-border">
             <div class="card-header">
-              <div><h2 class="section-title">DESENVOLVEDOR</h2><span class="small muted">Fora da Diretoria</span></div>
+              <div><h2 class="section-title">DESENVOLVEDOR</h2></div>
               <i class="icon-gold" data-lucide="shield"></i>
             </div>
-            <p class="body-text"><strong>Desenvolvedor</strong></p>
-            <p class="body-text"><strong>Administrador Mestre London</strong></p>
+            <p class="body-text" style="margin-bottom:8px"><strong>Desenvolvedor</strong></p>
+            <p class="body-text" style="margin-bottom:8px"><strong>Administrador Mestre London</strong></p>
             <p class="small muted">Responsável pelo desenvolvimento e administração do sistema e documentos da Secretaria.</p>
           </article>
 
@@ -1627,7 +1624,7 @@ const APP_CONFIG = {
   city: "Corumbá - MS",
   church: "IEQ Guaicurus",
   masterName: "Administrador Mestre London",
-  masterDisplayName: "Administrador Professor London",
+  masterDisplayName: "Administrador Mestre London",
   masterEmail: "londonjanssenbjj@gmail.com",
   masterWhatsapp: "5567998513404",
   classTime: "19h às 20h30",
@@ -1696,6 +1693,12 @@ const defaultStudents = [
     status: "complete",
     startDate: "2026-09-18",
     face: "",
+    school: "",
+    address: "",
+    guardianRelation: "",
+    guardianDocument: "",
+    documentNumber: "",
+    enrollmentDate: "",
     health: {
       heart: "NÃO",
       respiratory: "NÃO",
@@ -1941,6 +1944,10 @@ function loadState(){
     const game = JSON.parse(localStorage.getItem(STORAGE_KEYS.game));
 
     state.students = Array.isArray(students) ? students : [...defaultStudents];
+    state.students = state.students.map(s=>({
+      school:"", address:"", guardianRelation:"", guardianDocument:"", documentNumber:"", enrollmentDate:"",
+      ...s
+    }));
     state.attendance = Array.isArray(attendance) ? attendance : [];
     state.enrollment = enrollment || null;
     state.secretaryDocuments = Array.isArray(secretaryDocuments) ? secretaryDocuments : [];
@@ -2557,8 +2564,14 @@ function initEnrollment(){
         id:"student-"+Date.now(),
         name:state.enrollment.student.name,
         birth:state.enrollment.student.birth,
+        school:state.enrollment.student.school,
+        address:state.enrollment.student.address,
         guardian:state.enrollment.guardian.name,
+        guardianRelation:state.enrollment.guardian.relation,
         phone:state.enrollment.guardian.phone,
+        guardianDocument:state.enrollment.guardian.document,
+        documentNumber:"",
+        enrollmentDate:todayISO(),
         belt:"Branca",
         degrees:0,
         status:"pending",
@@ -2571,7 +2584,11 @@ function initEnrollment(){
       // Só fica verde depois da biometria.
       student.status=student.face ? "complete" : "pending";
       student.health=health;
+      student.school=state.enrollment.student.school;
+      student.address=state.enrollment.student.address;
       student.guardian=state.enrollment.guardian.name;
+      student.guardianRelation=state.enrollment.guardian.relation;
+      student.guardianDocument=state.enrollment.guardian.document;
       student.phone=state.enrollment.guardian.phone;
     }
 
@@ -2593,6 +2610,16 @@ function initEnrollment(){
       state.enrollment.documentGenerated=true;
       state.enrollment.documentFilename=pdf.filename;
       state.enrollment.documentNumber=pdf.codigoMatricula;
+      const enrolledStudent=state.students.find(st=>st.name.toLowerCase()===state.enrollment.student.name.toLowerCase());
+      if(enrolledStudent){
+        enrolledStudent.documentNumber=pdf.codigoMatricula;
+        enrolledStudent.enrollmentDate=state.enrollment.date;
+        enrolledStudent.school=state.enrollment.student.school;
+        enrolledStudent.address=state.enrollment.student.address;
+        enrolledStudent.guardian=state.enrollment.guardian.name;
+        enrolledStudent.phone=state.enrollment.guardian.phone;
+        enrolledStudent.guardianRelation=state.enrollment.guardian.relation;
+      }
       state.secretaryDocuments.push({
         id:"secretary-"+Date.now(),
         documentNumber:pdf.codigoMatricula,
@@ -2612,21 +2639,27 @@ function initEnrollment(){
       return;
     }
 
-    $("enrollmentSuccess").classList.remove("hidden");
-    $("enrollmentSuccess").innerHTML=`
-      <strong>🔊 Cadastro realizado. Documento confirmado e cadastrado.</strong><br>
-      <span class="small">Número do documento: <strong>${escapeHTML(pdf.codigoMatricula)}</strong>.</span><br>
-      <span class="small">O documento foi registrado na Secretaria.</span><br><br>
-      <span class="small" style="color:var(--gold2)">⚠️ <strong>Aviso ao Responsável:</strong> não esqueça de baixar seu Documento gerado e guardar sua via assinada.</span>
-      <div class="action-row" style="margin-top:10px">
+    const successBox=$("enrollmentSuccess");
+    successBox.classList.remove("hidden");
+    successBox.style.display="block";
+    successBox.innerHTML=`
+      <div style="font-size:18px;font-weight:800">🔊 Cadastro realizado.</div>
+      <div style="margin-top:4px">Documento confirmado e cadastrado.</div>
+      <div class="small" style="margin-top:8px">Número do documento: <strong>${escapeHTML(pdf.codigoMatricula)}</strong></div>
+      <div class="small" style="margin-top:4px">O cadastro já foi enviado para a Secretaria deste dispositivo.</div>
+      <div class="notice" style="margin-top:12px">⚠️ <strong>Aviso ao Responsável:</strong> não esqueça de baixar seu Documento gerado e guardar sua via assinada.</div>
+      <div class="action-row" style="margin-top:12px">
         <button class="btn btn-gold" type="button" id="downloadEnrollmentPDF">📥 Baixar Documento</button>
+        <a class="btn" id="manualMasterWhatsApp" target="_blank" rel="noopener">💬 Notificar Mestre London</a>
       </div>`;
 
     // A biometria é liberada imediatamente após o cadastro do documento.
-    $("biometricSection").classList.remove("hidden");
-    $("biometricSection").style.display="block";
-    $("biometricSection").hidden=false;
-    $("biometricSection").setAttribute("aria-hidden","false");
+    const biometricSection=$("biometricSection");
+    biometricSection.classList.remove("hidden");
+    biometricSection.style.display="block";
+    biometricSection.hidden=false;
+    biometricSection.setAttribute("aria-hidden","false");
+    biometricSection.scrollIntoView({behavior:"smooth",block:"center"});
     $("startCamera").disabled=false;
     $("captureFace").disabled=false;
     $("step2Dot").classList.add("active");
@@ -2636,20 +2669,20 @@ function initEnrollment(){
     const number=normalizeWhatsAppNumber(APP_CONFIG.masterWhatsapp);
     const masterMessage=encodeURIComponent(buildEnrollmentMessage("master"));
     const masterUrl=`https://wa.me/${number}?text=${masterMessage}`;
+    const manualWhatsApp=$("manualMasterWhatsApp");
+    if(manualWhatsApp) manualWhatsApp.href=masterUrl;
     if(masterWindow && !masterWindow.closed){
       masterWindow.location.href=masterUrl;
     }else{
-      // Se o Safari bloqueou a janela, deixamos um link manual sem abrir o responsável.
-      toast("Cadastro realizado. O navegador bloqueou a abertura automática do WhatsApp do Mestre London.");
+      toast("Cadastro realizado. Toque em 'Notificar Mestre London' para abrir a mensagem.");
     }
 
     $("downloadEnrollmentPDF")?.addEventListener("click",()=>downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename));
     renderStudents();
     updateKPIs();
+    renderSecretaryDocuments();
     toast(`Cadastro realizado — ${pdf.codigoMatricula}. Biometria liberada.`);
-
-    setTimeout(()=>$("biometricSection").scrollIntoView({behavior:"smooth",block:"center"}),250);
-  });
+    });
 
   $("clearSignature").addEventListener("click",clearSignature);
 }
@@ -2727,9 +2760,9 @@ async function captureFace(){
   const biometricStatus=$("biometricStatus");
   if(biometricStatus){
     biometricStatus.classList.remove("hidden");
-    biometricStatus.innerHTML="🔊 <strong>Biometria confirmada.</strong> A captura foi realizada e vinculada ao cadastro.";
+    biometricStatus.innerHTML="🔊 <strong>Biometria realizada.</strong> A captura foi realizada e vinculada ao cadastro.";
   }
-  toast("🔊 Biometria confirmada.");
+  toast("🔊 Biometria realizada.");
   renderStudents();
   setTimeout(resetEnrollmentFormAfterCompletion,700);
 }
@@ -2748,7 +2781,7 @@ function resetEnrollmentFormAfterCompletion(){
   const status=$("biometricStatus");
   if(status){
     status.classList.remove("hidden");
-    status.innerHTML="🔊 <strong>Biometria confirmada.</strong> Cadastro concluído. Os campos foram limpos para o próximo atendimento.";
+    status.innerHTML="🔊 <strong>Biometria realizada.</strong> Cadastro concluído. Os campos foram limpos para o próximo atendimento.";
   }
   $("enrollmentDate").textContent=`${APP_CONFIG.city}, ${formatDate(todayISO())}`;
 }
@@ -2887,6 +2920,19 @@ function openStudent(id){
           <label>Login do responsável</label>
           <input class="input" value="${escapeHTML(s.accessLogin||"Não definido")}" disabled>
         </div>
+      </div>
+
+      <div class="card" style="background:#151515;margin-top:14px">
+        <h3 style="font-size:13px;color:var(--gold2)">📄 Dados da Matrícula</h3>
+        <ul class="list small">
+          <li>Número do documento: <strong>${escapeHTML(s.documentNumber||"Ainda não gerado")}</strong></li>
+          <li>Data do cadastro: <strong>${escapeHTML(formatDate(s.enrollmentDate||s.startDate||todayISO()))}</strong></li>
+          <li>Escola: <strong>${escapeHTML(s.school||"Não informado")}</strong></li>
+          <li>Endereço: <strong>${escapeHTML(s.address||"Não informado")}</strong></li>
+          <li>Responsável: <strong>${escapeHTML(s.guardian||"Não informado")}</strong></li>
+          <li>Parentesco: <strong>${escapeHTML(s.guardianRelation||"Não informado")}</strong></li>
+          <li>Telefone: <strong>${escapeHTML(s.phone||"Não informado")}</strong></li>
+        </ul>
       </div>
 
       <div class="card" style="background:#151515;margin-top:14px">
