@@ -2394,22 +2394,27 @@ function downloadBlob(blob,filename){
 async function ensureJsPdfLoaded(){
   if(window.jspdf?.jsPDF) return true;
   const urls=[
+    "https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js",
     "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
     "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"
   ];
   for(const src of urls){
     try{
-      await Promise.race([
-        new Promise((resolve,reject)=>{
-          const script=document.createElement("script");
-          script.src=src; script.async=true;
-          script.onload=()=>resolve(); script.onerror=reject;
-          document.head.appendChild(script);
-        }),
-        new Promise((_,reject)=>setTimeout(()=>reject(new Error("timeout")),8000))
-      ]);
-      if(window.jspdf?.jsPDF) return true;
-    }catch(_){}
+      const loaded=await new Promise(resolve=>{
+        const script=document.createElement("script");
+        script.src=src;
+        script.async=true;
+        let done=false;
+        const finish=value=>{ if(done) return; done=true; resolve(value); };
+        script.onload=()=>finish(!!window.jspdf?.jsPDF);
+        script.onerror=()=>finish(false);
+        document.head.appendChild(script);
+        setTimeout(()=>finish(!!window.jspdf?.jsPDF),12000);
+      });
+      if(loaded) return true;
+    }catch(error){
+      console.warn("Falha ao carregar jsPDF:",src,error);
+    }
   }
   return !!window.jspdf?.jsPDF;
 }
@@ -2547,6 +2552,62 @@ function showPDFPreviewError(win,error){
   }catch(_){}
 }
 
+function buildEnrollmentPrintableHTML(){
+  const e=state.enrollment||{};
+  const h=e.health||{};
+  const signature=e.signature||"";
+  const esc=value=>escapeHTML(String(value??"Não informado"));
+  return `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Matricula ${esc(e.documentNumber||"")} — Projeto Sementes</title>
+<style>
+@page{size:A4;margin:12mm}body{font-family:Arial,Helvetica,sans-serif;color:#222;background:#fff;margin:0;padding:20px;line-height:1.45}
+.wrap{max-width:780px;margin:auto}.head{text-align:center;border-bottom:2px solid #243b5a;padding-bottom:12px;margin-bottom:18px}.head h1{font-size:18px;margin:0}.head p{font-size:12px;margin:4px 0}.title{text-align:center;font-size:16px;font-weight:800;margin:18px 0}.section{background:#eef2f6;color:#203a58;font-weight:800;padding:7px;margin-top:14px}.row{display:flex;gap:10px;border-bottom:1px solid #eee;padding:6px 0;font-size:12px}.label{font-weight:700;min-width:190px}.terms{font-size:11px;text-align:justify}.signature{text-align:center;margin-top:25px}.signature img{max-width:180px;max-height:80px}.line{width:260px;border-top:1px solid #444;margin:5px auto}.foot{font-size:9px;color:#777;text-align:center;margin-top:28px}.actions{position:sticky;top:0;background:#fff;padding:10px 0;text-align:center;border-bottom:1px solid #ddd;margin-bottom:15px}.actions button{padding:11px 15px;margin:4px;border:0;border-radius:9px;background:#d4af37;font-weight:700}.actions .dark{background:#222;color:#fff}@media print{.actions{display:none}body{padding:0}}
+</style></head><body><div class="wrap">
+<div class="actions"><button onclick="window.print()">🖨️ Salvar como PDF / Imprimir</button><button class="dark" onclick="if(navigator.share){navigator.share({title:document.title,text:'Documento de matrícula — Projeto Sementes'}).catch(()=>{})}else{alert('Use o botão de compartilhar do navegador.')}" >📤 Compartilhar</button></div>
+<div class="head"><h1>IGREJA DO EVANGELHO QUADRANGULAR GUAICURUS</h1><p>Ministério de Esportes — Projeto Social “Sementes”</p></div>
+<div class="title">FICHA DE INSCRIÇÃO E AUTORIZAÇÃO DE PARTICIPAÇÃO</div>
+<div style="text-align:center;font-size:11px">REGISTRO Nº <strong>${esc(e.documentNumber)}</strong> • ${esc(formatDate(e.date||todayISO()))} • ${esc(APP_CONFIG.city)}</div>
+<div class="section">1. DADOS DO ALUNO (MENOR)</div>
+<div class="row"><span class="label">Nome completo:</span><span>${esc(e.student?.name)}</span></div>
+<div class="row"><span class="label">Data de nascimento:</span><span>${esc(formatDate(e.student?.birth))}</span></div>
+<div class="row"><span class="label">Escola onde estuda:</span><span>${esc(e.student?.school)}</span></div>
+<div class="row"><span class="label">Endereço residencial:</span><span>${esc(e.student?.address)}</span></div>
+<div class="section">2. DADOS DO RESPONSÁVEL LEGAL</div>
+<div class="row"><span class="label">Nome do responsável:</span><span>${esc(e.guardian?.name)}</span></div>
+<div class="row"><span class="label">Grau de parentesco:</span><span>${esc(e.guardian?.relation)}</span></div>
+<div class="row"><span class="label">Telefone/WhatsApp:</span><span>${esc(e.guardian?.phone)}</span></div>
+<div class="row"><span class="label">CIN / RG:</span><span>${esc(e.guardian?.document)}</span></div>
+<div class="section">3. DECLARAÇÃO DE APTIDÃO FÍSICA E HISTÓRICO DE SAÚDE</div>
+<div class="row"><span class="label">Cardíaco/pressão:</span><span>${esc(h.heart)}</span></div>
+<div class="row"><span class="label">Respiratório:</span><span>${esc(h.respiratory)}</span></div>
+<div class="row"><span class="label">Lesão:</span><span>${esc(h.injury)}</span></div>
+<div class="row"><span class="label">Medicamento controlado:</span><span>${esc(h.medication)}</span></div>
+<div class="row"><span class="label">Alergia:</span><span>${esc(h.allergy)}</span></div>
+<div class="row"><span class="label">Desmaios/tonturas:</span><span>${esc(h.fainting)}</span></div>
+<div class="row"><span class="label">Detalhes:</span><span>${esc(h.details)}</span></div>
+<div class="section">4. TERMOS E AUTORIZAÇÕES</div>
+<div class="terms"><p>Eu, acima identificado(a) como responsável legal, AUTORIZO expressamente o menor sob minha tutela a participar gratuitamente das aulas de Jiu-Jitsu do Projeto Social “Sementes”, promovido pela Igreja do Evangelho Quadrangular Guaicurus.</p><p>Declaro estar ciente de que as atividades envolvem treinos físicos e contato próprio da modalidade, sob supervisão dos responsáveis pelo projeto.</p><p>AUTORIZO, de forma gratuita, a utilização da imagem e voz do menor, capturadas durante as atividades, exclusivamente para divulgação institucional, pedagógica e prestação de contas das ações do projeto, vedada a exploração comercial.</p><p>Por ser esta a expressão da minha vontade, firmo o presente termo, reconhecendo que os dados informados correspondem às declarações prestadas por mim.</p></div>
+<div class="signature"><div>${esc(APP_CONFIG.city)}, ${esc(formatDate(e.date||todayISO()))}.</div>${signature?`<img src="${signature}" alt="Assinatura"><div class="line"></div>`:`<div style="height:70px"></div><div class="line"></div>`}<strong>Assinatura digital do Responsável Legal</strong><div style="font-size:11px">Nome legível: ${esc(e.guardian?.name)}</div></div>
+<div class="foot">Documento ${esc(e.documentNumber)} — Projeto Sementes — Corumbá/MS</div>
+</div></body></html>`;
+}
+
+function openEnrollmentPrintablePreview(existingWindow=null){
+  try{
+    const html=buildEnrollmentPrintableHTML();
+    const win=existingWindow && !existingWindow.closed ? existingWindow : window.open("about:blank","_blank");
+    if(!win) return false;
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    return true;
+  }catch(error){
+    console.error("Erro ao abrir documento alternativo:",error);
+    return false;
+  }
+}
+
 function renderEnrollmentCompletion(pdf, options={}){
   if(!pdf) return;
   const successBox=$("enrollmentSuccess");
@@ -2559,17 +2620,18 @@ function renderEnrollmentCompletion(pdf, options={}){
 
   successBox.classList.remove("hidden");
   successBox.style.display="block";
+  const fallback=pdf.printableFallback===true;
   successBox.innerHTML=`
     <div style="font-size:22px;font-weight:900;line-height:1.25">📄 MATRÍCULA FINALIZADA</div>
     <div class="success-notice" style="margin-top:12px;font-size:15px;line-height:1.55">
       <strong>Olá, ${escapeHTML(state.enrollment?.guardian?.name || "Responsável")}!</strong><br>
-      O cadastro de <strong>${escapeHTML(state.enrollment?.student?.name || "aluno")}</strong> foi finalizado e o documento foi gerado.
-      Salve o PDF no celular ou compartilhe pelo WhatsApp.
+      O cadastro de <strong>${escapeHTML(state.enrollment?.student?.name || "aluno")}</strong> foi finalizado e o documento foi aberto para visualização.
+      ${fallback ? "No iPhone, use <strong>Salvar como PDF / Imprimir</strong> para gerar o PDF e depois compartilhar." : "Salve o PDF no celular ou compartilhe pelo WhatsApp."}
     </div>
     <div class="small" style="margin-top:10px">Número do documento: <strong>${escapeHTML(pdf.codigoMatricula)}</strong></div>
     <div class="action-row" style="margin-top:14px">
       <button class="btn btn-gold" type="button" id="openEnrollmentPDF">📄 Abrir Documento / Visualizar</button>
-      <button class="btn" type="button" id="downloadEnrollmentPDF">📥 Salvar / Baixar PDF</button>
+      ${fallback ? `<button class="btn" type="button" id="printEnrollmentDocument">🖨️ Salvar como PDF / Imprimir</button>` : `<button class="btn" type="button" id="downloadEnrollmentPDF">📥 Salvar / Baixar PDF</button>`}
       ${canWhatsApp ? `<button class="btn btn-success" type="button" id="whatsappEnrollmentNotice">📲 Avisar Responsável no WhatsApp</button>` : ""}
     </div>
     <div class="small muted" style="margin-top:10px">
@@ -2577,11 +2639,16 @@ function renderEnrollmentCompletion(pdf, options={}){
     </div>`;
 
   $("openEnrollmentPDF")?.addEventListener("click",()=>{
-    if(!openEnrollmentPDFPreview(pdf)){
-      toast("O navegador bloqueou a nova aba. Permita pop-ups para visualizar o documento.");
-    }
+    const ok=pdf.printableFallback===true
+      ? openEnrollmentPrintablePreview()
+      : openEnrollmentPDFPreview(pdf);
+    if(!ok) toast("O navegador bloqueou a visualização. Permita pop-ups para visualizar o documento.");
   });
-  $("downloadEnrollmentPDF")?.addEventListener("click",()=>downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename));
+  $("downloadEnrollmentPDF")?.addEventListener("click",()=>{
+    if(pdf.dataUri) downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename);
+    else toast("Use 'Salvar como PDF / Imprimir' para salvar o documento.");
+  });
+  $("printEnrollmentDocument")?.addEventListener("click",()=>window.print());
   $("whatsappEnrollmentNotice")?.addEventListener("click",()=>{
     if(!openWhatsAppDocument("guardian",phone)){
       toast("Não foi possível abrir o WhatsApp. Verifique o número do responsável.");
@@ -2615,12 +2682,18 @@ function restoreEnrollmentUI(){
   if(!e?.documentGenerated || !e.documentNumber) return;
 
   const doc=state.secretaryDocuments.find(d=>d.documentNumber===e.documentNumber);
-  if(!doc?.dataUri) return;
+  if(!doc?.dataUri && !doc?.printableHtml) return;
 
-  const pdf={
+  const pdf=doc.dataUri ? {
     dataUri:doc.dataUri,
     filename:doc.filename || e.documentFilename || `Matricula-${e.documentNumber}.pdf`,
     codigoMatricula:e.documentNumber
+  } : {
+    dataUri:"",
+    filename:doc.filename || e.documentFilename || `Matricula-${e.documentNumber}.html`,
+    codigoMatricula:e.documentNumber,
+    printableFallback:true,
+    printableHtml:doc.printableHtml
   };
 
   const student=state.students.find(s=>s.id===state.user?.studentId) ||
@@ -2773,9 +2846,41 @@ function initEnrollment(){
       saveState();
       renderSecretaryDocuments();
     }catch(error){
-      console.error("Falha na geração da matrícula:",error);
-      showPDFPreviewError(pdfPreviewWindow,error);
-      toast("Não foi possível gerar o documento PDF. O cadastro foi mantido; tente novamente.");
+      console.error("Falha na geração do PDF:",error);
+      // Fallback específico para iPhone/Safari/WhatsApp: mesmo que uma CDN de jsPDF
+      // esteja bloqueada, o responsável recebe o documento completo em uma página
+      // imprimível, com opção nativa de Salvar como PDF e Compartilhar.
+      const fallbackOpened=openEnrollmentPrintablePreview(pdfPreviewWindow);
+      if(fallbackOpened){
+        const printableHtml=buildEnrollmentPrintableHTML();
+        state.enrollment.documentGenerated=true;
+        state.enrollment.documentFilename=`Matricula-${state.enrollment.documentNumber||"documento"}.html`;
+        state.secretaryDocuments.push({
+          id:"secretary-"+Date.now(),
+          documentNumber:state.enrollment.documentNumber,
+          studentName:state.enrollment.student.name,
+          guardianName:state.enrollment.guardian.name,
+          date:state.enrollment.date,
+          filename:state.enrollment.documentFilename,
+          dataUri:"",
+          printableHtml,
+          createdAt:new Date().toISOString()
+        });
+        saveState();
+        renderSecretaryDocuments();
+        renderEnrollmentCompletion({
+          blob:null,
+          dataUri:"",
+          filename:state.enrollment.documentFilename,
+          codigoMatricula:state.enrollment.documentNumber,
+          printableFallback:true,
+          printableHtml
+        });
+        toast("Documento aberto para visualizar. Use 'Salvar como PDF / Imprimir' no iPhone.");
+      }else{
+        showPDFPreviewError(pdfPreviewWindow,error);
+        toast("Não foi possível abrir o documento. Tente novamente.");
+      }
       return;
     }
 
@@ -3787,8 +3892,21 @@ function renderSecretaryDocuments(){
 function downloadSecretaryDocument(id){
   if(!canSeeSecretary()){ toast("Acesso restrito à Diretoria."); return; }
   const doc=state.secretaryDocuments.find(item=>item.id===id);
-  if(!doc?.dataUri){ toast("Arquivo do documento não está disponível neste dispositivo."); return; }
-  downloadBlob(dataURItoBlob(doc.dataUri),doc.filename);
+  if(!doc) return;
+  if(doc.dataUri){
+    downloadBlob(dataURItoBlob(doc.dataUri),doc.filename);
+    return;
+  }
+  if(doc.printableHtml){
+    const win=window.open("about:blank","_blank");
+    if(!win){ toast("Permita pop-ups para visualizar o documento."); return; }
+    win.document.open();
+    win.document.write(doc.printableHtml);
+    win.document.close();
+    toast("Documento aberto. Use 'Salvar como PDF / Imprimir' para salvar.");
+    return;
+  }
+  toast("Arquivo do documento não está disponível neste dispositivo.");
 }
 
 function deleteSecretaryDocument(id){
