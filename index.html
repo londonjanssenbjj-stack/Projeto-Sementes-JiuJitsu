@@ -1483,7 +1483,6 @@
               <div><h2 class="section-title">DESENVOLVEDOR</h2></div>
               <i class="icon-gold" data-lucide="shield"></i>
             </div>
-            <p class="body-text" style="margin-bottom:8px"><strong>Desenvolvedor</strong></p>
             <p class="body-text" style="margin-bottom:8px"><strong>Administrador Mestre London</strong></p>
             <p class="small muted">Responsável pelo desenvolvimento e administração do sistema e documentos da Secretaria.</p>
           </article>
@@ -2493,7 +2492,8 @@ async function generateEnrollmentPDF(){
   const filename=`Matricula-${codigoMatricula.replace(/[^a-zA-Z0-9-]/g,"-")}-${safeName}.pdf`;
   const blob=doc.output("blob");
   const dataUri=doc.output("datauristring");
-  downloadBlob(blob,filename);
+  // O documento não é baixado automaticamente. Ele será disponibilizado
+  // no aviso de finalização para o responsável salvar/compartilhar no celular.
   return {blob,filename,codigoMatricula,dataUri};
 }
 
@@ -2597,9 +2597,8 @@ function initEnrollment(){
     // Reserva o número antes da geração para que cadastro, PDF e mensagem usem o mesmo número.
     state.enrollment.documentNumber=nextEnrollmentDocumentNumber();
 
-    // Abre o destino do Mestre London dentro do gesto do botão, evitando bloqueio de pop-up.
-    let masterWindow=null;
-    try{ masterWindow=window.open("about:blank","_blank"); }catch(_){}
+    // O cadastro agora é registrado somente no próprio sistema e na Secretaria.
+    // Nenhuma mensagem é aberta ou enviada ao Mestre London neste momento.
 
     // Sinal sonoro no próprio toque do botão; o iPhone costuma bloquear áudio criado depois de awaits.
     playSuccessSound("finalize");
@@ -2634,7 +2633,6 @@ function initEnrollment(){
       renderSecretaryDocuments();
     }catch(error){
       console.error(error);
-      try{ if(masterWindow && !masterWindow.closed) masterWindow.close(); }catch(_){}
       toast("Não foi possível gerar o documento PDF. Verifique sua conexão e tente novamente.");
       return;
     }
@@ -2643,14 +2641,14 @@ function initEnrollment(){
     successBox.classList.remove("hidden");
     successBox.style.display="block";
     successBox.innerHTML=`
-      <div style="font-size:18px;font-weight:800">🔊 Cadastro realizado.</div>
-      <div style="margin-top:4px">Documento confirmado e cadastrado.</div>
-      <div class="small" style="margin-top:8px">Número do documento: <strong>${escapeHTML(pdf.codigoMatricula)}</strong></div>
-      <div class="small" style="margin-top:4px">O cadastro já foi enviado para a Secretaria deste dispositivo.</div>
-      <div class="notice" style="margin-top:12px">⚠️ <strong>Aviso ao Responsável:</strong> não esqueça de baixar seu Documento gerado e guardar sua via assinada.</div>
-      <div class="action-row" style="margin-top:12px">
+      <div style="font-size:22px;font-weight:900;line-height:1.25">📄 DOCUMENTO GERADO</div>
+      <div class="notice" style="margin-top:14px;font-size:18px;line-height:1.45">
+        <strong>⚠️ AO FINALIZAR O DOCUMENTO, ELE SERÁ GERADO NESTE MOMENTO.</strong><br>
+        Encaminhe para <strong>salvar no seu celular</strong> e, se necessário, compartilhar o documento.
+      </div>
+      <div class="small" style="margin-top:10px">Número do documento: <strong>${escapeHTML(pdf.codigoMatricula)}</strong></div>
+      <div class="action-row" style="margin-top:14px">
         <button class="btn btn-gold" type="button" id="downloadEnrollmentPDF">📥 Baixar Documento</button>
-        <a class="btn" id="manualMasterWhatsApp" target="_blank" rel="noopener">💬 Notificar Mestre London</a>
       </div>`;
 
     // A biometria é liberada imediatamente após o cadastro do documento.
@@ -2664,18 +2662,6 @@ function initEnrollment(){
     $("captureFace").disabled=false;
     $("step2Dot").classList.add("active");
     $("step1Dot").classList.remove("active");
-
-    // Abre WhatsApp somente para o Mestre London, com cadastro + número do documento.
-    const number=normalizeWhatsAppNumber(APP_CONFIG.masterWhatsapp);
-    const masterMessage=encodeURIComponent(buildEnrollmentMessage("master"));
-    const masterUrl=`https://wa.me/${number}?text=${masterMessage}`;
-    const manualWhatsApp=$("manualMasterWhatsApp");
-    if(manualWhatsApp) manualWhatsApp.href=masterUrl;
-    if(masterWindow && !masterWindow.closed){
-      masterWindow.location.href=masterUrl;
-    }else{
-      toast("Cadastro realizado. Toque em 'Notificar Mestre London' para abrir a mensagem.");
-    }
 
     $("downloadEnrollmentPDF")?.addEventListener("click",()=>downloadBlob(dataURItoBlob(pdf.dataUri),pdf.filename));
     renderStudents();
@@ -3633,6 +3619,13 @@ function renderGame(){
 /* -----------------------------
    SECRETARIA
    ----------------------------- */
+function formatDateTimeBR(value){
+  if(!value) return "—";
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"});
+}
+
 function renderSecretaryDocuments(){
   const container=$("secretaryDocumentsList");
   if(!container) return;
@@ -3649,12 +3642,14 @@ function renderSecretaryDocuments(){
     const deleteButton=canDeleteSecretaryDocument()
       ? `<button class="btn" type="button" onclick="deleteSecretaryDocument('${doc.id}')">🗑️ Excluir</button>`
       : "";
-    return `<div class="card" style="margin-bottom:10px">
+    return `<div class="card" style="margin-bottom:14px;padding:22px;min-height:175px">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
         <div>
           <strong style="color:var(--gold2)">${escapeHTML(doc.documentNumber)}</strong>
           <div class="small" style="margin-top:4px">Aluno: <strong>${escapeHTML(doc.studentName)}</strong></div>
           <div class="small muted">Responsável: ${escapeHTML(doc.guardianName)} • Data: ${escapeHTML(formatDate(doc.date))}</div>
+          <div style="margin-top:7px;color:#8ff0ad;font-weight:800">✓ CADASTRO REALIZADO</div>
+          <div class="small muted">Dia e hora do cadastro: <strong>${escapeHTML(formatDateTimeBR(doc.createdAt || doc.date))}</strong></div>
           <div class="small muted">Arquivo: ${escapeHTML(doc.filename)}</div>
         </div>
         <div class="action-row">
@@ -3882,7 +3877,12 @@ function generateReport(){
           h1{color:#8c6a15}
           table{border-collapse:collapse;width:100%}
           th,td{border:1px solid #ccc;padding:8px;text-align:left}
-        </style>
+        
+    /* V10 — finalização: documento para salvar/compartilhar e aviso de cadastro na Secretaria */
+    #enrollmentSuccess{font-size:17px;line-height:1.45;}
+    #enrollmentSuccess .notice{border-width:2px;}
+    #secretaryDocumentsList > .card{min-height:175px;padding:22px;}
+</style>
       </head>
       <body>
         <h1>Projeto Sementes — ${escapeHTML(type)}</h1>
@@ -4101,8 +4101,8 @@ NOTAS DE IMPLEMENTAÇÃO PARA PRODUÇÃO
 5. ASSINATURA E PDF
    A assinatura é desenhada no canvas e convertida para PNG.
    O navegador gera uma cópia PDF da matrícula com os dados e a assinatura.
-   O arquivo é baixado localmente e pode ser compartilhado pelo recurso nativo
-   do dispositivo quando disponível. Para armazenamento/auditoria definitiva,
+   O documento é disponibilizado pelo botão de download após a finalização e
+   pode ser salvo/compartilhado pelo recurso nativo do dispositivo quando disponível. Para armazenamento/auditoria definitiva,
    utilizar backend seguro.
 
 6. WHATSAPP
