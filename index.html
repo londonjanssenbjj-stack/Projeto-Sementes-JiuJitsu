@@ -2502,34 +2502,35 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   };
   const rule=(x1,y1,x2,y2,color="#222",width=1)=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();};
   const box=(x,y,w,h,fill="#fff",stroke="#aeb7bf")=>{ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.strokeRect(x,y,w,h);};
-  const section=(title,y)=>{box(M,y,CW,31,light,"#aeb7bf");text(title,M+9,y+21,14,true,navy);return y+45;};
-  const field=(x,y,label,value,width)=>{text(label+":",x,y,11,true,gray);text(value||"",x+ctx.measureText(label+":").width+8,y,11,false,"#111",width-ctx.measureText(label+":").width-8);rule(x,y+6,x+width,y+6,"#777",.8);};
+  const section=(title,y)=>{box(M,y,CW,29,light,"#aeb7bf");text(title,M+9,y+20,13,true,navy,CW-18);return y+40;};
+  const field=(x,y,label,value,width)=>{const labelW=ctx.measureText(label+":").width;text(label+":",x,y,11,true,gray);text(value||"",x+labelW+8,y,11,false,"#111",width-labelW-8);rule(x,y+10,x+width,y+10,"#777",.8);};
 
-  // Cabeçalho — baseado visualmente no modelo fornecido.
+  // Cabeçalho — reproduzindo o padrão visual do documento enviado: logo centralizada,
+  // identificação institucional centralizada e número do documento no canto superior direito.
   let logoEl=[...document.images].find(el=>(el.getAttribute("src")||"").includes(APP_CONFIG.logo));
   if(logoEl && logoEl.complete && logoEl.naturalWidth){
-    try{ctx.drawImage(logoEl, M+8, 24, 112, 112);}catch(_){ }
+    try{ctx.drawImage(logoEl, W/2-58, 18, 116, 116);}catch(_){ }
   }
-  text("PROJETO SOCIAL \"SEMENTES\"",250,48,25,true,"#111");
-  text("JIU-JITSU",485,78,21,true,"#111");
-  text("IGREJA DO EVANGELHO",430,106,18,true,"#111");
-  text("QUADRANGULAR – GUAICURUS",390,130,18,true,"#111");
-  text(`DOCUMENTO Nº ${codigoMatricula}`,925,55,15,true,"#111",260);
-  rule(M,154,R,154,"#555",1.4);
-  text("TERMO ÚNICO DE INSCRIÇÃO, AUTORIZAÇÃO E RESPONSABILIDADE",M,190,22,true,"#111",CW);
+  text("PROJETO SOCIAL \"SEMENTES\"",W/2-180,154,22,true,"#111",360);
+  text("JIU-JITSU",W/2-55,181,18,true,"#111",110);
+  text("IGREJA DO EVANGELHO",W/2-115,207,16,true,"#111",230);
+  text("QUADRANGULAR – GUAICURUS",W/2-155,229,16,true,"#111",310);
+  text(`DOCUMENTO Nº ${codigoMatricula}`,925,45,14,true,"#111",260);
+  rule(M,250,R,250,"#555",1.4);
+  text("TERMO ÚNICO DE INSCRIÇÃO, AUTORIZAÇÃO E RESPONSABILIDADE",M,283,20,true,"#111",CW);
 
-  let y=220;
+  let y=310;
   y=section("1. IDENTIFICAÇÃO DO(A) ALUNO(A) – MENOR",y);
   field(M+8,y,"Nome completo",esc(e.student?.name),570);
   field(650,y,"Data de nascimento",fmtDate(e.student?.birth),260); y+=42;
   field(M+8,y,"Escola",esc(e.student?.school),570);
   field(650,y,"Bairro",esc(e.student?.neighborhood),260); y+=42;
-  field(M+8,y,"Endereço",esc(e.student?.address),902); y+=48;
+  field(M+8,y,"Endereço",esc(e.student?.address),902); y+=42;
 
   y=section("2. IDENTIFICAÇÃO DO RESPONSÁVEL LEGAL",y);
   field(M+8,y,"Nome completo",esc(e.guardian?.name),570);
   field(650,y,"Contato/Whatsapp",esc(e.guardian?.phone),260); y+=42;
-  field(M+8,y,"CIN/RG",esc(e.guardian?.cinRg||e.guardian?.cin||e.guardian?.document),902); y+=48;
+  field(M+8,y,"CIN/RG",esc(e.guardian?.cinRg||e.guardian?.cin||e.guardian?.document),902); y+=42;
 
   y=section("3. AUTORIZAÇÃO E CIÊNCIA",y);
   y+=text("Eu, acima identificado(a), na qualidade de responsável legal, AUTORIZO o(a) menor a participar gratuitamente das atividades de Jiu-Jitsu do Projeto Social “Sementes”. Declaro estar ciente de que a modalidade envolve atividade física e contato corporal próprios do esporte, assumindo o compromisso de informar à coordenação qualquer condição de saúde, limitação, alergia, uso de medicamento ou alteração que possa interferir na participação.",M+8,y,13,false,"#111",CW-16)+12;
@@ -2552,8 +2553,16 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
     text(label,x+120,yy,11,false,"#111",390);
   };
   rows.forEach(r=>{choice(M+8,y,r[0],r[1]);choice(650,y,r[2],r[3]);y+=30;});
-  text("Se SIM ou NÃO, especifique:",M+8,y,11,true,gray); y+=20; rule(M+8,y,R-8,y,"#777",.8); y+=24; rule(M+8,y,R-8,y,"#777",.8); y+=34;
-  if(esc(health.details)) { text(esc(health.details),M+8,y,11,false,"#111",CW-16); y+=30; }
+  // Campo de especificação: o texto digitado fica diretamente nas linhas destinadas
+  // à resposta, e não abaixo delas. Quando houver texto longo, ele ocupa até duas linhas.
+  text("Se SIM ou NÃO, especifique:",M+8,y,11,true,gray); y+=19;
+  const detailLines=wrap(esc(health.details)||"",CW-20,"11px Arial, sans-serif").slice(0,2);
+  for(let i=0;i<2;i++){
+    const lineY=y+i*23;
+    if(detailLines[i]) text(detailLines[i],M+8,lineY,11,false,"#111",CW-20);
+    rule(M+8,lineY+5,R-8,lineY+5,"#777",.8);
+  }
+  y+=55;
 
   y=section("5. SEGURANÇA, RESPONSABILIDADE E ATENDIMENTO",y);
   y+=text("Declaro que as informações prestadas são verdadeiras e comprometo-me a comunicar qualquer alteração de saúde. Autorizo a equipe responsável a prestar os primeiros cuidados e, em situação de urgência ou emergência, acionar serviço especializado e/ou SAMU, quando necessário. O presente termo não afasta responsabilidades legais decorrentes de dolo, culpa, negligência, imprudência ou imperícia.",M+8,y,12.5,false,"#111",CW-16)+10;
