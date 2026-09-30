@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <!-- V28 — logo visível nas telas e usada como ícone do aplicativo -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#121212">
@@ -12,6 +13,7 @@
   <meta name="apple-mobile-web-app-title" content="Projeto Sementes">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" sizes="180x180" href="app-icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="app-icon-192.png">
   <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
   <title>Projeto Sementes — Jiu-Jitsu</title>
 
@@ -617,7 +619,6 @@
     .audit-item strong{display:block;margin-bottom:4px;}
 </style>
   <link rel="icon" type="image/png" href="favicon-64.png">
-  <link rel="apple-touch-icon" href="favicon-64.png">
 </head>
 
 <body>
@@ -630,7 +631,7 @@
     <div class="login-wrap">
       <div class="logo-box">
         <img id="loginLogo"
-             src="logo-projeto-sementes-512.png"
+             src="app-icon-512.png"
              alt="Brasão oficial do Projeto Sementes"
              onerror="this.style.display='none'">
       </div>
@@ -699,7 +700,7 @@
       <div class="container">
         <div class="topbar-inner">
           <div class="brand-mini">
-            <img src="logo-projeto-sementes-512.png" alt="Projeto Sementes"
+            <img id="brandLogo" src="app-icon-512.png" alt="Projeto Sementes"
                  onerror="this.style.display='none'">
             <strong>PROJETO SEMENTES</strong>
           </div>
@@ -731,7 +732,7 @@
            ===================================================== -->
       <section id="homePage" class="page active">
         <div class="home-brand-logo" aria-label="Logo do Projeto Sementes">
-          <img src="logo-projeto-sementes-512.png" alt="Projeto Social Sementes — IEQ Guaicurus Jiu-Jitsu">
+          <img id="homeLogo" src="app-icon-512.png" alt="Projeto Social Sementes — IEQ Guaicurus Jiu-Jitsu">
         </div>
         <h1 class="page-title">Bem-vindo à família Sementes</h1>
         <p class="page-sub">Disciplina, valores cristãos, jiu-jitsu e fortalecimento das famílias.</p>
@@ -5005,7 +5006,20 @@ function resetInactivityTimer(){
 }
 for(const evt of ["click","pointerdown","keydown","touchstart"]){document.addEventListener(evt,resetInactivityTimer,{passive:true});}
 
+
+function restoreProjectLogos(){
+  const src = (typeof APP_CONFIG !== "undefined" && APP_CONFIG.logo)
+    ? APP_CONFIG.logo
+    : "app-icon-512.png";
+
+  ["loginLogo","brandLogo","homeLogo"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.src = src;
+  });
+}
+
 document.addEventListener("DOMContentLoaded",()=>{
+  restoreProjectLogos();
   registerPWA();
   loadState();
   seedState();
@@ -5028,8 +5042,9 @@ NOTAS DE IMPLEMENTAÇÃO PARA PRODUÇÃO
 ===============================================================================
 
 1. LOGO
-   Coloque "logo_projeto_sementes.png" na mesma pasta deste index.html.
-   A especificação original prevê o arquivo vindo do repositório.
+   A logo usada na tela de acesso, no cabeçalho e na tela inicial é carregada
+   a partir da logo incorporada na configuração do aplicativo. Os arquivos de ícone
+   também usam a mesma logo para instalação como PWA.
 
 2. AUTENTICAÇÃO
    O login acima é apenas uma demonstração local.
