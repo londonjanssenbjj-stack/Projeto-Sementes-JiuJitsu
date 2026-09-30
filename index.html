@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#121212">
   <meta name="description" content="Projeto Sementes Jiu-Jitsu — aplicativo de gestão, matrícula, frequência, fé e jornada bíblica.">
+  <meta name="referrer" content="no-referrer">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Projeto Sementes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="app-icon-180.png">
   <title>Projeto Sementes — Jiu-Jitsu</title>
 
   <!-- FONTES -->
@@ -589,6 +596,22 @@
     input[type="email"], input[type="password"], input[type="date"], input[type="datetime-local"], input[type="number"], input[type="time"]{ text-transform:none; }
     .game-stage-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #6c551e;border-radius:999px;background:#17130b;color:var(--gold2);font-weight:800;font-size:11px;}
     .tatame-student-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+
+    /* V22 — identidade do cabeçalho */
+    .brand-mini{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:150px;text-align:center;}
+    .brand-mini img{width:54px;height:54px;object-fit:contain;background:transparent;display:block;}
+    .brand-mini strong{font-size:11px;letter-spacing:1.1px;white-space:nowrap;}
+    @media (max-width:720px){.brand-mini img{width:46px;height:46px}.brand-mini strong{font-size:9px;}}
+
+    /* V22 — frequência mensal */
+    .frequency-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px;}
+    .frequency-month{font-weight:800;color:var(--gold2);text-transform:capitalize;}
+    .frequency-good{color:#8ff0ad;font-weight:800;}
+
+    /* V22 — auditoria */
+    .audit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;}
+    .audit-item{padding:13px;border:1px solid #3a3a3a;border-radius:12px;background:#151515;}
+    .audit-item strong{display:block;margin-bottom:4px;}
 </style>
   <link rel="icon" type="image/png" href="logo_projeto_sementes_sem_fundo.png">
   <link rel="apple-touch-icon" href="logo_projeto_sementes_sem_fundo.png">
@@ -710,6 +733,21 @@
         </div>
         <h1 class="page-title">Bem-vindo à família Sementes</h1>
         <p class="page-sub">Disciplina, valores cristãos, jiu-jitsu e fortalecimento das famílias.</p>
+        <article class="card wide gold-border" style="margin-bottom:14px">
+          <div class="card-header">
+            <div>
+              <h2 class="section-title">PROJETO VOLUNTÁRIO E SEM FINS LUCRATIVOS</h2>
+              <span class="small muted">Uma iniciativa social da IEQ Guaicurus</span>
+            </div>
+            <i class="icon-gold" data-lucide="heart-handshake"></i>
+          </div>
+          <p class="body-text" style="margin-bottom:0">
+            O <strong>Projeto Sementes</strong> é um trabalho voluntário e sem fins lucrativos,
+            realizado para servir crianças, adolescentes, jovens e suas famílias por meio do
+            esporte, da disciplina e dos valores cristãos. Se você sentir no coração o desejo de
+            realizar uma doação para apoiar o projeto, <strong>procure os encarregados do Projeto Sementes</strong>.
+          </p>
+        </article>
         <div class="bento">
 
           <article class="card wide gold-border">
@@ -1251,7 +1289,7 @@
            ===================================================== -->
       <section id="tatamePage" class="page">
         <h1 class="page-title">Tatame</h1>
-        <p class="page-sub">Painel operacional de chamada • Terça e quinta • 19h às 20h30.</p>
+        <p class="page-sub">Painel operacional de chamada • Terça e quinta • 19h às 20h30. <strong>Sincronizado com Alunos.</strong></p>
 
         <div class="card">
           <div class="stats" style="margin-bottom:16px">
@@ -1314,17 +1352,49 @@
            ===================================================== -->
       <section id="frequencyPage" class="page">
         <h1 class="page-title">Frequência</h1>
-        <p class="page-sub">Histórico consolidado de presenças do projeto.</p>
+        <p class="page-sub">Registro mensal de presença alimentado automaticamente pela chamada do Tatame.</p>
+
+        <div class="card" style="margin-bottom:14px">
+          <div class="form-grid">
+            <div class="field">
+              <label>Mês de referência</label>
+              <input id="frequencyMonth" class="input" type="month">
+            </div>
+            <div class="field">
+              <label>Aulas realizadas no mês</label>
+              <input id="frequencyClassDays" class="input" value="0" disabled>
+            </div>
+            <div class="field">
+              <label>Aulas realizadas até hoje</label>
+              <input id="frequencyClassDaysAll" class="input" value="0" disabled>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-header">
+            <div><h2 class="section-title">RESUMO DO MÊS</h2><span id="frequencyMonthLabel" class="frequency-month"></span></div>
+            <i class="icon-gold" data-lucide="calendar-check-2"></i>
+          </div>
+          <div id="frequencySummary" class="frequency-summary"></div>
+        </div>
 
         <div class="card">
-          <div class="action-row" style="margin-bottom:14px">
-            <button class="btn" id="frequencyExport">Exportar CSV</button>
-            <button class="btn" id="frequencyRefresh">Atualizar</button>
+          <div class="card-header">
+            <div><h2 class="section-title">FREQUÊNCIA DE CADA ALUNO</h2><span class="small muted">Presenças registradas no Tatame</span></div>
+            <i class="icon-gold" data-lucide="users-round"></i>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>Data</th><th>Aluno</th><th>Faixa</th><th>Origem</th><th>Status</th></tr>
+                <tr>
+                  <th>Aluno</th>
+                  <th>Faixa</th>
+                  <th>Aulas no mês</th>
+                  <th>Presenças</th>
+                  <th>Frequência</th>
+                  <th>Presenças até hoje</th>
+                </tr>
               </thead>
               <tbody id="frequencyTable"></tbody>
             </table>
@@ -1554,6 +1624,24 @@
               <button class="btn" id="deleteAccessBtn" type="button">🗑️ Excluir Acesso</button>
             </div>
             <p class="small muted" style="margin-top:10px">Estas operações são liberadas exclusivamente para o Administrador Mestre London.</p>
+          </article>
+
+          <article class="card wide gold-border">
+            <div class="card-header">
+              <div><h2 class="section-title">CHECKLIST DE SEGURANÇA</h2><span class="small muted">Verificação do aplicativo atual</span></div>
+              <i class="icon-gold" data-lucide="shield-check"></i>
+            </div>
+            <div class="audit-grid">
+              <div class="audit-item"><strong>✅ Controle de permissões</strong><span class="small muted">O cliente aplica verificações de papel e fluxo; na produção, a autorização deve ser validada também no servidor.</span></div>
+              <div class="audit-item"><strong>✅ Sessão</strong><span class="small muted">Sessão curta e encerramento manual; a versão PWA pode ser configurada para expirar por inatividade.</span></div>
+              <div class="audit-item"><strong>⚠️ Dados sensíveis</strong><span class="small muted">O armazenamento no navegador serve apenas para protótipo. Dados de menores, saúde e biometria devem ficar em backend seguro.</span></div>
+              <div class="audit-item"><strong>⚠️ Senhas</strong><span class="small muted">Não é seguro manter senhas reais no HTML. Em produção, use autenticação no servidor e hash forte de senhas.</span></div>
+              <div class="audit-item"><strong>⚠️ Biometria</strong><span class="small muted">A câmera funciona no dispositivo. Armazenamento ou comparação biométrica deve usar backend, criptografia, controle de acesso e retenção definida.</span></div>
+              <div class="audit-item"><strong>✅ Limitação de tentativas</strong><span class="small muted">Tentativas de login inválidas entram em bloqueio progressivo local para reduzir ataques de força bruta triviais.</span></div>
+              <div class="audit-item"><strong>✅ Reautenticação para ações críticas</strong><span class="small muted">Exclusão de cadastro, exclusão de acesso e geração de novos acessos exigem nova confirmação administrativa.</span></div>
+              <div class="audit-item"><strong>✅ PWA/HTTPS</strong><span class="small muted">A instalação como aplicativo usa manifest e deve ser publicada em HTTPS.</span></div>
+              <div class="audit-item"><strong>✅ Proteção de saída</strong><span class="small muted">Música, câmera e elementos temporários são encerrados ao trocar de fluxo ou sair quando suportado pelo navegador.</span></div>
+            </div>
           </article>
 
           <article class="card wide">
@@ -2100,70 +2188,57 @@ function canEditStudent(){
    AUTH DEMO
    ----------------------------- */
 function loginDemo(login,password){
-  const normalized = login.trim().toLowerCase();
+  if(loginLocked()) return false;
+  const normalized=String(login??"").trim().toLowerCase();
+  const rawPassword=String(password??"");
 
+  // Acessos criados pelo Administrador Mestre London.
+  const storedAccess=Array.isArray(state.accesses)
+    ? state.accesses.find(a=>
+        String(a.login||"").trim().toLowerCase()===normalized &&
+        String(a.password ?? a.accessPassword ?? "")===rawPassword &&
+        a.active!==false
+      )
+    : null;
+
+  if(storedAccess){
+    state.user={
+      id:storedAccess.id,
+      name:storedAccess.name,
+      role:storedAccess.role,
+      studentId:storedAccess.studentId||null
+    };
+    sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    clearFailedLogins();
+    return true;
+  }
+
+  // Acesso mestre de contingência configurado no aplicativo.
   if(
-    (normalized === APP_CONFIG.demoMasterLogin.toLowerCase() ||
-     normalized === APP_CONFIG.masterName.toLowerCase() ||
-     normalized === APP_CONFIG.masterDisplayName.toLowerCase()) &&
-    password === APP_CONFIG.demoMasterPassword
+    (normalized===APP_CONFIG.demoMasterLogin.toLowerCase() ||
+     normalized===APP_CONFIG.masterName.toLowerCase() ||
+     normalized===APP_CONFIG.masterDisplayName.toLowerCase()) &&
+    rawPassword===APP_CONFIG.demoMasterPassword
   ){
-    state.user = {
+    state.user={
       id:"master-demo",
       name:APP_CONFIG.masterName,
       email:APP_CONFIG.masterEmail,
-      role:"master"
+      role:"master",
+      studentId:null
     };
-    localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    clearFailedLogins();
     return true;
   }
 
-  // Acessos de responsáveis cadastrados no próprio perfil do aluno.
-  const guardianStudent = state.students.find(s =>
-    s.accessLogin &&
-    s.accessPassword &&
-    String(s.accessLogin).trim().toLowerCase() === normalized &&
-    String(s.accessPassword) === password
-  );
-  if(guardianStudent){
-    state.user = {
-      id:"guardian-"+guardianStudent.id,
-      name:guardianStudent.guardian || guardianStudent.name,
-      role:"guardian",
-      studentId:guardianStudent.id
-    };
-    localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-    return true;
-  }
-
-  /*
-    Usuários demonstrativos adicionais.
-    Em produção, devem ser substituídos pelo backend.
-  */
-  if(normalized === "pastor@sementes.local" && password === "demo"){
-    state.user = {id:"pastor-demo",name:"Pastor Joel",role:"pastor"};
-    localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-    return true;
-  }
-
-  if(normalized === "diretoria@sementes.local" && password === "demo"){
-    state.user = {id:"director-demo",name:"Diretoria",role:"director"};
-    localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-    return true;
-  }
-
-  if(normalized === "responsavel@sementes.local" && password === "demo"){
-    state.user = {id:"guardian-demo",name:"Responsável",role:"guardian",studentId:state.students[0]?.id};
-    localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-    return true;
-  }
-
+  registerFailedLogin();
   return false;
 }
 
 function restoreSession(){
   try{
-    const session = JSON.parse(localStorage.getItem(STORAGE_KEYS.session));
+    const session = JSON.parse(sessionStorage.getItem(STORAGE_KEYS.session) || localStorage.getItem(STORAGE_KEYS.session));
     if(session && session.role){
       state.user = session;
       showApp();
@@ -2198,11 +2273,13 @@ function showApp(){
   }
 }
 
-function logout(){
+function logout(silent=false){
+  sessionStorage.removeItem(STORAGE_KEYS.session);
   localStorage.removeItem(STORAGE_KEYS.session);
   state.user = null;
+  clearTimeout(inactivityTimer);
   showLogin();
-  toast("Sessão encerrada.");
+  if(!silent) toast("Sessão encerrada.");
 }
 
 /* -----------------------------
@@ -3504,22 +3581,61 @@ function addQuickStudent(e){
    FREQUENCY
    ----------------------------- */
 function renderFrequency(){
-  const rows=[...state.attendance].sort((a,b)=>b.date.localeCompare(a.date));
+  const monthInput=$("frequencyMonth");
+  const currentMonth=todayISO().slice(0,7);
+  if(monthInput && !monthInput.value) monthInput.value=currentMonth;
+  const selectedMonth=monthInput?.value || currentMonth;
+
+  const monthDates=new Set(
+    state.attendance
+      .filter(a=>String(a.date||"").slice(0,7)===selectedMonth)
+      .map(a=>a.date)
+  );
+  const allDates=new Set(
+    state.attendance
+      .filter(a=>String(a.date||"")<=todayISO())
+      .map(a=>a.date)
+  );
+
+  const label=monthLabel(selectedMonth);
+  if($("frequencyMonthLabel")) $("frequencyMonthLabel").textContent=label;
+  if($("frequencyClassDays")) $("frequencyClassDays").value=String(monthDates.size);
+  if($("frequencyClassDaysAll")) $("frequencyClassDaysAll").value=String(allDates.size);
+
+  const students=sortedStudents();
+  let totalMonthlyPresences=0;
+  let totalAllPresences=0;
+
+  const rows=students.map(s=>{
+    const monthly=state.attendance.filter(a=>a.studentId===s.id && String(a.date||"").slice(0,7)===selectedMonth).length;
+    const all=state.attendance.filter(a=>a.studentId===s.id && String(a.date||"")<=todayISO()).length;
+    totalMonthlyPresences+=monthly;
+    totalAllPresences+=all;
+    const pct=monthDates.size?Math.round(monthly/monthDates.size*100):0;
+    return {s,monthly,all,pct};
+  });
+
+  if($("frequencySummary")){
+    const active=students.length;
+    const avg=active?Math.round(totalMonthlyPresences/active*10)/10:0;
+    $("frequencySummary").innerHTML=`
+      <div class="card stat"><span>Alunos acompanhados</span><strong>${active}</strong></div>
+      <div class="card stat"><span>Presenças no mês</span><strong>${totalMonthlyPresences}</strong></div>
+      <div class="card stat"><span>Presenças acumuladas</span><strong>${totalAllPresences}</strong></div>
+      <div class="card stat"><span>Média de presenças/aluno</span><strong>${avg}</strong></div>`;
+  }
 
   $("frequencyTable").innerHTML=rows.length
-    ? rows.map(a=>{
-      const s=state.students.find(x=>x.id===a.studentId);
-      return `
-        <tr>
-          <td>${formatDate(a.date)}</td>
-          <td>${escapeHTML(a.studentName||s?.name||"")}</td>
-          <td>${escapeHTML(s?.belt||"Branca")}</td>
-          <td>${escapeHTML(a.source||"")}</td>
-          <td>${s?.status==="complete"?"🟢":"🔴"}</td>
-        </tr>
-      `;
-    }).join("")
-    : `<tr><td colspan="5" class="muted">Nenhuma presença registrada.</td></tr>`;
+    ? rows.map(({s,monthly,all,pct})=>`
+      <tr>
+        <td>${escapeHTML(s.name)}</td>
+        <td>${escapeHTML(s.belt||"Branca")}</td>
+        <td>${monthDates.size}</td>
+        <td>${monthly}</td>
+        <td><strong>${pct}%</strong></td>
+        <td>${all}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="6" class="muted">Nenhum aluno cadastrado.</td></tr>`;
 }
 
 function exportFrequencyCSV(){
@@ -4195,14 +4311,16 @@ function renderMasterManagement(){
       : `<option value="">Nenhum cadastro</option>`;
   }
   if(da){
-    const accesses=state.accesses.length ? state.accesses : state.students.filter(s=>s.accessLogin).map(s=>({id:"legacy-"+s.id,studentId:s.id,name:s.guardian||s.name,login:s.accessLogin,role:"guardian"}));
+    const legacy=state.students.filter(s=>s.accessLogin).map(s=>({id:"legacy-"+s.id,studentId:s.id,name:s.guardian||s.name,login:s.accessLogin,role:"guardian",password:s.accessPassword||""}));
+    const accesses=[...state.accesses,...legacy.filter(l=>!state.accesses.some(a=>a.studentId===l.studentId && a.role==="guardian"))];
     da.innerHTML=accesses.length
-      ? accesses.map(a=>`<option value="${escapeHTML(a.id)}">${escapeHTML(a.name)} — ${escapeHTML(a.login)}</option>`).join("")
+      ? accesses.map(a=>`<option value="${escapeHTML(a.id)}">${escapeHTML(a.name)} — ${escapeHTML(a.login)} — ${escapeHTML(a.role||"")}</option>`).join("")
       : `<option value="">Nenhum acesso</option>`;
   }
 }
 
 function deleteStudentAdmin(){
+  if(!requireMasterReauth("excluir o cadastro do aluno")) return;
   if(!isMaster()){ toast("Somente o Administrador Mestre London pode excluir cadastros."); return; }
   const id=$("deleteStudentSelect")?.value;
   const student=state.students.find(s=>s.id===id);
@@ -4218,6 +4336,7 @@ function deleteStudentAdmin(){
 }
 
 function deleteAccessAdmin(){
+  if(!requireMasterReauth("excluir o acesso")) return;
   if(!isMaster()){ toast("Somente o Administrador Mestre London pode excluir acessos."); return; }
   const id=$("deleteAccessSelect")?.value;
   const access=state.accesses.find(a=>a.id===id);
@@ -4237,7 +4356,15 @@ function deleteAccessAdmin(){
   toast("Acesso excluído.");
 }
 
+function requireMasterReauth(action){
+  if(!isMaster()){toast("Somente o Administrador Mestre London pode realizar esta ação.");return false;}
+  const entered=prompt(`Confirme a senha do Administrador Mestre London para ${action}:`);
+  if(entered!==APP_CONFIG.demoMasterPassword){toast("Autenticação administrativa recusada.");return false;}
+  return true;
+}
+
 function generateAccess(){
+  if(!requireMasterReauth("gerar um novo acesso")) return;
   if(!isMaster()){
     toast("Somente o Administrador Mestre London pode gerar novos acessos.");
     return;
@@ -4249,17 +4376,28 @@ function generateAccess(){
       <form id="accessForm">
         <div class="form-grid">
           <div class="field">
-            <label>Nome</label>
-            <input id="newAccessName" class="input" required>
+            <label>Nome exibido</label>
+            <input id="newAccessName" class="input" required placeholder="Nome completo">
           </div>
           <div class="field">
-            <label>Login (Nome do Responsável)</label>
-            <input id="newAccessLogin" class="input" required placeholder="Nome completo do responsável">
+            <label>Login (nome de acesso)</label>
+            <input id="newAccessLogin" class="input" required placeholder="Nome do responsável ou nome de acesso">
           </div>
-          <input type="hidden" id="newAccessRole" value="guardian">
+          <div class="field">
+            <label>Tipo de acesso</label>
+            <select id="newAccessRole" class="select">
+              <option value="guardian">Responsável</option>
+              <option value="director">Diretoria</option>
+              <option value="master">Administrador Mestre London</option>
+            </select>
+          </div>
           <div class="field">
             <label>Senha provisória</label>
-            <input id="newAccessPassword" class="input" required>
+            <input id="newAccessPassword" class="input" type="password" minlength="6" required>
+          </div>
+          <div class="field" id="accessStudentWrap">
+            <label>Aluno vinculado (Responsável)</label>
+            <select id="newAccessStudent" class="select"></select>
           </div>
         </div>
         <button class="btn btn-gold" type="submit">Criar acesso</button>
@@ -4267,30 +4405,89 @@ function generateAccess(){
     `
   );
 
+  const studentSelect=$("newAccessStudent");
+  if(studentSelect){
+    studentSelect.innerHTML=state.students.length
+      ? state.students.map(st=>`<option value="${escapeHTML(st.id)}">${escapeHTML(st.name)} — ${escapeHTML(st.guardian||"SEM RESPONSÁVEL")}</option>`).join("")
+      : `<option value="">Nenhum aluno cadastrado</option>`;
+  }
+
+  const roleSelect=$("newAccessRole");
+  const loginInput=$("newAccessLogin");
+  const updateRoleUI=()=>{
+    const isGuardian=roleSelect?.value==="guardian";
+    if($("accessStudentWrap")) $("accessStudentWrap").style.display=isGuardian?"block":"none";
+    if(isGuardian && studentSelect?.value){
+      const student=state.students.find(st=>st.id===studentSelect.value);
+      if(student?.guardian && (!loginInput.value.trim() || loginInput.dataset.autofill==="1")){
+        loginInput.value=student.guardian.toUpperCase();
+        loginInput.dataset.autofill="1";
+      }
+    }
+  };
+  roleSelect?.addEventListener("change",updateRoleUI);
+  studentSelect?.addEventListener("change",updateRoleUI);
+  loginInput?.addEventListener("input",()=>{ loginInput.dataset.autofill="0"; });
+  updateRoleUI();
+
   setTimeout(()=>{
     $("accessForm")?.addEventListener("submit",e=>{
       e.preventDefault();
-      const name=$("newAccessName").value.trim();
-      const login=($("newAccessLogin").value.trim() || name);
+      const name=$("newAccessName").value.trim().toUpperCase();
       const role=$("newAccessRole").value;
+      const studentId=role==="guardian" ? ($("newAccessStudent")?.value||null) : null;
+      const login=(role==="guardian"
+        ? ($("newAccessLogin").value.trim() || (state.students.find(st=>st.id===studentId)?.guardian||""))
+        : $("newAccessLogin").value.trim()
+      ).toUpperCase();
       const password=$("newAccessPassword").value;
-      if(role==="guardian"){
-        const student=state.students.find(s=>s.guardian?.toLowerCase()===name.toLowerCase());
-        if(student){
-          student.accessLogin=login;
-          student.accessPassword=password;
-          state.accesses=state.accesses.filter(a=>a.studentId!==student.id);
-          state.accesses.push({id:"access-"+Date.now(),studentId:student.id,name,login,role:"guardian"});
-          saveState();
-          closeModal();
-          toast("Acesso do responsável criado e vinculado ao aluno.");
-          return;
-        }
-        toast("Não encontrei um aluno com esse responsável. Cadastre o aluno primeiro.");
+
+      if(!name || !login || password.length<6){
+        toast("Preencha nome, login e uma senha de pelo menos 6 caracteres.");
         return;
       }
+
+      const duplicate=state.accesses.find(a=>String(a.login||"").trim().toLowerCase()===login.toLowerCase() && a.id!==(state.user?.id||""));
+      if(duplicate){
+        toast("Este login já está cadastrado. Use outro login.");
+        return;
+      }
+
+      let student=null;
+      if(role==="guardian"){
+        student=state.students.find(st=>st.id===studentId);
+        if(!student){
+          toast("Selecione o aluno que será vinculado ao responsável.");
+          return;
+        }
+        student.accessLogin=login;
+        student.accessPassword=password;
+      }
+
+      // Permite ao Mestre London criar ou renovar seu próprio acesso.
+      const old=state.accesses.find(a=>a.role===role && a.login===login);
+      if(old){
+        old.name=name; old.password=password; old.accessPassword=password; old.studentId=studentId; old.active=true;
+      }else{
+        state.accesses.push({
+          id:`access-${Date.now()}`,
+          name,
+          login,
+          password,
+          accessPassword:password,
+          role,
+          studentId,
+          active:true,
+          createdAt:new Date().toISOString(),
+          createdBy:state.user?.name||APP_CONFIG.masterName
+        });
+      }
+
+      saveState();
       closeModal();
-      toast("Acesso de diretoria registrado localmente. Em produção, use o provedor de autenticação.");
+      renderMasterManagement();
+      renderStudents();
+      toast(`Acesso de ${role==="guardian"?"responsável":role==="director"?"diretoria":"Administrador Mestre London"} criado com sucesso.`);
     });
   },0);
 }
@@ -4409,6 +4606,16 @@ function generateReport(){
    ----------------------------- */
 function initEvents(){
 
+  document.addEventListener("input",e=>{
+    const el=e.target;
+    if(!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) return;
+    if(el.type==="password" || el.type==="email" || el.type==="date" || el.type==="datetime-local" || el.type==="time" || el.type==="number") return;
+    if(el.matches("input[type='search']")) return;
+    const start=el.selectionStart, end=el.selectionEnd;
+    el.value=el.value.toLocaleUpperCase("pt-BR");
+    try{el.setSelectionRange(start,end);}catch(_){ }
+  });
+
   $("loginForm").addEventListener("submit",e=>{
     e.preventDefault();
 
@@ -4488,8 +4695,7 @@ function initEvents(){
 
   $("quickStudentForm").addEventListener("submit",addQuickStudent);
 
-  $("frequencyExport").addEventListener("click",exportFrequencyCSV);
-  $("frequencyRefresh").addEventListener("click",renderFrequency);
+  $("frequencyMonth")?.addEventListener("change",renderFrequency);
 
   $("sendPrayer").addEventListener("click",sendPrayer);
   $("baptismBtn").addEventListener("click",baptism);
@@ -4554,7 +4760,41 @@ document.addEventListener("change",e=>{
   if(el instanceof HTMLTextAreaElement || ["text","tel","search"].includes(type)) el.value=el.value.toLocaleUpperCase("pt-BR");
 });
 
+/* -----------------------------
+   SEGURANÇA E PWA
+   ----------------------------- */
+function registerPWA(){
+  if("serviceWorker" in navigator && location.protocol==="https:"){
+    navigator.serviceWorker.register("service-worker.js").catch(()=>{});
+  }
+}
+
+const SECURITY_POLICY={maxFailedLogins:5,lockoutMs:5*60*1000,inactivityMs:30*60*1000};
+let inactivityTimer=null;
+function readSecurityState(){try{return JSON.parse(sessionStorage.getItem("sementes_security")||"{}");}catch(_){return {};}}
+function writeSecurityState(v){try{sessionStorage.setItem("sementes_security",JSON.stringify(v));}catch(_){}}
+function loginLocked(){
+  const st=readSecurityState();
+  const until=Number(st.lockedUntil||0);
+  if(until>Date.now()) return true;
+  if(until) writeSecurityState({failures:0,lockedUntil:0});
+  return false;
+}
+function registerFailedLogin(){
+  const st=readSecurityState();
+  const failures=Number(st.failures||0)+1;
+  writeSecurityState({failures,lockedUntil:failures>=SECURITY_POLICY.maxFailedLogins?Date.now()+SECURITY_POLICY.lockoutMs:0});
+}
+function clearFailedLogins(){writeSecurityState({failures:0,lockedUntil:0});}
+function resetInactivityTimer(){
+  clearTimeout(inactivityTimer);
+  if(!state.user) return;
+  inactivityTimer=setTimeout(()=>{if(state.user) logout(true);},SECURITY_POLICY.inactivityMs);
+}
+for(const evt of ["click","pointerdown","keydown","touchstart"]){document.addEventListener(evt,resetInactivityTimer,{passive:true});}
+
 document.addEventListener("DOMContentLoaded",()=>{
+  registerPWA();
   loadState();
   seedState();
   restoreGame();
