@@ -2464,177 +2464,147 @@ function pdfRect(x,y,w,h){ return `${x} ${y} ${w} ${h} re S`; }
 
 async function buildLegalEnrollmentPDF(e,codigoMatricula){
   /*
-   * Modelo oficial solicitado pelo responsável, baseado fielmente no arquivo
-   * "Termo_Autorizacao_Projeto_Sementes(2).docx" enviado para esta matrícula.
-   * O PDF é gerado localmente em uma única página A4, com numeração única e logo.
+   * V15: geração do documento por uma página rasterizada em Canvas.
+   * Isso elimina a possibilidade de o PDF ficar em branco por falha de
+   * montagem de fontes/objetos PDF. O conteúdo segue o modelo enviado.
    */
-  const logoData=await getProjectLogoDataURL();
-  const logo=await imageDataUrlToJpeg(logoData,520,180);
-  const signature=await imageDataUrlToJpeg(e.signature,520,160);
+  const W=1240, H=1754;
+  const canvas=document.createElement("canvas");
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext("2d",{alpha:false});
+  if(!ctx) throw new Error("Não foi possível criar o documento gráfico.");
+  ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,W,H);
 
-  const W=595,H=842,M=34,R=W-M,CW=W-2*M;
-  const enc=s=>{
-    const map={"€":128,"‚":130,"ƒ":131,"„":132,"…":133,"†":134,"‡":135,"ˆ":136,"‰":137,"Š":138,"‹":139,"Œ":140,"Ž":142,"‘":145,"’":146,"“":147,"”":148,"•":149,"–":150,"—":151,"˜":152,"™":153,"š":154,"›":155,"œ":156,"ž":158,"Ÿ":159};
-    return Array.from(String(s??"")).map(ch=>{const cp=ch.charCodeAt(0);return cp<=255?cp:(map[ch]??63);});
+  const M=52, R=W-M, CW=W-2*M;
+  const navy="#20364d", light="#e8edf1", gold="#b28a25", gray="#333333";
+  const esc=v=>String(v??"").trim();
+  const fmtDate=v=>{
+    if(!v) return "";
+    const d=new Date(v+(/T/.test(v)?"":"T00:00:00"));
+    if(Number.isNaN(d.getTime())) return String(v);
+    return d.toLocaleDateString("pt-BR");
   };
-  const text=(font,size,x,y,t)=>`BT /${font} ${size} Tf 1 0 0 1 ${x.toFixed(2)} ${y.toFixed(2)} Tm (${enc(t).map(b=>String.fromCharCode(b)).join("").replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)")}) Tj ET`;
-  const line=(x1,y1,x2,y2)=>`${x1} ${y1} m ${x2} ${y2} l S`;
-  const rect=(x,y,w,h,fill=false)=>`${x} ${y} ${w} ${h} re ${fill?"f":"S"}`;
-  const wrap=(str,maxChars)=>{
-    const words=String(str??"").trim().split(/\s+/).filter(Boolean); const out=[]; let cur="";
-    for(const w of words){ const n=cur?cur+" "+w:w; if(cur&&n.length>maxChars){out.push(cur);cur=w;}else cur=n; }
-    if(cur)out.push(cur); return out;
+  const wrap=(str,maxWidth,font)=>{
+    ctx.font=font;
+    const words=String(str??"").trim().split(/\s+/).filter(Boolean), lines=[]; let line="";
+    for(const word of words){
+      const test=line?line+" "+word:word;
+      if(line && ctx.measureText(test).width>maxWidth){lines.push(line);line=word;} else line=test;
+    }
+    if(line) lines.push(line);
+    return lines;
   };
-  const c=[]; const push=v=>c.push(v);
-  const navy="0.10 0.20 0.30";
-  const light="0.91 0.93 0.95";
-  const black="0 0 0";
+  const text=(str,x,y,size=13,bold=false,color="#000",maxWidth=Infinity)=>{
+    ctx.fillStyle=color; ctx.font=`${bold?"700":"400"} ${size}px Arial, sans-serif`;
+    const lines=wrap(str,maxWidth,ctx.font);
+    lines.forEach((ln,i)=>ctx.fillText(ln,x,y+i*size*1.22));
+    return lines.length*size*1.22;
+  };
+  const rule=(x1,y1,x2,y2,color="#222",width=1)=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();};
+  const box=(x,y,w,h,fill="#fff",stroke="#aeb7bf")=>{ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.strokeRect(x,y,w,h);};
+  const section=(title,y)=>{box(M,y,CW,31,light,"#aeb7bf");text(title,M+9,y+21,14,true,navy);return y+45;};
+  const field=(x,y,label,value,width)=>{text(label+":",x,y,11,true,gray);text(value||"",x+ctx.measureText(label+":").width+8,y,11,false,"#111",width-ctx.measureText(label+":").width-8);rule(x,y+6,x+width,y+6,"#777",.8);};
 
-  // Header, closely matching the supplied one-page document.
-  if(logo){
-    const iw=64, ih=Math.max(44,Math.min(64,Math.round(iw*(logo.height/logo.width))));
-    push(`q ${iw} 0 0 ${ih} ${M+2} ${H-92} cm /ImLogo Do Q`);
+  // Cabeçalho — baseado visualmente no modelo fornecido.
+  let logoEl=[...document.images].find(el=>(el.getAttribute("src")||"").includes(APP_CONFIG.logo));
+  if(logoEl && logoEl.complete && logoEl.naturalWidth){
+    try{ctx.drawImage(logoEl, M+8, 24, 112, 112);}catch(_){ }
   }
-  push(text("F2",10.2,132,H-50,"PROJETO SOCIAL \"SEMENTES\""));
-  push(text("F2",9.2,224,H-64,"JIU-JITSU"));
-  push(text("F2",8.2,176,H-79,"IGREJA DO EVANGELHO"));
-  push(text("F2",8.2,176,H-91,"QUADRANGULAR - GUAICURUS"));
-  push(text("F2",7.2,R-116,H-52,`DOCUMENTO Nº ${codigoMatricula}`));
-  push("0.15 0.15 0.15 RG");
-  push(line(M,H-108,R,H-108));
+  text("PROJETO SOCIAL \"SEMENTES\"",250,48,25,true,"#111");
+  text("JIU-JITSU",485,78,21,true,"#111");
+  text("IGREJA DO EVANGELHO",430,106,18,true,"#111");
+  text("QUADRANGULAR – GUAICURUS",390,130,18,true,"#111");
+  text(`DOCUMENTO Nº ${codigoMatricula}`,925,55,15,true,"#111",260);
+  rule(M,154,R,154,"#555",1.4);
+  text("TERMO ÚNICO DE INSCRIÇÃO, AUTORIZAÇÃO E RESPONSABILIDADE",M,190,22,true,"#111",CW);
 
-  let y=H-128;
-  push(text("F2",11,M+84,y,"TERMO ÚNICO DE INSCRIÇÃO, AUTORIZAÇÃO E RESPONSABILIDADE"));
-  y-=25;
+  let y=220;
+  y=section("1. IDENTIFICAÇÃO DO(A) ALUNO(A) – MENOR",y);
+  field(M+8,y,"Nome completo",esc(e.student?.name),570);
+  field(650,y,"Data de nascimento",fmtDate(e.student?.birth),260); y+=42;
+  field(M+8,y,"Escola",esc(e.student?.school),570);
+  field(650,y,"Bairro",esc(e.student?.neighborhood),260); y+=42;
+  field(M+8,y,"Endereço",esc(e.student?.address),902); y+=48;
 
-  function section(title){
-    push(`${light} rg`); push(rect(M,y-16,CW,18,true)); push(`${navy} rg`);
-    push(text("F2",7.6,M+5,y-11,title)); push(`${black} rg`); y-=24;
-  }
-  function label(x,yy,name,value,offset=68){
-    push(text("F2",6.5,x,yy,name+":")); push(text("F1",6.6,x+offset,yy,String(value||"")));
-  }
-  function fieldLine(x,yy,w){push(line(x,yy,x+w,yy));}
-  function paragraph(str,size=6.45,leading=8.6,maxChars=132){
-    for(const ln of wrap(str,maxChars)){push(text("F1",size,M+5,y,ln));y-=leading;}
-    y-=2;
-  }
+  y=section("2. IDENTIFICAÇÃO DO RESPONSÁVEL LEGAL",y);
+  field(M+8,y,"Nome completo",esc(e.guardian?.name),570);
+  field(650,y,"Contato/Whatsapp",esc(e.guardian?.phone),260); y+=42;
+  field(M+8,y,"CIN/RG",esc(e.guardian?.cinRg||e.guardian?.cin||e.guardian?.document),902); y+=48;
 
-  section("1. IDENTIFICAÇÃO DO(A) ALUNO(A) – MENOR");
-  label(M+5,y,"Nome completo",e.student?.name||"",92); fieldLine(M+97,y-2,250); label(365,y,"Data de nascimento",formatDate(e.student?.birth)||"",84); y-=16;
-  label(M+5,y,"Escola",e.student?.school||"",55); fieldLine(M+60,y-2,230); label(300,y,"Bairro",e.student?.neighborhood||"",42); fieldLine(342,y-2,95); y-=16;
-  label(M+5,y,"Endereço",e.student?.address||"",55); fieldLine(M+60,y-2,360); y-=22;
+  y=section("3. AUTORIZAÇÃO E CIÊNCIA",y);
+  y+=text("Eu, acima identificado(a), na qualidade de responsável legal, AUTORIZO o(a) menor a participar gratuitamente das atividades de Jiu-Jitsu do Projeto Social “Sementes”. Declaro estar ciente de que a modalidade envolve atividade física e contato corporal próprios do esporte, assumindo o compromisso de informar à coordenação qualquer condição de saúde, limitação, alergia, uso de medicamento ou alteração que possa interferir na participação.",M+8,y,13,false,"#111",CW-16)+12;
 
-  section("2. IDENTIFICAÇÃO DO RESPONSÁVEL LEGAL");
-  label(M+5,y,"Nome completo",e.guardian?.name||"",92); fieldLine(M+97,y-2,250); label(365,y,"Contato/Whatsapp",e.guardian?.phone||"",82); y-=16;
-  label(M+5,y,"CIN/RG",e.guardian?.cinRg||e.guardian?.cinRg||e.guardian?.cin||e.guardian?.document||"",50); fieldLine(M+55,y-2,382); y-=22;
-
-  section("3. AUTORIZAÇÃO E CIÊNCIA");
-  paragraph("Eu, acima identificado(a), na qualidade de responsável legal, AUTORIZO o(a) menor a participar gratuitamente das atividades de Jiu-Jitsu do Projeto Social “Sementes”. Declaro estar ciente de que a modalidade envolve atividade física e contato corporal próprios do esporte, assumindo o compromisso de informar à coordenação qualquer condição de saúde, limitação, alergia, uso de medicamento ou alteração que possa interferir na participação.",6.25,8.4,137);
-
-  section("4. DECLARAÇÃO DE SAÚDE");
-  push(text("F2",6.2,M+5,y,"Assinale uma opção em cada item:")); y-=13;
+  y=section("4. DECLARAÇÃO DE SAÚDE",y);
+  text("Assinale uma opção em cada item:",M+8,y,12,true,gray); y+=28;
   const health=e.health||{};
-  const healthRows=[
-    ["Problema cardíaco/pressão",health.heart],
-    ["Asma/problema respiratório",health.respiratory],
-    ["Lesão óssea/muscular/articular",health.injury],
-    ["Uso contínuo de medicamento",health.medication],
-    ["Alergia",health.allergy],
-    ["Desmaio/tontura durante exercício",health.fainting]
+  const rows=[
+    ["Problema cardíaco/pressão",health.heart,"Asma/problema respiratório",health.respiratory],
+    ["Lesão óssea/muscular/articular",health.injury,"Uso contínuo de medicamento",health.medication],
+    ["Alergia",health.allergy,"Desmaio/tontura durante exercício",health.fainting]
   ];
-  const drawChoice=(x,yy,labelText,val)=>{
-    const checked=String(val||"").toUpperCase()==="SIM";
-    push("0.15 0.15 0.15 RG"); push(rect(x,yy-7,7,7,false));
-    if(checked){push(text("F2",6.4,x+1,yy-6,"X"));}
-    push(text("F1",6.1,x+10,yy-5,"SIM"));
-    const x2=x+38; push(rect(x2,yy-7,7,7,false));
-    if(!checked && String(val||"").toUpperCase()==="NÃO"){push(text("F2",6.4,x2+1,yy-6,"X"));}
-    push(text("F1",6.1,x2+10,yy-5,"NÃO"));
-    push(text("F1",6.15,x2+34,yy-5,labelText));
+  const choice=(x,yy,label,val)=>{
+    const v=String(val||"").toUpperCase();
+    ctx.strokeStyle="#555";ctx.lineWidth=1;
+    ctx.strokeRect(x,yy-13,14,14); if(v==="SIM"){text("X",x+2,yy-1,12,true,"#111");}
+    text("SIM",x+20,yy,11,false,"#111");
+    ctx.strokeRect(x+62,yy-13,14,14); if(v==="NÃO"||v==="NAO"){text("X",x+64,yy-1,12,true,"#111");}
+    text("NÃO",x+82,yy,11,false,"#111");
+    text(label,x+120,yy,11,false,"#111",390);
   };
-  const col1=M+5,col2=300;
-  drawChoice(col1,y,"Problema cardíaco/pressão",health.heart); drawChoice(col2,y,"Asma/problema respiratório",health.respiratory); y-=15;
-  drawChoice(col1,y,"Lesão óssea/muscular/articular",health.injury); drawChoice(col2,y,"Uso contínuo de medicamento",health.medication); y-=15;
-  drawChoice(col1,y,"Alergia",health.allergy); drawChoice(col2,y,"Desmaio/tontura durante exercício",health.fainting); y-=17;
-  push(text("F2",6.2,M+5,y,"Se SIM ou NÃO, especifique:")); y-=11;
-  fieldLine(M+5,y,CW-10); y-=11; fieldLine(M+5,y,CW-10); y-=18;
-  const details=health.details||"";
-  if(details){push(text("F1",6.0,M+8,y,wrap(details,140)[0]||"")); y-=9;}
+  rows.forEach(r=>{choice(M+8,y,r[0],r[1]);choice(650,y,r[2],r[3]);y+=30;});
+  text("Se SIM ou NÃO, especifique:",M+8,y,11,true,gray); y+=20; rule(M+8,y,R-8,y,"#777",.8); y+=24; rule(M+8,y,R-8,y,"#777",.8); y+=34;
+  if(esc(health.details)) { text(esc(health.details),M+8,y,11,false,"#111",CW-16); y+=30; }
 
-  section("5. SEGURANÇA, RESPONSABILIDADE E ATENDIMENTO");
-  paragraph("Declaro que as informações prestadas são verdadeiras e comprometo-me a comunicar qualquer alteração de saúde. Autorizo a equipe responsável a prestar os primeiros cuidados e, em situação de urgência ou emergência, acionar serviço especializado e/ou SAMU, quando necessário. O presente termo não afasta responsabilidades legais decorrentes de dolo, culpa, negligência, imprudência ou imperícia.",6.15,8.2,139);
+  y=section("5. SEGURANÇA, RESPONSABILIDADE E ATENDIMENTO",y);
+  y+=text("Declaro que as informações prestadas são verdadeiras e comprometo-me a comunicar qualquer alteração de saúde. Autorizo a equipe responsável a prestar os primeiros cuidados e, em situação de urgência ou emergência, acionar serviço especializado e/ou SAMU, quando necessário. O presente termo não afasta responsabilidades legais decorrentes de dolo, culpa, negligência, imprudência ou imperícia.",M+8,y,12.5,false,"#111",CW-16)+10;
 
-  section("6. USO DE IMAGEM, VOZ E NOME");
-  const imageAuthorized=e.imageConsent!==false;
-  push("0.15 0.15 0.15 RG"); push(rect(M+5,y-7,7,7,false)); if(imageAuthorized) push(text("F2",6.4,M+6,y-6,"X"));
-  push(text("F2",6.1,M+15,y-5,"AUTORIZO"));
-  push(rect(M+73,y-7,7,7,false)); if(!imageAuthorized) push(text("F2",6.4,M+74,y-6,"X"));
-  push(text("F2",6.1,M+83,y-5,"NÃO AUTORIZO"));
-  push(text("F1",6.0,M+148,y-5,"a captação e utilização gratuita da imagem, voz e nome do(a) menor em fotos e vídeos realizados no Projeto,")); y-=10;
-  push(text("F1",6.0,M+5,y,"exclusivamente para divulgação institucional, registro e prestação de contas, inclusive em canais oficiais da Igreja/Projeto e redes sociais, sem")); y-=9;
-  push(text("F1",6.0,M+5,y,"finalidade comercial, observada a legislação aplicável.")); y-=20;
+  y=section("6. USO DE IMAGEM, VOZ E NOME",y);
+  const auth=e.imageConsent!==false;
+  text(`${auth?"☒":"☐"} AUTORIZO    ${!auth?"☒":"☐"} NÃO AUTORIZO`,M+8,y,12,true,"#111");
+  y+=22;
+  y+=text("a captação e utilização gratuita da imagem, voz e nome do(a) menor em fotos e vídeos realizados nas atividades do Projeto, exclusivamente para divulgação institucional, registro e prestação de contas, inclusive em canais oficiais da Igreja/Projeto e redes sociais, sem finalidade comercial, observada a legislação aplicável.",M+8,y,12,false,"#111",CW-16)+12;
 
-  section("7. DADOS PESSOAIS E COMUNICAÇÃO");
-  paragraph("Autorizo o tratamento dos dados fornecidos neste termo na medida necessária à inscrição, organização das atividades, contato com o responsável, segurança do(a) aluno(a) e cumprimento de obrigações legais, observados os direitos previstos na legislação aplicável.",6.15,8.2,139);
+  y=section("7. DADOS PESSOAIS E COMUNICAÇÃO",y);
+  y+=text("Autorizo o tratamento dos dados fornecidos neste termo na medida necessária à inscrição, organização das atividades, contato com o responsável, segurança do(a) aluno(a) e cumprimento de obrigações legais, observados os direitos previstos na legislação aplicável.",M+8,y,12,false,"#111",CW-16)+10;
 
-  section("8. DECLARAÇÃO FINAL");
-  paragraph("Declaro que li, compreendi e concordo com as condições acima, autorizando a participação do(a) menor no Projeto Social “Sementes”, conforme as informações e opções assinaladas neste documento.",6.15,8.2,139);
+  y=section("8. DECLARAÇÃO FINAL",y);
+  y+=text("Declaro que li, compreendi e concordo com as condições acima, autorizando a participação do(a) menor no Projeto Social “Sementes”, conforme as informações e opções assinaladas neste documento.",M+8,y,12,false,"#111",CW-16)+20;
 
-  y-=4;
-  push(text("F1",6.4,M+5,y,`Corumbá – MS, ______ de __________________________________________ de ${new Date(e.date||todayISO()).getFullYear()}.`));
-  y-=28;
-  push(line(M+110,y,M+350,y));
-  push(text("F2",6.5,M+188,y-11,"ASSINATURA DO RESPONSÁVEL LEGAL"));
-  if(signature){
-    const sw=190, sh=Math.min(42,Math.round(sw*(signature.height/signature.width)));
-    push(`q ${sw} 0 0 ${sh} ${M+120} ${y+4} cm /ImSig Do Q`);
-  }
+  text(`Corumbá – MS, ${new Date().toLocaleDateString("pt-BR")}.`,M+8,y,12,false,"#111"); y+=48;
+  // assinatura
+  const sig=e.signature;
+  if(sig){try{const im=new Image();await new Promise(res=>{im.onload=()=>res();im.onerror=()=>res();im.src=sig;});if(im.naturalWidth){ctx.drawImage(im,M+180,y-42,360,70);}}catch(_){} }
+  rule(M+170,y+25,M+530,y+25,"#333",1);
+  text("ASSINATURA DO RESPONSÁVEL LEGAL",M+240,y+45,11,true,"#111");
 
-  // Footer
-  push("0.15 0.15 0.15 RG"); push(line(M,38,R,38));
-  push(text("F1",5.8,M,25,`IEQ Guaicurus • Projeto Social “Sementes” • Jiu-Jitsu • Corumbá – MS`));
-  push(text("F1",5.8,R-75,25,`Documento nº ${codigoMatricula} • 1/1`));
+  rule(M,1680,R,1680,"#777",1);
+  text("IEQ Guaicurus • Projeto Social “Sementes” • Jiu-Jitsu • Corumbá – MS",M,1710,10,false,"#555");
+  text(`Documento nº ${codigoMatricula} • 1/1`,R-180,1710,10,false,"#555");
 
-  // Build PDF objects.
-  const encoder=new TextEncoder(); const objects=[];
-  const add=o=>{objects.push(o);return objects.length;};
-  const catalogNum=add(""); const pagesNum=add("");
-  const font1=add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
-  const font2=add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
-  let logoNum=null,sigNum=null;
-  if(logo) logoNum=add("__LOGO__");
-  if(signature) sigNum=add("__SIG__");
-  const resImages=[]; if(logoNum) resImages.push(`/ImLogo ${logoNum} 0 R`); if(sigNum) resImages.push(`/ImSig ${sigNum} 0 R`);
-  const resources=`<< /Font << /F1 ${font1} 0 R /F2 ${font2} 0 R >> ${resImages.length?`/XObject << ${resImages.join(" ")} >>`:""} >>`;
-  const stream=enc(c.join("\n"));
-  const contentNum=add(`<< /Length ${stream.length} >>\nstream\nBINARY_CONTENT\nendstream`);
-  const pageNum=add(`<< /Type /Page /Parent ${pagesNum} 0 R /MediaBox [0 0 ${W} ${H}] /Resources ${resources} /Contents ${contentNum} 0 R >>`);
-  objects[catalogNum-1]=`<< /Type /Catalog /Pages ${pagesNum} 0 R >>`;
-  objects[pagesNum-1]=`<< /Type /Pages /Kids [${pageNum} 0 R] /Count 1 >>`;
-
-  const imageBytes={}; if(logo) imageBytes.logo=pdfJpegBytes(logo.dataUrl); if(signature) imageBytes.sig=pdfJpegBytes(signature.dataUrl);
-  if(logoNum) objects[logoNum-1]=`<< /Type /XObject /Subtype /Image /Width ${logo.width} /Height ${logo.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.logo.length} >>\nstream\nBINARY_LOGO\nendstream`;
-  if(sigNum) objects[sigNum-1]=`<< /Type /XObject /Subtype /Image /Width ${signature.width} /Height ${signature.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.sig.length} >>\nstream\nBINARY_SIG\nendstream`;
-
+  const jpegData=canvas.toDataURL("image/jpeg",0.94);
+  const b64=jpegData.split(",")[1];
+  const bin=atob(b64); const imgBytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)imgBytes[i]=bin.charCodeAt(i);
+  const encBytes=s=>new TextEncoder().encode(s);
+  const objects=[]; const add=o=>{objects.push(o);return objects.length;};
+  const catalog=add(""); const pages=add("");
+  const imgObj=add(`<< /Type /XObject /Subtype /Image /Width ${W} /Height ${H} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imgBytes.length} >>\nstream\nBINIMG\nendstream`);
+  const content=encBytes("q\n595 0 0 842 0 0 cm\n/Im0 Do\nQ\n");
+  const contentObj=add(`<< /Length ${content.length} >>\nstream\nBINCONTENT\nendstream`);
+  const page=add(`<< /Type /Page /Parent ${pages} 0 R /MediaBox [0 0 595 842] /Resources << /ProcSet [/PDF /ImageC] /XObject << /Im0 ${imgObj} 0 R >> >> /Contents ${contentObj} 0 R >>`);
+  objects[catalog-1]=`<< /Type /Catalog /Pages ${pages} 0 R >>`;
+  objects[pages-1]=`<< /Type /Pages /Kids [${page} 0 R] /Count 1 >>`;
   const chunks=[]; const offsets=[0]; let total=0;
-  const header=enc("%PDF-1.4\n%\xFF\xFF\xFF\xFF\n"); chunks.push(header); total=header.length;
+  const header=encBytes("%PDF-1.4\n%\xFF\xFF\xFF\xFF\n");chunks.push(header);total=header.length;
   for(let i=0;i<objects.length;i++){
     offsets[i+1]=total; const obj=objects[i];
-    let bin=null,marker=null;
-    if(obj.includes("BINARY_CONTENT")){bin=stream;marker="BINARY_CONTENT";}
-    else if(obj.includes("BINARY_LOGO")){bin=imageBytes.logo;marker="BINARY_LOGO";}
-    else if(obj.includes("BINARY_SIG")){bin=imageBytes.sig;marker="BINARY_SIG";}
-    if(bin){
-      const before=enc(`${i+1} 0 obj\n`+obj.slice(0,obj.indexOf(marker)));
-      const after=enc(obj.slice(obj.indexOf(marker)+marker.length)+"\nendobj\n");
-      chunks.push(before,bin,after); total+=before.length+bin.length+after.length;
-    }else{const b=enc(`${i+1} 0 obj\n${obj}\nendobj\n`);chunks.push(b);total+=b.length;}
+    if(obj.includes("BINIMG")){
+      const pre=encBytes(`${i+1} 0 obj\n${obj.slice(0,obj.indexOf("BINIMG"))}`), post=encBytes(obj.slice(obj.indexOf("BINIMG")+7)+"\nendobj\n");chunks.push(pre,imgBytes,post);total+=pre.length+imgBytes.length+post.length;
+    }else if(obj.includes("BINCONTENT")){
+      const pre=encBytes(`${i+1} 0 obj\n${obj.slice(0,obj.indexOf("BINCONTENT"))}`), post=encBytes(obj.slice(obj.indexOf("BINCONTENT")+11)+"\nendobj\n");chunks.push(pre,content,post);total+=pre.length+content.length+post.length;
+    }else{const b=encBytes(`${i+1} 0 obj\n${obj}\nendobj\n`);chunks.push(b);total+=b.length;}
   }
-  const xref=total; let x=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
-  for(let i=1;i<=objects.length;i++) x+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";
-  x+=`trailer\n<< /Size ${objects.length+1} /Root ${catalogNum} 0 R >>\nstartxref\n${xref}\n%%EOF`;
-  chunks.push(enc(x));
+  const xref=total;let x=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;for(let i=1;i<=objects.length;i++)x+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";x+=`trailer\n<< /Size ${objects.length+1} /Root ${catalog} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  chunks.push(encBytes(x));
   return new Blob(chunks,{type:"application/pdf"});
 }
 
