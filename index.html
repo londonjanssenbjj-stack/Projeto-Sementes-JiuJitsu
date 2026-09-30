@@ -447,128 +447,83 @@
     .cell-item{border:1px solid #3b3524;background:#171510;border-radius:14px;padding:14px}
     .cell-item h4{margin:0 0 5px;color:var(--gold2);font-size:13px}
 
-
-    /* ==============================
-       GAME GOSPEL — MOTOR UNIFICADO
-       ============================== */
-    .game-shell{display:grid;gap:14px}
-    .game-hero{overflow:hidden;padding:0;position:relative}
-    .game-sky{
-      min-height:190px;padding:22px;display:flex;align-items:center;gap:18px;
-      background:
-        radial-gradient(circle at 15% 20%,rgba(255,255,255,.5),transparent 13%),
-        radial-gradient(circle at 80% 15%,rgba(255,244,190,.24),transparent 18%),
-        linear-gradient(180deg,#77b8df 0%,#b9dff0 52%,#75a85c 53%,#3e6736 100%);
-      position:relative;color:#132016;overflow:hidden
+    /* GAME */
+    .game-map{display:grid;gap:12px;position:relative}
+    .era{
+      border:1px solid #4b3a13;border-radius:18px;padding:16px;
+      background:linear-gradient(145deg,#231e12,#15130e);
+      position:relative;
     }
-    .game-sky:after{content:"";position:absolute;inset:auto 0 0;height:54px;background:linear-gradient(180deg,transparent,rgba(18,18,18,.18));pointer-events:none}
-    .game-bible{width:86px;height:86px;border-radius:24px;background:linear-gradient(145deg,#8c6a15,#f4d76e);display:grid;place-items:center;font-size:42px;box-shadow:0 12px 28px rgba(0,0,0,.25);z-index:2;flex:0 0 auto}
-    .game-sky>div:last-child{z-index:2}
-    .game-sky h2{color:#17301c!important;margin-bottom:4px}
-    .game-sky p{color:#28412d}
+    .era.locked{opacity:.5;filter:saturate(.5)}
+    .era-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .era h3{font-family:"Bebas Neue";font-size:24px;color:var(--gold2);margin:0}
+    .nodes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+    .node{padding:11px;border-radius:12px;background:#171717;border:1px solid #343434;font-size:10px}
+    .resource-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+    .resource{padding:12px;border:1px solid #3d351f;background:#171510;border-radius:14px;text-align:center}
+    .resource strong{font-family:"Bebas Neue";font-size:28px;color:var(--gold2);display:block}
+    .resource span{font-size:9px;color:#aaa}
+    .quiz-option{width:100%;text-align:left;margin:6px 0}
+    .timer{font-family:"Bebas Neue";font-size:48px;color:var(--gold2);text-align:center}
+
+    /* LOGIN / ÁUDIO */
+    .input-wrap{position:relative}
+    .input-wrap .icon-btn{
+      position:absolute;right:8px;top:50%;transform:translateY(-50%);
+      width:38px;height:38px;border-radius:10px;border:1px solid #3a3a3a;
+      background:#191919;color:#f4d76e;display:grid;place-items:center;
+    }
+    .password-toggle svg{width:18px;height:18px}
+
+    /* GAME PREMIUM */
+    .game-hero{overflow:hidden;padding:0}
+    .game-sky{
+      min-height:150px;padding:22px;display:flex;align-items:center;gap:18px;
+      background:
+        radial-gradient(circle at 20% 20%,rgba(255,255,255,.45),transparent 12%),
+        linear-gradient(180deg,#8fc7e8 0%,#b9dff0 48%,#6ea95d 49%,#416b39 100%);
+      position:relative;color:#132016;
+    }
+    .game-sky:after{
+      content:"";position:absolute;inset:auto 0 0;height:40px;
+      background:linear-gradient(180deg,transparent,rgba(18,18,18,.12));
+    }
+    .game-bible{
+      width:82px;height:82px;border-radius:24px;background:linear-gradient(145deg,#8c6a15,#f4d76e);
+      display:grid;place-items:center;font-size:42px;box-shadow:0 12px 28px rgba(0,0,0,.25);
+      z-index:1;
+    }
+    .game-sky>div:last-child{z-index:1}
     .cloud{position:absolute;width:85px;height:24px;background:rgba(255,255,255,.72);border-radius:30px;filter:blur(.4px)}
     .cloud:before,.cloud:after{content:"";position:absolute;background:inherit;border-radius:50%}
     .cloud:before{width:34px;height:34px;left:18px;top:-14px}.cloud:after{width:42px;height:42px;right:12px;top:-20px}
     .cloud-a{top:22px;right:28px}.cloud-b{top:76px;left:35%;transform:scale(.72)}
 
-    .game-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
-    .game-kpi{padding:12px;border:1px solid #3d351f;background:linear-gradient(145deg,#191711,#12110e);border-radius:15px;text-align:center}
-    .game-kpi strong{font-family:"Bebas Neue";font-size:25px;color:var(--gold2);display:block}
-    .game-kpi span{font-size:9px;color:#aaa}
-    .game-progress{height:8px;background:#292929;border-radius:99px;overflow:hidden;margin-top:7px}
-    .game-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold3),var(--gold2));border-radius:99px;transition:width .35s ease}
-
     .game-map{display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden}
-    .game-map:before{content:"";position:absolute;left:27px;top:20px;bottom:20px;width:4px;background:linear-gradient(#d4af37,#6f8f5d,#4e85a5,#d4af37);border-radius:10px}
-    .era{margin-left:10px;padding:16px 16px 16px 52px;border:1px solid #4b3a13;border-radius:22px;background:linear-gradient(145deg,#231e12,#15130e);position:relative;box-shadow:0 10px 24px rgba(0,0,0,.18);overflow:hidden}
-    .era:before{content:"";position:absolute;left:15px;top:27px;width:28px;height:28px;border-radius:50%;background:linear-gradient(145deg,#f4d76e,#8c6a15);border:3px solid #171717;z-index:2}
-    .era.locked{opacity:.48;filter:saturate(.45)}
-    .era.current{border-color:var(--gold);box-shadow:0 0 26px rgba(212,175,55,.12)}
+    .game-map:before{
+      content:"";position:absolute;left:27px;top:20px;bottom:20px;width:4px;
+      background:linear-gradient(#d4af37,#6f8f5d,#4e85a5,#d4af37);border-radius:10px;
+    }
+    .era{
+      margin-left:10px;padding:16px 16px 16px 48px;border:1px solid #4b3a13;border-radius:22px;
+      background:linear-gradient(145deg,#231e12,#15130e);position:relative;box-shadow:0 10px 24px rgba(0,0,0,.18);
+    }
+    .era:before{
+      content:"";position:absolute;left:15px;top:26px;width:28px;height:28px;border-radius:50%;
+      background:linear-gradient(145deg,#f4d76e,#8c6a15);border:3px solid #171717;z-index:2;
+    }
+    .era.locked{opacity:.5;filter:saturate(.5)}
     .era-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
     .era h3{font-family:"Bebas Neue";font-size:24px;color:var(--gold2);margin:0}
-    .era-scene{height:72px;margin:12px 0;border-radius:14px;border:1px solid #3b3b3b;position:relative;overflow:hidden;display:flex;align-items:flex-end;padding:10px;background:linear-gradient(180deg,#6ea8cc 0 52%,#6b944f 53% 100%)}
-    .era-scene .sun{position:absolute;right:18px;top:12px;width:24px;height:24px;border-radius:50%;background:#ffe9a0;box-shadow:0 0 18px rgba(255,233,160,.5)}
-    .era-scene .mountain{position:absolute;bottom:20px;width:0;height:0;border-left:45px solid transparent;border-right:45px solid transparent;border-bottom:48px solid rgba(42,61,49,.72)}
-    .era-scene .mountain.m2{left:75px;transform:scale(.75)}
-    .era-scene .character-mini{position:absolute;right:34px;bottom:5px;width:58px;height:58px;object-fit:contain;filter:drop-shadow(0 4px 4px rgba(0,0,0,.3))}
-    .nodes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+    .nodes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
     .node{padding:11px;border-radius:14px;background:#171717;border:1px solid #343434;font-size:10px}
-    .node.done{border-color:#276b42;background:rgba(34,197,94,.08)}
-    .node strong{color:#eee}
-
-    .game-mode-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-    .game-mode{padding:12px;border:1px solid #333;border-radius:13px;background:#151515;color:#bbb;text-align:left}
-    .game-mode.active{border-color:var(--gold);background:linear-gradient(145deg,#302712,#19160e);color:#fff}
-    .game-mode strong{display:block;color:var(--gold2);font-size:12px}.game-mode span{display:block;font-size:9px;color:#999;margin-top:3px}
-
-    .quiz-panel{display:grid;gap:12px}
-    .quiz-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-    .quiz-badge{padding:6px 9px;border-radius:999px;background:#25200f;border:1px solid #5a4818;color:var(--gold2);font-size:10px;font-weight:800}
-    .timer{font-family:"Bebas Neue";font-size:46px;color:var(--gold2);text-align:center;line-height:1}
-    .timer.danger{color:#ff8d8d}
-    .question-reference{font-size:10px;color:#9f9f9f;border-left:3px solid var(--gold);padding-left:9px}
-    .quiz-option{width:100%;text-align:left;margin:5px 0;transition:.18s}
+    .quiz-option{width:100%;text-align:left;margin:6px 0;transition:.2s}
     .quiz-option.correct{border-color:#34d399;background:rgba(16,185,129,.18);box-shadow:0 0 22px rgba(16,185,129,.28)}
-    .quiz-option.wrong{border-color:#f59e9e;background:rgba(239,68,68,.15);animation:gameShake .28s linear}
-    .quiz-option:disabled{cursor:default}
-    .quiz-option .option-key{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;margin-right:7px;background:#292929;color:var(--gold2);font-weight:900}
-    .quiz-feedback{padding:12px;border-radius:13px;border:1px solid #353535;background:#141414;line-height:1.6;font-size:12px}
-    .quiz-feedback.good{border-color:#267044;background:rgba(34,197,94,.08)}
-    .quiz-feedback.bad{border-color:#703535;background:rgba(239,68,68,.08)}
-    @keyframes gameShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
-    .particle-pop{animation:gamePop .65s ease-out}
-    @keyframes gamePop{0%{box-shadow:0 0 0 rgba(244,215,110,0)}50%{box-shadow:0 0 32px rgba(244,215,110,.65)}100%{box-shadow:0 0 0 rgba(244,215,110,0)}}
-
-    .character-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
-    .character-card{border:1px solid #303030;background:#151515;border-radius:15px;padding:10px;text-align:center}
-    .character-card img{width:76px;height:76px;object-fit:contain;border-radius:14px;background:#201b11;margin:auto}
-    .character-card.locked img{filter:grayscale(1) brightness(.45)}
-    .character-card strong{display:block;font-size:11px;margin-top:7px;color:#eee}
-    .character-card span{display:block;font-size:9px;color:#999;margin-top:3px}
-
-    .challenge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
-    .challenge{padding:13px;border:1px solid #333;border-radius:15px;background:#151515}
-    .challenge strong{display:block;color:var(--gold2);font-size:12px}.challenge p{font-size:10px;color:#aaa;line-height:1.5;margin:6px 0 10px}
-
-    .leaderboard{display:grid;gap:8px}
-    .leader-row{display:grid;grid-template-columns:34px 1fr auto;gap:9px;align-items:center;padding:10px;border:1px solid #303030;background:#151515;border-radius:13px}
-    .leader-rank{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#282828;color:var(--gold2);font-weight:900}
-    .leader-row.me{border-color:var(--gold);background:linear-gradient(145deg,#251f10,#151515)}
-    .leader-row strong{font-size:12px}.leader-row small{display:block;color:#888;font-size:9px}.leader-xp{font-family:"Bebas Neue";font-size:20px;color:var(--gold2)}
-
-    .achievement-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-    .achievement{padding:10px;border:1px solid #303030;border-radius:13px;background:#151515;text-align:center}
-    .achievement.unlocked{border-color:#6d581b;background:#211b0d}
-    .achievement b{display:block;font-size:20px}.achievement strong{display:block;font-size:10px;margin-top:4px}.achievement span{display:block;color:#888;font-size:8px;margin-top:3px}
-
-    .game-action-row{display:flex;gap:8px;flex-wrap:wrap}
-    .game-mini-note{font-size:10px;color:#888;line-height:1.5}
-
-    /* LOGIN / ÁUDIO */
-    .input-wrap{position:relative}
-    .input-wrap .icon-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:10px;border:1px solid #3a3a3a;background:#191919;color:#f4d76e;display:grid;place-items:center}
-    .password-toggle svg{width:18px;height:18px}
-
-
-    @media(max-width:900px){
-      .game-kpis{grid-template-columns:repeat(3,1fr)}
-      .character-grid{grid-template-columns:repeat(4,1fr)}
-      .game-mode-row{grid-template-columns:repeat(2,1fr)}
-      .challenge-grid{grid-template-columns:repeat(2,1fr)}
-      .achievement-grid{grid-template-columns:repeat(4,1fr)}
-    }
-    @media(max-width:620px){
-      .game-kpis{grid-template-columns:repeat(2,1fr)}
-      .game-sky{min-height:170px;padding:16px}
-      .game-bible{width:68px;height:68px;font-size:32px}
-      .game-sky{gap:12px}
-      .nodes{grid-template-columns:1fr}
-      .character-grid{grid-template-columns:repeat(2,1fr)}
-      .game-mode-row{grid-template-columns:1fr 1fr}
-      .challenge-grid{grid-template-columns:1fr}
-      .achievement-grid{grid-template-columns:repeat(2,1fr)}
-      .timer{font-size:40px}
-    }
+    .quiz-option.wrong{border-color:#f59e9e;background:rgba(239,68,68,.15);animation:shake .28s linear}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+    .timer{font-family:"Bebas Neue";font-size:48px;color:var(--gold2);text-align:center}
+    .particle-pop{animation:particlePop .65s ease-out}
+    @keyframes particlePop{0%{box-shadow:0 0 0 rgba(244,215,110,0)}50%{box-shadow:0 0 32px rgba(244,215,110,.65)}100%{box-shadow:0 0 0 rgba(244,215,110,0)}}
 
     /* SECRETARIA */
     .table-wrap{overflow:auto;border:1px solid #303030;border-radius:14px}
@@ -1423,108 +1378,60 @@
         </div>
       </section>
 
-
       <!-- =====================================================
-           GAME GOSPEL — JORNADA BÍBLICA
+           GAME GOSPEL
            ===================================================== -->
       <section id="gamePage" class="page">
-        <div class="game-shell">
-          <div>
-            <h1 class="page-title">Game Gospel — A Viagem</h1>
-            <p class="page-sub">Uma jornada bíblica com fases, personagens, desafios, recompensas, sons e competição.</p>
-          </div>
+        <h1 class="page-title">Game Gospel — A Viagem</h1>
+        <p class="page-sub">Uma jornada bíblica visual, com fases, desafios, recompensas e coleção de personagens.</p>
 
-          <div class="game-kpis">
-            <div class="game-kpi"><strong id="oilValue">5</strong><span>🏺 Azeite</span></div>
-            <div class="game-kpi"><strong id="coinValue">0</strong><span>💰 Moedas</span></div>
-            <div class="game-kpi"><strong id="streakValue">0</strong><span>🔥 Sequência</span></div>
-            <div class="game-kpi"><strong id="xpValue">0</strong><span>⭐ XP</span></div>
-            <div class="game-kpi"><strong id="levelValue">1</strong><span>🏆 Nível</span></div>
-            <div class="game-kpi"><strong id="questionCountValue">0/5000</strong><span>📖 Perguntas</span></div>
-          </div>
+        <div class="resource-row">
+          <div class="resource"><strong id="oilValue">5</strong><span>🏺 Gotas de Azeite</span></div>
+          <div class="resource"><strong id="coinValue">0</strong><span>💰 Moedas</span></div>
+          <div class="resource"><strong id="streakValue">0</strong><span>🔥 Ofensiva</span></div>
+        </div>
 
-          <div class="card game-hero">
-            <div class="game-sky">
-              <div class="cloud cloud-a"></div><div class="cloud cloud-b"></div>
-              <div class="game-bible">📖</div>
-              <div>
-                <h2 class="section-title">A VIAGEM PELA BÍBLIA</h2>
-                <p class="small">Explore as eras, responda perguntas, desbloqueie personagens e suba no ranking.</p>
-                <div class="game-progress"><i id="gameProgressBar"></i></div>
-                <div class="small" style="margin-top:6px">Progresso da jornada: <strong id="gameProgressText">0%</strong></div>
-              </div>
+        <div class="game-hero card">
+          <div class="game-sky">
+            <div class="cloud cloud-a"></div><div class="cloud cloud-b"></div>
+            <div class="game-bible">📖</div>
+            <div>
+              <h2 class="section-title">A VIAGEM PELA BÍBLIA</h2>
+              <p class="small muted">Toque em uma fase liberada para continuar sua jornada.</p>
             </div>
           </div>
+        </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div><h2 class="section-title">MODO DE JOGO</h2><span class="small muted">Escolha como quer jogar</span></div>
-              <i class="icon-gold" data-lucide="gamepad-2"></i>
-            </div>
-            <div id="gameModeRow" class="game-mode-row">
-              <button class="game-mode active" data-mode="quiz" type="button"><strong>📖 Quiz</strong><span>4 alternativas</span></button>
-              <button class="game-mode" data-mode="truefalse" type="button"><strong>⚖️ Verdadeiro ou Falso</strong><span>Resposta rápida</span></button>
-              <button class="game-mode" data-mode="challenge" type="button"><strong>⚔️ Desafio</strong><span>Tempo + combo</span></button>
-              <button class="game-mode" data-mode="daily" type="button"><strong>🌟 Desafio Diário</strong><span>10 perguntas</span></button>
-            </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-header">
+            <div><h2 class="section-title">MAPA DAS FASES</h2><span class="small muted">Jardim do Éden → Egito → Mar Vermelho → Novo Testamento</span></div>
+            <i class="icon-gold" data-lucide="map"></i>
           </div>
+          <div id="gameMap" class="game-map"></div>
+        </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div><h2 class="section-title">MAPA DA JORNADA</h2><span class="small muted">Desbloqueie uma era concluindo a anterior</span></div>
-              <i class="icon-gold" data-lucide="map"></i>
-            </div>
-            <div id="gameMap" class="game-map"></div>
+        <div class="card">
+          <div class="card-header">
+            <div><h2 class="section-title">DESAFIO</h2><span class="small muted">Responda e receba XP</span></div>
+            <i class="icon-gold" data-lucide="brain"></i>
           </div>
+          <div id="quizBox"></div>
+        </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div><h2 class="section-title">DESAFIO ATUAL</h2><span class="small muted">Perguntas sem repetição rápida</span></div>
-              <i class="icon-gold" data-lucide="brain"></i>
-            </div>
-            <div id="quizBox"></div>
+        <div class="card" style="margin-top:14px">
+          <div class="card-header">
+            <div><h2 class="section-title">ÁLBUM DE DESCOBERTAS</h2><span class="small muted">Conquiste 100% de acertos para desbloquear figuras</span></div>
+            <i class="icon-gold" data-lucide="images"></i>
           </div>
+          <div id="cardsAlbum" class="cell-grid"></div>
+        </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div><h2 class="section-title">DESAFIOS ESPECIAIS</h2><span class="small muted">Complete objetivos para ganhar recompensas</span></div>
-              <i class="icon-gold" data-lucide="swords"></i>
-            </div>
-            <div id="gameChallenges" class="challenge-grid"></div>
+        <div class="card" style="margin-top:14px">
+          <div class="card-header">
+            <div><h2 class="section-title">LIGA DE LÍDERES</h2><span class="small muted">XP acumulado</span></div>
+            <i class="icon-gold" data-lucide="trophy"></i>
           </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div><h2 class="section-title">PERSONAGENS</h2><span class="small muted">Desbloqueie figuras ao avançar</span></div>
-              <i class="icon-gold" data-lucide="users-round"></i>
-            </div>
-            <div id="characterGallery" class="character-grid"></div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div><h2 class="section-title">CONQUISTAS</h2><span class="small muted">Marcos da sua jornada</span></div>
-              <i class="icon-gold" data-lucide="medal"></i>
-            </div>
-            <div id="achievementGrid" class="achievement-grid"></div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div><h2 class="section-title">ÁLBUM DE DESCOBERTAS</h2><span class="small muted">Cards bíblicos colecionáveis</span></div>
-              <i class="icon-gold" data-lucide="images"></i>
-            </div>
-            <div id="cardsAlbum" class="cell-grid"></div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div><h2 class="section-title">RANKING</h2><span class="small muted">Pontuação local do aplicativo</span></div>
-              <i class="icon-gold" data-lucide="trophy"></i>
-            </div>
-            <div id="leagueList" class="leaderboard"></div>
-            <p class="game-mini-note" style="margin-bottom:0;margin-top:10px">O ranking exibido neste HTML é local ao dispositivo. Para competição entre aparelhos, ligue o Game a um backend seguro.</p>
-          </div>
+          <div id="leagueList" class="list"></div>
         </div>
       </section>
 
@@ -1768,18 +1675,6 @@ let state = {
     currentEra: 0,
     currentNode: 0,
     cards: ["Adão"],
-    seenQuestions: [],
-    answeredCount: 0,
-    correctCount: 0,
-    level: 1,
-    mode: "quiz",
-    currentQuestionId: "",
-    currentQuestionAnswered: false,
-    dailyKey: "",
-    dailyIds: [],
-    dailyDone: 0,
-    eraProgress: {},
-    achievements: [],
     lastDay: ""
   }
 };
@@ -1844,235 +1739,143 @@ const networkLeader = {
   phone:"67999195844"
 };
 
-
 const eras = [
-  {id:1,title:"Era 1: Origens e Patriarcas",books:"Gênesis, Jó",icon:"🌿",boss:"José do Egito",card:"Adão",scene:"Éden"},
-  {id:2,title:"Era 2: A Lei e a Libertação",books:"Êxodo, Levítico, Números e Deuteronômio",icon:"🏜️",boss:"Moisés",card:"Moisés",scene:"Egito"},
-  {id:3,title:"Era 3: Conquistas e Juízes",books:"Josué, Juízes e Rute",icon:"⚔️",boss:"Gideão",card:"Josué",scene:"Jericó"},
-  {id:4,title:"Era 4: Reino e Sabedoria",books:"Samuel, Reis, Crônicas, Salmos e Sabedoria",icon:"👑",boss:"Davi",card:"Davi",scene:"Jerusalém"},
-  {id:5,title:"Era 5: Exílio e Profetas",books:"Profetas maiores e menores",icon:"📜",boss:"Daniel",card:"Daniel",scene:"Babilônia"},
-  {id:6,title:"Era 6: Os Evangelhos",books:"Mateus, Marcos, Lucas e João",icon:"✝️",boss:"Jesus",card:"Jesus",scene:"Galileia"},
-  {id:7,title:"Era 7: Igreja Primitiva",books:"Atos e Cartas",icon:"🔥",boss:"Paulo",card:"Pedro",scene:"Jerusalém"},
-  {id:8,title:"Era 8: As Últimas Coisas",books:"Apocalipse",icon:"✨",boss:"João",card:"João",scene:"Patmos"}
+  {
+    id:1,
+    title:"Era 1: Origens e Patriarcas",
+    books:"Gênesis, Jó",
+    icon:"🌍",
+    boss:"José do Egito",
+    card:"Adão",
+    locked:false
+  },
+  {
+    id:2,
+    title:"Era 2: A Lei e a Libertação",
+    books:"Êxodo, Levítico, Números, Deuteronômio",
+    icon:"⚡",
+    boss:"Moisés",
+    card:"Moisés",
+    locked:true
+  },
+  {
+    id:3,
+    title:"Era 3: Conquistas e Juízes",
+    books:"Josué, Juízes, Rute",
+    icon:"⚔️",
+    boss:"Josué",
+    card:"Josué",
+    locked:true
+  },
+  {
+    id:4,
+    title:"Era 4: O Reino e a Sabedoria",
+    books:"1 e 2 Samuel, 1 e 2 Reis, 1 e 2 Crônicas, Salmos, Provérbios, Eclesiastes, Cânticos",
+    icon:"👑",
+    boss:"Davi",
+    card:"Davi",
+    locked:true
+  },
+  {
+    id:5,
+    title:"Era 5: Exílio e Profetas",
+    books:"Isaías, Jeremias, Lamentações, Ezequiel, Daniel + 12 Profetas Menores",
+    icon:"📜",
+    boss:"Daniel",
+    card:"Daniel",
+    locked:true
+  },
+  {
+    id:6,
+    title:"Era 6: Os Evangelhos",
+    books:"Mateus, Marcos, Lucas, João",
+    icon:"✝️",
+    boss:"Jesus",
+    card:"Jesus",
+    locked:true
+  },
+  {
+    id:7,
+    title:"Era 7: A Igreja Primitiva",
+    books:"Atos até Judas",
+    icon:"🔥",
+    boss:"Igreja Primitiva",
+    card:"Pedro",
+    locked:true
+  },
+  {
+    id:8,
+    title:"Era 8: As Últimas Coisas",
+    books:"Apocalipse",
+    icon:"👁️",
+    boss:"As Últimas Coisas",
+    card:"João",
+    locked:true
+  }
 ];
 
-const gameQuestionSeeds = [
-["Em Gênesis 1, o que Deus criou no primeiro dia?","A luz","O firmamento","Os animais","O homem","Gênesis 1:3-5","Gênesis",1],
-["Quais eram os quatro rios associados ao Éden?","Pisom, Giom, Tigre e Eufrates","Nilo, Jordão, Arnom e Jaboque","Tigre, Jordão, Nilo e Quisom","Eufrates, Nilo, Arnom e Quidrom","Gênesis 2:10-14","Gênesis",1],
-["Quantos anos tinha Abraão quando Isaque nasceu?","100 anos","75 anos","90 anos","120 anos","Gênesis 21:5","Gênesis",1],
-["Qual era o nome da esposa de Isaque?","Rebeca","Raquel","Lia","Sara","Gênesis 24:67","Gênesis",1],
-["Quem era o irmão gêmeo de Jacó?","Esaú","José","Benjamim","Ismael","Gênesis 25:24-26","Gênesis",1],
-["Qual era o nome da mãe de José?","Raquel","Lia","Rebeca","Miriã","Gênesis 30:22-24","Gênesis",1],
-["Quantos filhos de Jacó deram origem às tribos de Israel?","12","10","7","14","Gênesis 35:22-26","Gênesis",1],
-["Quem interpretou os sonhos de Faraó no Egito?","José","Moisés","Arão","Daniel","Gênesis 41:14-16","Gênesis",1],
-["Qual era a profissão de Abel?","Pastor de ovelhas","Agricultor","Pescador","Carpinteiro","Gênesis 4:2","Gênesis",1],
-["Quem construiu a arca antes do dilúvio?","Noé","Abraão","Moisés","Josué","Gênesis 6:13-14","Gênesis",1],
-["Qual foi o sinal da aliança de Deus com Noé após o dilúvio?","O arco-íris","A circuncisão","As tábuas de pedra","A coluna de fogo","Gênesis 9:12-17","Gênesis",1],
-["Qual cidade teve sua torre associada à confusão das línguas?","Babel","Jericó","Nínive","Betel","Gênesis 11:1-9","Gênesis",1],
-["Quem era o pai de Isaque?","Abraão","Jacó","Ismael","Ló","Gênesis 21:1-3","Gênesis",1],
-["Quem era o irmão de José que ficou no Egito com ele?","Benjamim","Esaú","Arão","Levi","Gênesis 43:29","Gênesis",1],
-["Quem foi vendido pelos próprios irmãos e levado ao Egito?","José","Davi","Samuel","Daniel","Gênesis 37:28","Gênesis",1],
-["Qual foi o nome dado ao filho de Abraão e Sara?","Isaque","Jacó","Esaú","José","Gênesis 21:3","Gênesis",1],
-["Quem lutou com Jacó durante a noite?","Um homem","Um rei egípcio","Um sacerdote","Um filisteu","Gênesis 32:24","Gênesis",1],
-["Qual era o novo nome dado a Jacó?","Israel","Judá","Edom","Betel","Gênesis 32:28","Gênesis",1],
-["Quem foi a mulher de Ló que olhou para trás?","A Bíblia não registra seu nome","Mical","Zípora","Diná","Gênesis 19:26","Gênesis",1],
-["Quem foi chamado amigo de Deus?","Abraão","Saul","Eli","Herodes","Tiago 2:23","Gênesis",1],
-["Quem conduziu os israelitas para fora do Egito?","Moisés","Josué","Calebe","Arão","Êxodo 3:10","Êxodo",2],
-["Quem era o irmão de Moisés?","Arão","Josué","Eleazar","Calebe","Êxodo 4:14","Êxodo",2],
-["Qual era o nome da irmã de Moisés?","Miriã","Débora","Rute","Ana","Êxodo 15:20","Êxodo",2],
-["Qual mar foi atravessado pelos israelitas na saída do Egito?","Mar Vermelho","Mar Morto","Mar da Galileia","Mar Mediterrâneo","Êxodo 14:21-22","Êxodo",2],
-["Quantas pragas atingiram o Egito antes do êxodo?","10","7","12","3","Êxodo 7–12","Êxodo",2],
-["Qual foi a última praga do Egito?","Morte dos primogênitos","Trevas","Granizo","Gafanhotos","Êxodo 12:29","Êxodo",2],
-["Onde Moisés recebeu as tábuas da Lei?","Monte Sinai","Monte Carmelo","Monte das Oliveiras","Monte Hermom","Êxodo 31:18","Êxodo",2],
-["O que os israelitas receberam para comer no deserto?","Maná","Romãs","Peixes do Jordão","Trigo do Egito","Êxodo 16:15","Êxodo",2],
-["Qual objeto guiava Israel durante o dia no deserto?","Coluna de nuvem","Estrela de Belém","Arca aberta","Tocha de Gideão","Êxodo 13:21","Êxodo",2],
-["Qual objeto guiava Israel durante a noite?","Coluna de fogo","Coluna de água","Arco-íris","Estrela cadente","Êxodo 13:21","Êxodo",2],
-["Quem construiu o bezerro de ouro com o ouro entregue pelo povo?","Arão","Moisés","Josué","Calebe","Êxodo 32:2-4","Êxodo",2],
-["Quem sucedeu Moisés na liderança de Israel?","Josué","Arão","Eleazar","Samuel","Josué 1:1-2","Josué",3],
-["Qual cidade teve suas muralhas derrubadas após Israel rodeá-la?","Jericó","Ai","Betel","Siquém","Josué 6:20","Josué",3],
-["Quem escondeu os espias em Jericó?","Raabe","Rute","Débora","Ester","Josué 2:4","Josué",3],
-["Qual juiz derrotou os midianitas com apenas 300 homens?","Gideão","Sansão","Je||||","Samuel","Juízes 7:7","Juízes",3],
-["Qual juiz derrotou os midianitas com apenas 300 homens?","Gideão","Sansão","Samuel","Saul","Juízes 7:7","Juízes",3],
-["Quem foi a sogra de Rute?","Noemi","Ana","Mical","Abigail","Rute 1:3-4","Rute",3],
-["Quem foi marido de Rute depois de Boaz?","Boaz","Elimeleque","Malom","Quiliom","Rute 4:13","Rute",3],
-["Quem foi o primeiro rei de Israel?","Saul","Davi","Salomão","Samuel","1 Samuel 10:24","Samuel",4],
-["Quem derrotou Golias?","Davi","Saul","Jônatas","Samuel","1 Samuel 17:49-50","Samuel",4],
-["Qual era a arma usada por Davi contra Golias?","Uma funda e uma pedra","Uma espada de bronze","Um arco","Uma lança","1 Samuel 17:49","Samuel",4],
-["Quem era o grande amigo de Davi, filho de Saul?","Jônatas","Abner","Joabe","Isbosete","1 Samuel 18:1","Samuel",4],
-["Qual rei pediu sabedoria a Deus?","Salomão","Saul","Roboão","Ezequias","1 Reis 3:9-12","Reis",4],
-["Quem construiu o primeiro templo em Jerusalém?","Salomão","Davi","Saul","Ezequias","1 Reis 6:1","Reis",4],
-["Qual profeta enfrentou os profetas de Baal no monte Carmelo?","Elias","Eliseu","Isaías","Jeremias","1 Reis 18:20-39","Profetas",5],
-["Quem sucedeu Elias como profeta?","Eliseu","Isaías","Jeremias","Ezequiel","1 Reis 19:16","Profetas",5],
-["Quem foi lançado na cova dos leões?","Daniel","Jeremias","Ezequiel","Elias","Daniel 6:16","Daniel",5],
-["Quais três jovens foram lançados na fornalha ardente?","Sadraque, Mesaque e Abede-Nego","Pedro, Tiago e João","Caim, Abel e Sete","Moisés, Arão e Hur","Daniel 3:19-23","Daniel",5],
-["Quem interpretou a escrita na parede para o rei Belsazar?","Daniel","Ezequiel","Jeremias","Esdras","Daniel 5:17-28","Daniel",5],
-["Qual profeta foi chamado para profetizar no vale de ossos secos?","Ezequiel","Isaías","Amós","Miquéias","Ezequiel 37:1-4","Profetas",5],
-["Quem foi lançado no mar e depois engolido por um grande peixe?","Jonas","Naum","Habacuque","Amós","Jonas 1:17","Profetas",5],
-["Qual profeta falou sobre o nascimento de um filho chamado Emanuel?","Isaías","Jeremias","Joel","Malaquias","Isaías 7:14","Isaías",5],
-["Qual profeta anunciou Belém como lugar ligado ao governante de Israel?","Miqueias","Amós","Ageu","Obadias","Miqueias 5:2","Profetas",5],
-["Quem era a rainha que arriscou sua vida para interceder por seu povo?","Ester","Rute","Débora","Raquel","Ester 4:16","Ester",5],
-["Quem foi o escriba que liderou o ensino da Lei após o exílio?","Esdras","Neemias","Zorobabel","Mardoqueu","Esdras 7:10","Esdras",5],
-["Quem liderou a reconstrução dos muros de Jerusalém?","Neemias","Esdras","Daniel","Josué","Neemias 2:17-18","Neemias",5],
-["Em qual cidade Jesus nasceu?","Belém","Nazaré","Jerusalém","Cafarnaum","Mateus 2:1","Evangelhos",6],
-["Quem era a mãe de Jesus?","Maria","Marta","Isabel","Ana","Mateus 1:18","Evangelhos",6],
-["Quem foi o pai terreno de Jesus segundo os Evangelhos?","José","Zacarias","Joaquim","Simão","Mateus 1:16","Evangelhos",6],
-["Quem batizou Jesus?","João Batista","Pedro","André","Nicodemos","Mateus 3:13","Evangelhos",6],
-["Em qual rio Jesus foi batizado?","Rio Jordão","Rio Nilo","Rio Eufrates","Rio Tigre","Mateus 3:13","Evangelhos",6],
-["Quantos dias Jesus jejuou no deserto?","40","7","12","30","Mateus 4:2","Evangelhos",6],
-["Qual foi o primeiro milagre de Jesus segundo João?","Transformar água em vinho","Curar um cego","Andar sobre as águas","Ressuscitar Lázaro","João 2:1-11","Evangelhos",6],
-["Quantos apóstolos Jesus escolheu?","12","7","10","70","Marcos 3:14","Evangelhos",6],
-["Quem negou Jesus três vezes?","Pedro","João","Tomé","André","Mateus 26:69-75","Evangelhos",6],
-["Quem traiu Jesus?","Judas Iscariotes","Mateus","Tiago","Bartolomeu","Mateus 26:14-16","Evangelhos",6],
-["Quem ajudou a carregar a cruz de Jesus?","Simão de Cirene","José de Arimateia","Nicodemos","Bartimeu","Lucas 23:26","Evangelhos",6],
-["Quem pediu o corpo de Jesus a Pilatos?","José de Arimateia","Pedro","Nicodemos","João","Marcos 15:43","Evangelhos",6],
-["Quem foi o homem que Jesus ressuscitou depois de quatro dias no sepulcro?","Lázaro","Jairo","Estêvão","Eutico","João 11:39-44","Evangelhos",6],
-["Qual discípulo duvidou da ressurreição até ver Jesus?","Tomé","Pedro","Filipe","Mateus","João 20:24-29","Evangelhos",6],
-["Qual discípulo era cobrador de impostos?","Mateus","João","Tiago","André","Mateus 9:9","Evangelhos",6],
-["Qual parábola fala de um homem que foi assaltado no caminho de Jerusalém para Jericó?","Bom Samaritano","Filho Pródigo","Semeador","Dez Virgens","Lucas 10:30-37","Evangelhos",6],
-["Qual parábola fala de um filho que voltou para casa após desperdiçar sua herança?","Filho Pródigo","Bom Samaritano","Talentos","Ovelha Perdida","Lucas 15:11-32","Evangelhos",6],
-["Quantas bem-aventuranças são apresentadas em Mateus 5 no início do Sermão do Monte?","Nove","Cinco","Sete","Doze","Mateus 5:3-12","Evangelhos",6],
-["Qual é o maior mandamento segundo Jesus?","Amar a Deus de todo o coração, alma e entendimento","Guardar riquezas","Evitar estrangeiros","Ser o primeiro em tudo","Mateus 22:37-38","Evangelhos",6],
-["Qual é o segundo grande mandamento segundo Jesus?","Amar o próximo como a si mesmo","Jejuar todos os dias","Oferecer ouro","Viajar para Jerusalém","Mateus 22:39","Evangelhos",6],
-["Qual oração Jesus ensinou aos discípulos como modelo?","Pai Nosso","Oração de Ana","Cântico de Maria","Oração de Salomão","Mateus 6:9-13","Evangelhos",6],
-["Qual discípulo andou sobre as águas em direção a Jesus?","Pedro","João","Tiago","Filipe","Mateus 14:28-29","Evangelhos",6],
-["Quem subiu em uma árvore para ver Jesus?","Zaqueu","Bartimeu","Jairo","Nicodemos","Lucas 19:4","Evangelhos",6],
-["Qual era a árvore em que Zaqueu subiu?","Sicômoro","Oliveira","Figueira","Cedro","Lucas 19:4","Evangelhos",6],
-["Quem foi chamado por Jesus enquanto estava junto às redes de pesca?","Pedro e André","Paulo e Barnabé","Moisés e Arão","Elias e Eliseu","Mateus 4:18-20","Evangelhos",6],
-["Quem disse a Jesus: 'Tu és o Cristo, o Filho do Deus vivo'?","Pedro","Tomé","Judas","Natanael","Mateus 16:16","Evangelhos",6],
-["Em qual cidade Jesus cresceu?","Nazaré","Belém","Jericó","Betânia","Mateus 2:23","Evangelhos",6],
-["Qual amigo de Jesus era irmão de Marta e Maria?","Lázaro","Zaqueu","Jairo","Bartimeu","João 11:1-3","Evangelhos",6],
-["Quem foi o governador romano que autorizou a crucificação de Jesus?","Pôncio Pilatos","Herodes Antipas","Félix","Festo","Mateus 27:24-26","Evangelhos",6],
-["Quem era a mulher que ungiu Jesus em Betânia com perfume, segundo João?","Maria de Betânia","Marta","Maria Madalena","Joana","João 12:3","Evangelhos",6],
-["Qual livro conta a descida do Espírito Santo no Pentecostes?","Atos","Romanos","Hebreus","Apocalipse","Atos 2:1-4","Atos",7],
-["Quem pregou no Pentecostes e muitos foram acrescentados à igreja?","Pedro","Paulo","Barnabé","Estêvão","Atos 2:14-41","Atos",7],
-["Quem foi o primeiro mártir cristão narrado em Atos?","Estêvão","Tiago","Pedro","Barnabé","Atos 7:54-60","Atos",7],
-["Quem teve uma experiência de conversão no caminho para Damasco?","Saulo","Cornélio","Filipe","Silas","Atos 9:1-9","Atos",7],
-["Qual era o nome romano de Saulo?","Paulo","Pedro","Marcos","Lucas","Atos 13:9","Atos",7],
-["Quem acompanhou Paulo em parte de sua primeira viagem missionária?","Barnabé","Moisés","João Batista","Timóteo","Atos 13:2-4","Atos",7],
-["Quem era o companheiro mais jovem de Paulo mencionado nas cartas?","Timóteo","Tito","Filemom","Apolo","1 Timóteo 1:2","Cartas",7],
-["Qual carta apresenta o fruto do Espírito em Gálatas 5?","Gálatas","Romanos","Efésios","Colossenses","Gálatas 5:22-23","Cartas",7],
-["Qual é chamado de 'capítulo do amor' em 1 Coríntios?","1 Coríntios 13","1 Coríntios 1","1 Coríntios 7","1 Coríntios 15","1 Coríntios 13","Cartas",7],
-["Qual carta apresenta a 'armadura de Deus'?","Efésios","Filipenses","Colossenses","Romanos","Efésios 6:10-18","Cartas",7],
-["Qual carta fala que a fé sem obras é morta?","Tiago","Judas","Hebreus","2 Pedro","Tiago 2:17","Cartas",7],
-["Qual livro descreve a visão de João na ilha de Patmos?","Apocalipse","Atos","Hebreus","Judas","Apocalipse 1:9","Apocalipse",8],
-["Em qual ilha João recebeu a revelação registrada em Apocalipse?","Patmos","Creta","Chipre","Malta","Apocalipse 1:9","Apocalipse",8],
-["Quantas igrejas recebem cartas nos capítulos iniciais de Apocalipse?","Sete","Cinco","Doze","Dez","Apocalipse 1:11","Apocalipse",8],
-["Qual é a última cidade apresentada como descendo do céu em Apocalipse?","Nova Jerusalém","Jericó","Roma","Babilônia","Apocalipse 21:2","Apocalipse",8]
+const quizQuestions = [
+  {
+    id:1,
+    level:"Fácil",
+    question:"O que Deus criou no primeiro dia, de acordo com Gênesis 1?",
+    options:[
+      "O Sol e a Lua",
+      "Os animais marinhos",
+      "A luz e a separação das trevas",
+      "O homem e a mulher"
+    ],
+    correct:2
+  },
+  {
+    id:2,
+    level:"Médio",
+    question:"Qual era o nome dos quatro rios que se dividiam a partir do rio que saía do Éden?",
+    options:[
+      "Nilo, Eufrates, Tigre e Jordão",
+      "Pison, Gion, Tigre e Eufrates",
+      "Jordão, Jaboque, Arnom e Quidron",
+      "Pisom, Nilo, Eufrates e Amazonas"
+    ],
+    correct:1
+  },
+  {
+    id:3,
+    level:"Difícil / Chefe",
+    question:"Quantos anos tinha Abraão quando seu filho Isaque nasceu?",
+    options:[
+      "75 anos",
+      "90 anos",
+      "100 anos",
+      "120 anos"
+    ],
+    correct:2
+  }
 ];
-
-const gameQuestionVariants = [
-"Segundo {ref}, {q}",
-"Na Bíblia, responda: {q}",
-"Teste seus conhecimentos: {q}",
-"Desafio bíblico: {q}",
-"Você se lembra? {q}",
-"Pergunta da jornada: {q}",
-"Conhecimento bíblico — {q}",
-"Na sua caminhada pela Palavra: {q}",
-"Rodada de conhecimento: {q}",
-"Vale XP: {q}",
-"Fase de memória bíblica: {q}",
-"Desafio do discípulo: {q}",
-"Quiz da Palavra: {q}",
-"Missão bíblica: {q}",
-"Hora do desafio: {q}",
-"Rodada especial: {q}",
-"Pergunta relâmpago: {q}",
-"Desafio de sabedoria: {q}",
-"Jornada de conhecimento: {q}",
-"Você domina este tema? {q}",
-"Pergunta de contexto: {q}",
-"Rodada de revisão: {q}",
-"Teste rápido da Bíblia: {q}",
-"Desafio do conhecimento: {q}",
-"Pergunta para avançar de fase: {q}",
-"Fase de aprendizado: {q}",
-"Desafio dos exploradores: {q}",
-"Rodada dos estudiosos: {q}",
-"Prova da jornada: {q}",
-"Pergunta bônus: {q}",
-"Desafio do Mestre: {q}",
-"Rodada do campeão: {q}",
-"Pergunta de precisão: {q}",
-"Desafio de atenção: {q}",
-"Missão do conhecimento: {q}",
-"Pergunta de revisão bíblica: {q}",
-"Rodada da Palavra: {q}",
-"Desafio da memória: {q}",
-"Prova do viajante: {q}",
-"Rodada do aventureiro: {q}",
-"Desafio de 20 segundos: {q}",
-"Teste de compreensão: {q}",
-"Pergunta da era: {q}",
-"Desafio do capítulo: {q}",
-"Rodada de referência: {q}",
-"Pergunta para desbloquear: {q}",
-"Desafio do caminho: {q}",
-"Teste do peregrino: {q}",
-"Rodada final: {q}",
-"Pergunta de ouro: {q}"
-];
-
-function buildGameQuestionBank(){
-  const bank=[];
-  let id=1;
-  gameQuestionSeeds.forEach((seed)=>{
-    const [q,answer,w1,w2,w3,reference,category,era]=seed;
-    gameQuestionVariants.forEach((prefix,variantIndex)=>{
-      if(bank.length>=5000) return;
-      const isTrueFalse=(variantIndex%5===4);
-      const isFalseTF=(variantIndex%10===9);
-      const statementAnswer=isFalseTF?w1:answer;
-      const questionText=prefix.replace("{q}",q);
-      if(isTrueFalse){
-        bank.push({
-          id:`G-${String(id++).padStart(4,"0")}`,
-          type:"truefalse",
-          category,era,reference,
-          difficulty:variantIndex<15?"Fácil":variantIndex<35?"Médio":"Difícil",
-          question:`${questionText} Resposta proposta: "${statementAnswer}".`,
-          answer:isFalseTF?false:true,
-          explanation:isFalseTF
-            ? `A resposta correta é "${answer}". Referência: ${reference}.`
-            : `A resposta está de acordo com ${reference}.`
-        });
-      }else{
-        bank.push({
-          id:`G-${String(id++).padStart(4,"0")}`,
-          type:"single",
-          category,era,reference,
-          difficulty:variantIndex<15?"Fácil":variantIndex<35?"Médio":"Difícil",
-          question:questionText,
-          options:[answer,w1,w2,w3],
-          correct:0,
-          explanation:`Resposta: ${answer}. Referência: ${reference}.`
-        });
-      }
-    });
-  });
-  return bank.slice(0,5000);
-}
-
-const GAME_QUESTION_BANK = buildGameQuestionBank();
 
 const collectibleCards = [
-  {name:"Adão",rarity:"Comum",unlock:"Iniciar a Era 1.",text:"Criado do pó da terra e recebeu o sopro da vida.",reference:"Gênesis 2:7"},
-  {name:"Moisés",rarity:"Raro",unlock:"Concluir a Era 2.",text:"Liderou Israel na saída do Egito.",reference:"Êxodo 3:10"},
-  {name:"Josué",rarity:"Raro",unlock:"Concluir a Era 3.",text:"Conduziu Israel na entrada da Terra Prometida.",reference:"Josué 1:1-2"},
-  {name:"Davi",rarity:"Épico",unlock:"Concluir a Era 4.",text:"Rei de Israel e autor de muitos salmos.",reference:"1 Samuel 16:13"},
-  {name:"Daniel",rarity:"Épico",unlock:"Concluir a Era 5.",text:"Permaneceu fiel a Deus na Babilônia.",reference:"Daniel 6:23"},
-  {name:"Jesus",rarity:"Lendário",unlock:"Concluir a Era 6.",text:"O centro da mensagem dos Evangelhos.",reference:"João 3:16"},
-  {name:"Pedro",rarity:"Lendário",unlock:"Concluir a Era 7.",text:"Apóstolo que pregou no Pentecostes.",reference:"Atos 2:14"},
-  {name:"João",rarity:"Mestre",unlock:"Concluir a Era 8.",text:"Recebeu a revelação registrada em Apocalipse.",reference:"Apocalipse 1:9"}
+  {
+    name:"Adão",
+    rarity:"Comum / Estilo Rústico",
+    unlock:"Concluir a fase 1 de Gênesis.",
+    text:"Criado do pó da terra, recebeu o sopro da vida.",
+    reference:"Gênesis 2:7"
+  },
+  {
+    name:"Abraão",
+    rarity:"Raro / Estilo Bronze",
+    unlock:"Concluir o Quiz intermediário da Era 1.",
+    text:"O Pai da Fé. Saiu de sua terra sem saber para onde ia, confiando na promessa.",
+    reference:"Gênesis 12:1-3"
+  },
+  {
+    name:"José do Egito",
+    rarity:"Épico / Estilo Ouro",
+    unlock:"Vencer o Chefe da Era 1.",
+    text:"O governador do Egito. O que homens intentaram para o mal, Deus transformou em bem.",
+    reference:"Gênesis 50:20"
+  }
 ];
-
-const gameCharacters = [
-  ["Adão","🌿","#6d8d52"],["Moisés","⚡","#b98a38"],["Josué","⚔️","#557c9d"],["Davi","👑","#7c4d32"],
-  ["Daniel","🦁","#6d5a3c"],["Jesus","✝️","#7f8f9d"],["Pedro","🔥","#9c633e"],["João","✨","#755e9c"]
-];
-
-const gameQuestionVariantsCount = GAME_QUESTION_BANK.length;
-
 
 /* -----------------------------
    HELPERS
@@ -3856,9 +3659,8 @@ function baptism(){
   }
 }
 
-
 /* -----------------------------
-   GAME GOSPEL — NOVO MOTOR
+   GAME GOSPEL
    ----------------------------- */
 function saveGame(){
   localStorage.setItem(STORAGE_KEYS.game,JSON.stringify(state.game));
@@ -3867,453 +3669,183 @@ function saveGame(){
 function restoreGame(){
   try{
     const saved=JSON.parse(localStorage.getItem(STORAGE_KEYS.game));
-    if(saved && typeof saved==="object") state.game={...state.game,...saved};
-  }catch(error){ console.warn("Não foi possível restaurar o Game",error); }
-
-  state.game.seenQuestions=Array.isArray(state.game.seenQuestions)?state.game.seenQuestions:[];
-  state.game.cards=Array.isArray(state.game.cards)?state.game.cards:["Adão"];
-  state.game.achievements=Array.isArray(state.game.achievements)?state.game.achievements:[];
-  state.game.dailyIds=Array.isArray(state.game.dailyIds)?state.game.dailyIds:[];
-  state.game.eraProgress=state.game.eraProgress && typeof state.game.eraProgress==="object"?state.game.eraProgress:{};
-  state.game.unlockedEra=Math.max(1,Math.min(eras.length,Number(state.game.unlockedEra)||1));
-  state.game.level=Math.max(1,Math.floor(Number(state.game.level)||1));
-  state.game.mode=["quiz","truefalse","challenge","daily"].includes(state.game.mode)?state.game.mode:"quiz";
-}
-
-function gameToday(){
-  return todayISO();
-}
-
-function ensureGameDailyState(){
-  const today=gameToday();
-  if(state.game.dailyKey!==today){
-    state.game.dailyKey=today;
-    state.game.dailyIds=[];
-    state.game.dailyDone=0;
-    saveGame();
-  }
-}
-
-function ensureGameEnergy(){
-  ensureGameDailyState();
-  if(Number(state.game.oil)<=0){
-    state.game.oil=5;
-    saveGame();
-    updateGameResources();
-    toast("🏺 O Azeite foi recarregado para uma nova jornada.");
-  }
-}
-
-function gameLevelFromXP(xp){
-  return Math.max(1,Math.floor(Math.sqrt(Math.max(0,Number(xp)||0)/100))+1);
+    if(saved) state.game={...state.game,...saved};
+  }catch(error){}
 }
 
 function updateGameResources(){
-  const oil=$("oilValue"), coins=$("coinValue"), streak=$("streakValue"), xp=$("xpValue"), level=$("levelValue"), count=$("questionCountValue");
-  const xpValue=Math.max(0,Number(state.game.xp)||0);
-  state.game.level=gameLevelFromXP(xpValue);
-  if(oil) oil.textContent=Math.max(0,Number(state.game.oil)||0);
-  if(coins) coins.textContent=Math.max(0,Number(state.game.coins)||0);
-  if(streak) streak.textContent=Math.max(0,Number(state.game.streak)||0);
-  if(xp) xp.textContent=xpValue;
-  if(level) level.textContent=state.game.level;
-  if(count) count.textContent=`${Math.min(5000,Number(state.game.seenQuestions?.length||0))}/5000`;
-  const progress=Math.min(100,(Number(state.game.seenQuestions?.length||0)/5000)*100);
-  const bar=$("gameProgressBar"), text=$("gameProgressText");
-  if(bar) bar.style.width=`${progress}%`;
-  if(text) text.textContent=`${Math.round(progress)}%`;
-}
-
-function shuffleGame(list){
-  const a=[...list];
-  for(let i=a.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [a[i],a[j]]=[a[j],a[i]];
-  }
-  return a;
-}
-
-function getGamePool(mode,eraId=0){
-  const targetEra=Number(eraId)||0;
-  let pool=GAME_QUESTION_BANK.filter(q=>{
-    if(mode==="quiz" && q.type!=="single") return false;
-    if(mode==="truefalse" && q.type!=="truefalse") return false;
-    if(targetEra && Number(q.era)!==targetEra) return false;
-    return true;
-  });
-  if(!pool.length) pool=GAME_QUESTION_BANK.filter(q=>!targetEra || Number(q.era)===targetEra);
-  return pool;
-}
-
-function pickGameQuestion(mode=state.game.mode,eraId=state.game.currentEra){
-  ensureGameDailyState();
-  let pool=getGamePool(mode,eraId);
-  let unseen=pool.filter(q=>!state.game.seenQuestions.includes(q.id) && !state.game.dailyIds.includes(q.id));
-  if(!unseen.length){
-    unseen=pool.filter(q=>!state.game.dailyIds.includes(q.id));
-  }
-  if(!unseen.length){
-    state.game.seenQuestions=[];
-    unseen=pool;
-  }
-  if(!unseen.length) return GAME_QUESTION_BANK[Math.floor(Math.random()*GAME_QUESTION_BANK.length)];
-  return unseen[Math.floor(Math.random()*unseen.length)];
-}
-
-function startGameMode(mode,eraId=0){
-  if(mode==="daily"){
-    ensureGameDailyState();
-    if(state.game.dailyDone>=10){
-      state.game.mode="daily";
-      state.game.currentQuestionId="";
-      saveGame();
-      renderQuiz();
-      toast("🌟 Desafio diário concluído. Volte amanhã para uma nova rodada.");
-      return;
-    }
-    state.game.dailyIds=[];
-    state.game.dailyDone=0;
-    const candidates=shuffleGame(getGamePool("challenge",0)).filter(q=>!state.game.seenQuestions.includes(q.id));
-    state.game.dailyIds=candidates.slice(0,10).map(q=>q.id);
-  }
-  state.game.mode=mode;
-  state.game.currentEra=Number(eraId)||0;
-  state.game.currentNode=Number(state.game.eraProgress[state.game.currentEra]||0);
-  state.game.currentQuestionAnswered=false;
-  const q=mode==="daily"
-    ? GAME_QUESTION_BANK.find(x=>x.id===state.game.dailyIds[state.game.dailyDone])
-    : pickGameQuestion(mode,state.game.currentEra);
-  state.game.currentQuestionId=q?.id||"";
-  saveGame();
-  renderGameMap();
-  renderQuiz();
-  startQuizTimer();
-  setTimeout(()=>$("quizBox")?.scrollIntoView({behavior:"smooth",block:"center"}),100);
-}
-
-function playEra(eraId){
-  eraId=Number(eraId);
-  if(!eraId || eraId>state.game.unlockedEra){
-    toast("🔒 Essa era ainda está bloqueada.");
-    return;
-  }
-  ensureGameEnergy();
-  if(state.game.oil<=0){
-    toast("🏺 Aguarde a recarga do Azeite.");
-    return;
-  }
-  state.game.oil=Math.max(0,state.game.oil-1);
-  startGameMode("quiz",eraId);
-  saveGame();
-  updateGameResources();
-  toast(`▶ ${eras[eraId-1]?.title||"Fase"} iniciada.`);
-}
-
-function refillWord(){
-  state.game.oil=Math.min(5,(Number(state.game.oil)||0)+2);
-  saveGame();
-  updateGameResources();
-  closeModal();
-  toast("🏺 +2 gotas de Azeite.");
-}
-
-function answerRefill(){
-  refillWord();
-}
-
-function currentGameQuestion(){
-  const q=GAME_QUESTION_BANK.find(x=>x.id===state.game.currentQuestionId);
-  return q||null;
+  const oil=$("oilValue"), coins=$("coinValue"), streak=$("streakValue");
+  if(oil) oil.textContent=state.game.oil;
+  if(coins) coins.textContent=state.game.coins;
+  if(streak) streak.textContent=state.game.streak;
 }
 
 function renderGameMap(){
+  const scenes=["🌿 Jardim do Éden","🏜️ Egito","🌊 Mar Vermelho","⛺ Deserto","👑 Reino de Israel","🕊️ Profetas","✝️ Evangelhos","✨ Novo Testamento"];
   const map=$("gameMap");
   if(!map) return;
-  const scenes=["🌿 Éden","🏜️ Egito","🧱 Jericó","👑 Jerusalém","📜 Babilônia","✝️ Galileia","🔥 Jerusalém","✨ Patmos"];
   map.innerHTML=eras.map((era,index)=>{
     const locked=era.id>state.game.unlockedEra;
-    const progress=Math.min(6,Number(state.game.eraProgress[era.id]||0));
-    const pct=Math.round((progress/6)*100);
-    const character=gameCharacters[index];
-    const svg=characterImage(character[0],character[1],character[2]);
+    const scene=scenes[index]||"✨ Novo Testamento";
     return `
-      <article class="era ${locked?"locked":""} ${Number(state.game.currentEra)===era.id?"current":""}">
+      <article class="era ${locked?"locked":""}">
         <div class="era-head">
           <div>
-            <h3>${escapeHTML(scenes[index])} ${escapeHTML(era.title)}</h3>
-            <div class="small muted">${escapeHTML(era.books)}</div>
+            <h3>${scene}</h3>
+            <div class="small muted">${escapeHTML(era.title)} • ${escapeHTML(era.books)}</div>
           </div>
-          <div>${locked?"🔒":era.icon}</div>
-        </div>
-        <div class="era-scene">
-          <span class="sun"></span><span class="mountain"></span><span class="mountain m2"></span>
-          <img class="character-mini" src="${svg}" alt="${escapeHTML(character[0])}">
-          <strong style="position:relative;z-index:2;color:#fff;text-shadow:0 1px 3px #000">${escapeHTML(era.scene)}</strong>
+          <div>${locked?"🔒":"📖"}</div>
         </div>
         <div class="nodes">
-          <div class="node ${progress>=2?"done":""}">🧩 Nó 1<br><strong>${progress>=2?"Concluído":"Conhecimento"}</strong></div>
-          <div class="node ${progress>=4?"done":""}">🔍 Nó 2<br><strong>${progress>=4?"Concluído":"Quiz"}</strong></div>
-          <div class="node ${progress>=6?"done":""}">⚔️ Nó 3<br><strong>${progress>=6?"Chefe vencido":`Chefe: ${escapeHTML(era.boss)}`}</strong></div>
+          <div class="node">🧩 Nó 1<br><strong>Contexto</strong></div>
+          <div class="node">🔍 Nó 2<br><strong>Quiz</strong></div>
+          <div class="node">⚔️ Nó 3<br><strong>Boss: ${escapeHTML(era.boss)}</strong></div>
         </div>
-        <div class="game-progress"><i style="width:${pct}%"></i></div>
-        <div class="small muted" style="margin-top:5px">${progress}/6 respostas corretas para concluir esta era</div>
-        ${!locked?`<button class="btn btn-gold" style="margin-top:10px" type="button" onclick="playEra(${era.id})">${progress>=6?"↻ Jogar novamente":"▶ Jogar esta era"}</button>`:""}
+        ${!locked?`<button class="btn btn-gold" style="margin-top:10px" type="button" onclick="playEra(${era.id})">▶ Jogar Fase ${era.id}</button>`:""}
       </article>`;
   }).join("");
 }
 
-function renderGameModes(){
-  document.querySelectorAll("#gameModeRow .game-mode").forEach(btn=>{
-    btn.classList.toggle("active",btn.dataset.mode===state.game.mode);
-    if(!btn.dataset.bound){
-      btn.dataset.bound="1";
-      btn.addEventListener("click",()=>startGameMode(btn.dataset.mode,state.game.currentEra||0));
-    }
-  });
+function playEra(eraId){
+  if(eraId>state.game.unlockedEra){ toast("Essa Era está bloqueada."); return; }
+  if(state.game.oil<=0){ refillWord(); return; }
+
+  state.game.oil--;
+  state.game.xp += 10;
+  state.game.coins += 2;
+  state.game.currentEra=eraId;
+  state.game.currentNode=0;
+  saveGame();
+  updateGameResources();
+  openPage("gamePage");
+  renderGameMap();
+  renderQuiz();
+  startQuizTimer();
+  toast(`Era ${eraId} iniciada. Nó 1 de 3.`);
+  setTimeout(()=>$("quizBox")?.scrollIntoView({behavior:"smooth",block:"center"}),100);
 }
 
-function bindQuizEvents(){
-  const box=$("quizBox");
-  if(!box || box.dataset.bound) return;
-  box.dataset.bound="1";
-  box.addEventListener("click",e=>{
-    const option=e.target.closest("[data-game-answer]");
-    if(option){
-      answerCurrentGame(option.dataset.gameAnswer);
-    }
-    const hint=e.target.closest("[data-game-hint]");
-    if(hint) showGameHint();
-    const next=e.target.closest("[data-game-next]");
-    if(next) nextGameQuestion();
-  });
+function refillWord(){
+  modal("Recarga da Palavra",`
+    <p class="body-text">O Azeite chegou a zero. Responda para recarregar.</p>
+    <p class="body-text"><strong>Pergunta:</strong> Qual é a importância de buscar sabedoria antes de agir?</p>
+    <button class="btn btn-gold" type="button" onclick="answerRefill(true)">Responder e recarregar</button>
+  `);
+}
+
+function answerRefill(correct){
+  if(correct){
+    state.game.oil=Math.min(5,state.game.oil+2);
+    saveGame();
+    closeModal();
+    updateGameResources();
+    toast("Resposta registrada. +2 gotas de Azeite.");
+  }
+}
+
+function getCurrentQuiz(){
+  const node=Math.max(0,Math.min(2,Number(state.game.currentNode)||0));
+  return quizQuestions[node] || quizQuestions[0];
 }
 
 function renderQuiz(){
   const box=$("quizBox");
   if(!box) return;
-  ensureGameDailyState();
-  bindQuizEvents();
-
-  if(state.game.mode==="daily" && state.game.dailyDone>=10){
-    box.innerHTML=`<div class="success-notice"><strong>🌟 Desafio diário concluído!</strong><br>Você completou as 10 perguntas de hoje. Amanhã haverá uma nova rodada.</div>`;
+  const era=Number(state.game.currentEra)||0;
+  if(!era){
+    box.innerHTML=`<div class="notice">Escolha uma fase liberada no mapa para iniciar o desafio.</div>`;
     return;
   }
-
-  let q=currentGameQuestion();
-  if(!q){
-    box.innerHTML=`
-      <div class="quiz-panel">
-        <div class="notice"><strong>Escolha uma modalidade para começar.</strong><br>O banco possui ${GAME_QUESTION_BANK.length.toLocaleString("pt-BR")} variações de perguntas e o histórico evita repetições rápidas.</div>
-        <div class="game-action-row">
-          <button class="btn btn-gold" type="button" onclick="startGameMode('quiz',${state.game.unlockedEra})">📖 Começar Quiz</button>
-          <button class="btn" type="button" onclick="startGameMode('truefalse',${state.game.unlockedEra})">⚖️ Verdadeiro ou Falso</button>
-          <button class="btn" type="button" onclick="startGameMode('challenge',0)">⚔️ Desafio</button>
-          <button class="btn" type="button" onclick="startGameMode('daily',0)">🌟 Diário</button>
-        </div>
-      </div>`;
-    return;
-  }
-
-  const timerSeconds=state.game.mode==="challenge"?15:state.game.mode==="daily"?20:20;
-  const locationText=state.game.mode==="daily"
-    ? `Diário • ${Math.min(10,state.game.dailyDone+1)}/10`
-    : state.game.currentEra
-      ? `${eras[state.game.currentEra-1]?.title||"Era"} • ${Math.min(6,Number(state.game.eraProgress[state.game.currentEra]||0)+1)}/6`
-      : "Desafio livre";
-
-  let content="";
-  if(q.type==="truefalse"){
-    content=`
-      <button class="btn quiz-option" data-game-answer="true" type="button"><span class="option-key">V</span>Verdadeiro</button>
-      <button class="btn quiz-option" data-game-answer="false" type="button"><span class="option-key">F</span>Falso</button>`;
-  }else{
-    const options=shuffleGame(q.options.map((text,index)=>({text,index})));
-    content=options.map((opt,index)=>`
-      <button class="btn quiz-option" data-game-answer="${opt.index}" type="button">
-        <span class="option-key">${String.fromCharCode(65+index)}</span>${escapeHTML(opt.text)}
-      </button>`).join("");
-  }
-
+  const q=getCurrentQuiz();
+  const node=(Number(state.game.currentNode)||0)+1;
   box.innerHTML=`
-    <div class="quiz-panel">
-      <div class="quiz-top">
-        <span class="quiz-badge">${escapeHTML(state.game.mode==="truefalse"?"⚖️ VERDADEIRO OU FALSO":state.game.mode==="challenge"?"⚔️ DESAFIO":state.game.mode==="daily"?"🌟 DESAFIO DIÁRIO":"📖 QUIZ")}</span>
-        <div class="timer" id="quizTimer">${timerSeconds}</div>
-        <span class="quiz-badge">${escapeHTML(q.difficulty)} • ${escapeHTML(locationText)}</span>
-      </div>
-      <p class="body-text" style="margin:0"><strong>${escapeHTML(q.question)}</strong></p>
-      <div class="question-reference">📖 Referência disponível após a resposta: ${escapeHTML(q.reference)}</div>
-      <div id="quizOptions">${content}</div>
-      <div class="game-action-row">
-        <button class="btn" type="button" data-game-hint>💡 Dica</button>
-      </div>
-      <div id="quizFeedback"></div>
+    <div class="timer" id="quizTimer">20</div>
+    <p class="small muted">Era ${era} • Nó ${node} de 3</p>
+    <p class="body-text"><strong>${escapeHTML(q.question)}</strong></p>
+    <div>
+      ${q.options.map((opt,i)=>`<button class="btn quiz-option" type="button" onclick="answerQuiz(${Number(state.game.currentNode)||0},${i})">${String.fromCharCode(65+i)}) ${escapeHTML(opt)}</button>`).join("")}
     </div>`;
-  if(window.lucide?.createIcons) window.lucide.createIcons();
+}
+
+function openQuiz(){
+  closeModal();
+  openPage("gamePage");
+  if(!state.game.currentEra) state.game.currentEra=1;
+  renderQuiz();
+  startQuizTimer();
+  setTimeout(()=>$("quizBox")?.scrollIntoView({behavior:"smooth",block:"center"}),120);
 }
 
 function startQuizTimer(){
   clearInterval(window.__quizTimer);
-  const q=currentGameQuestion();
-  if(!q) return;
-  let seconds=state.game.mode==="challenge"?15:20;
+  let seconds=20;
   const timer=$("quizTimer");
   if(timer) timer.textContent=seconds;
   window.__quizTimer=setInterval(()=>{
     seconds--;
     const el=$("quizTimer");
-    if(el){
-      el.textContent=Math.max(0,seconds);
-      el.classList.toggle("danger",seconds<=5);
-    }
+    if(el) el.textContent=Math.max(seconds,0);
     if(seconds<=0){
       clearInterval(window.__quizTimer);
-      disableGameOptions();
-      showGameFeedback(false,"⏱️ Tempo encerrado. A resposta correta é: "+(q.type==="truefalse"?(q.answer?"Verdadeiro":"Falso"):q.options[q.correct])+".");
-      state.game.streak=0;
-      state.game.currentQuestionAnswered=true;
-      saveGame();
-      updateGameResources();
-      setTimeout(nextGameQuestion,1200);
+      toast("Tempo encerrado. Responda novamente.");
     }
   },1000);
 }
 
-function disableGameOptions(){
-  document.querySelectorAll("#quizBox .quiz-option").forEach(btn=>btn.disabled=true);
-}
-
-function showGameFeedback(good,text){
-  const box=$("quizFeedback");
-  if(!box) return;
-  box.innerHTML=`<div class="quiz-feedback ${good?"good":"bad"}">${escapeHTML(text)}</div>`;
-}
-
-function showGameHint(){
-  const q=currentGameQuestion();
-  if(!q) return;
-  const hint=q.type==="truefalse"
-    ? "Compare a afirmação proposta com o conteúdo indicado na referência bíblica."
-    : `A resposta correta está diretamente ligada ao contexto de ${q.reference}. Elimine primeiro as alternativas que pertencem a outra história.`;
-  showGameFeedback(true,"💡 "+hint);
-  if(state.game.coins>=2){
-    state.game.coins-=2;
-    updateGameResources();
-    saveGame();
-    toast("💡 Dica usada: -2 moedas.");
-  }
-}
-
-function answerCurrentGame(value){
-  if(state.game.currentQuestionAnswered) return;
+async function answerQuiz(qIndex,answer){
   clearInterval(window.__quizTimer);
-  const q=currentGameQuestion();
-  if(!q) return;
-  state.game.currentQuestionAnswered=true;
-  disableGameOptions();
+  const q=quizQuestions[qIndex] || quizQuestions[0];
+  const options=document.querySelectorAll(".quiz-option");
+  const clicked=options[answer];
 
-  let correct=false;
-  if(q.type==="truefalse") correct=(String(q.answer)===String(value));
-  else correct=(Number(value)===Number(q.correct));
+  if(answer===q.correct){
+    if(clicked) clicked.classList.add("correct","particle-pop");
+    state.game.xp += 25;
+    state.game.coins += 5;
+    state.game.streak += 1;
+    await playSuccessSound("quiz");
 
-  const clicked=document.querySelector(`[data-game-answer="${CSS.escape(String(value))}"]`);
-  if(correct){
-    clicked?.classList.add("correct","particle-pop");
-    state.game.correctCount=(Number(state.game.correctCount)||0)+1;
-    state.game.answeredCount=(Number(state.game.answeredCount)||0)+1;
-    state.game.streak=(Number(state.game.streak)||0)+1;
-    const combo=Math.min(10,state.game.streak);
-    state.game.xp=(Number(state.game.xp)||0)+25+(combo*2);
-    state.game.coins=(Number(state.game.coins)||0)+5+(combo>=5?3:0);
-
-    if(state.game.mode!=="daily" && state.game.currentEra){
-      const e=state.game.currentEra;
-      state.game.eraProgress[e]=Math.min(6,Number(state.game.eraProgress[e]||0)+1);
-      if(state.game.eraProgress[e]>=6 && e<eras.length){
-        state.game.unlockedEra=Math.max(state.game.unlockedEra,e+1);
-        const cardName=eras[e-1]?.card;
+    const node=Number(state.game.currentNode)||0;
+    const era=Number(state.game.currentEra)||1;
+    if(node>=2){
+      if(era < eras.length){
+        state.game.unlockedEra=Math.max(state.game.unlockedEra,era+1);
+        state.game.currentEra=era+1;
+        state.game.currentNode=0;
+        const cardName=eras[era-1]?.card;
         if(cardName && !state.game.cards.includes(cardName)) state.game.cards.push(cardName);
-      }else if(state.game.eraProgress[e]>=6 && e===eras.length){
-        const cardName=eras[e-1]?.card;
-        if(cardName && !state.game.cards.includes(cardName)) state.game.cards.push(cardName);
+        saveGame();
+        updateGameResources();
+        renderGameMap();
+        renderQuiz();
+        await playSuccessSound("finalize");
+        toast(`🎉 Era ${era} concluída! A Era ${era+1} foi liberada e iniciada.`);
+        startQuizTimer();
+        setTimeout(()=>$("quizBox")?.scrollIntoView({behavior:"smooth",block:"center"}),220);
+      }else{
+        state.game.currentEra=0;
+        state.game.currentNode=0;
+        saveGame();
+        renderGame();
+        toast("🏆 Viagem concluída! Todas as Eras foram liberadas.");
       }
+    }else{
+      state.game.currentNode=node+1;
+      saveGame();
+      renderQuiz();
+      startQuizTimer();
+      toast(`Resposta correta! Nó ${state.game.currentNode+1} de 3.`);
     }
-    if(state.game.mode==="daily") state.game.dailyDone=Math.min(10,Number(state.game.dailyDone||0)+1);
-
-    markGameSeen(q.id);
-    saveGame();
-    updateGameResources();
-    updateGameAchievements();
-    playSuccessSound(state.game.streak>=5?"finalize":"quiz");
-    showGameFeedback(true,`✅ Acertou! ${q.explanation}`);
-    renderGameMap();
-  }else{
-    clicked?.classList.add("wrong");
-    state.game.answeredCount=(Number(state.game.answeredCount)||0)+1;
-    state.game.streak=0;
-    if(state.game.mode==="daily") state.game.dailyDone=Math.min(10,Number(state.game.dailyDone||0)+1);
-    markGameSeen(q.id);
-    saveGame();
-    updateGameResources();
-    playErrorSound();
-    const correctText=q.type==="truefalse"?(q.answer?"Verdadeiro":"Falso"):q.options[q.correct];
-    showGameFeedback(false,`❌ Ainda não. ${q.explanation} Resposta correta: ${correctText}.`);
-  }
-  setTimeout(nextGameQuestion,1100);
-}
-
-function markGameSeen(id){
-  if(!id) return;
-  if(!state.game.seenQuestions.includes(id)) state.game.seenQuestions.push(id);
-  if(state.game.seenQuestions.length>5000) state.game.seenQuestions=state.game.seenQuestions.slice(-5000);
-}
-
-function nextGameQuestion(){
-  if(state.game.mode==="daily" && state.game.dailyDone>=10){
-    state.game.currentQuestionId="";
-    saveGame();
-    renderQuiz();
-    updateGameAchievements();
-    toast("🌟 Desafio diário concluído!");
+    renderCardsAlbum();
     return;
   }
-  let q;
-  if(state.game.mode==="daily"){
-    q=GAME_QUESTION_BANK.find(x=>x.id===state.game.dailyIds[state.game.dailyDone]);
-  }else{
-    q=pickGameQuestion(state.game.mode,state.game.currentEra);
-  }
-  state.game.currentQuestionId=q?.id||"";
-  state.game.currentQuestionAnswered=false;
+
+  if(clicked) clicked.classList.add("wrong");
+  await playErrorSound();
+  state.game.streak=0;
   saveGame();
-  renderQuiz();
-  startQuizTimer();
-}
-
-function characterImage(name,symbol,color){
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
-    <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="${color}"/><stop offset="1" stop-color="#171717"/></linearGradient></defs>
-    <rect width="120" height="120" rx="22" fill="#201b11"/>
-    <circle cx="60" cy="39" r="20" fill="#d7aa83"/>
-    <path d="M40 35c4-21 36-24 41 2-12-7-26-8-41-2Z" fill="#34251c"/>
-    <path d="M31 108c3-34 17-49 29-49s27 15 30 49Z" fill="url(#g)"/>
-    <text x="60" y="100" text-anchor="middle" font-size="27">${symbol}</text>
-    <circle cx="52" cy="39" r="2.2" fill="#171717"/><circle cx="68" cy="39" r="2.2" fill="#171717"/>
-  </svg>`;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
-}
-
-function renderCharacterGallery(){
-  const box=$("characterGallery");
-  if(!box) return;
-  box.innerHTML=gameCharacters.map((c,i)=>{
-    const unlocked=state.game.cards.includes(c[0]) || state.game.unlockedEra>i;
-    return `<div class="character-card ${unlocked?"":"locked"}">
-      <img src="${characterImage(c[0],c[1],c[2])}" alt="${escapeHTML(c[0])}">
-      <strong>${unlocked?escapeHTML(c[0]):"Personagem bloqueado"}</strong>
-      <span>${unlocked?"Desbloqueado":"Conclua a Era "+(i+1)}</span>
-    </div>`;
-  }).join("");
+  updateGameResources();
+  toast("Resposta incorreta. Tente novamente.");
 }
 
 function renderCardsAlbum(){
@@ -4330,75 +3862,27 @@ function renderCardsAlbum(){
   }).join("");
 }
 
-function renderChallenges(){
-  const box=$("gameChallenges");
-  if(!box) return;
-  const challenges=[
-    ["🔥 Sequência de 5","Acerte cinco perguntas consecutivas.","+100 XP",state.game.streak>=5],
-    ["📚 Estudioso","Responda 50 perguntas.","+250 XP",(state.game.answeredCount||0)>=50],
-    ["🏆 Primeiro troféu","Conclua uma era.","+300 XP",Object.values(state.game.eraProgress||{}).some(v=>Number(v)>=6)],
-    ["🌟 Diário perfeito","Acerte as 10 perguntas do desafio diário.","+500 XP",state.game.dailyDone>=10 && state.game.streak>=10]
-  ];
-  box.innerHTML=challenges.map(c=>`<div class="challenge"><strong>${c[0]}</strong><p>${c[1]}</p><span class="small ${c[3]?"":"muted"}">${c[3]?"✓ Concluído":"Recompensa: "+c[2]}</span></div>`).join("");
-}
-
-function updateGameAchievements(){
-  const definitions=[
-    ["first","🌱","Primeira semente","Acerte sua primeira pergunta.",(state.game.correctCount||0)>=1],
-    ["five","🔥","Fogo da fé","Alcance uma sequência de 5.",(state.game.streak||0)>=5],
-    ["fifty","📖","Estudioso","Responda 50 perguntas.",(state.game.answeredCount||0)>=50],
-    ["era","🏆","Conquistador","Conclua uma era.",Object.values(state.game.eraProgress||{}).some(v=>Number(v)>=6)],
-    ["hundred","💎","Centurião","Acerte 100 perguntas.",(state.game.correctCount||0)>=100],
-    ["daily","🌟","Desafio diário","Conclua o desafio diário.",state.game.dailyDone>=10],
-    ["level10","👑","Mestre da Palavra","Alcance o nível 10.",(state.game.level||1)>=10],
-    ["fivehundred","⚔️","Guardião","Acerte 500 perguntas.",(state.game.correctCount||0)>=500]
-  ];
-  definitions.forEach(d=>{if(d[4]&&!state.game.achievements.includes(d[0])) state.game.achievements.push(d[0]);});
-  saveGame();
-  const box=$("achievementGrid");
-  if(!box) return;
-  box.innerHTML=definitions.map(d=>{
-    const unlocked=state.game.achievements.includes(d[0]);
-    return `<div class="achievement ${unlocked?"unlocked":""}"><b>${d[1]}</b><strong>${d[2]}</strong><span>${unlocked?"Conquistado":d[3]}</span></div>`;
-  }).join("");
-  renderChallenges();
-}
-
 function renderLeagues(){
   const box=$("leagueList");
   if(!box) return;
-  const userName=state.user?.name||"Você";
-  const base=[
-    ["Gabriel","Liga Bronze",1460],
-    ["Samuel","Liga Bronze",1280],
-    ["Ester","Liga Prata",1120],
-    ["Davi","Liga Prata",980],
-    [userName,"Sua pontuação",Number(state.game.xp)||0],
-    ["Rute","Liga Bronze",760],
-    ["Josué","Liga Bronze",620]
+  const leagues=[
+    ["Liga de Bronze","Entrada • Top 15 sobem"],
+    ["Liga de Prata","Multiplicadores leves de moedas • Top 10 sobem"],
+    ["Liga de Ouro","Disputa de XP • Top 5 sobem"],
+    ["Liga de Diamante","Alta consistência diária • Top 3 sobem"],
+    ["Liga dos Embaixadores","Elite • insígnia Mestre da Palavra"]
   ];
-  base.sort((a,b)=>b[2]-a[2]);
-  box.innerHTML=base.map((x,i)=>`
-    <div class="leader-row ${x[0]===userName?"me":""}">
-      <div class="leader-rank">${i+1}</div>
-      <div><strong>${escapeHTML(x[0])}</strong><small>${escapeHTML(x[1])}</small></div>
-      <div class="leader-xp">${x[2]} XP</div>
-    </div>`).join("");
+  box.innerHTML=leagues.map((x,i)=>`<div><strong>${i+1}. ${escapeHTML(x[0])}</strong><div class="small muted">${escapeHTML(x[1])}</div></div>`).join("");
 }
 
 function renderGame(){
   restoreGame();
-  ensureGameDailyState();
   updateGameResources();
-  renderGameModes();
   renderGameMap();
   renderQuiz();
-  renderCharacterGallery();
   renderCardsAlbum();
-  updateGameAchievements();
   renderLeagues();
 }
-
 
 /* -----------------------------
    SECRETARIA
