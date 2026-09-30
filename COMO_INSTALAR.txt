@@ -1,0 +1,23 @@
+PROJETO SEMENTES — APLICATIVO PWA
+
+Arquivos principais:
+- index.html
+- manifest.json
+- service-worker.js
+- app-icon-180.png
+- app-icon-192.png
+- app-icon-512.png
+- favicon-64.png
+- logo-projeto-sementes-512.png
+
+O ícone do aplicativo usa a logo enviada pelo responsável pelo projeto.
+
+PUBLICAÇÃO NO GITHUB PAGES
+1. Envie todos os arquivos desta pasta para o mesmo repositório do site.
+2. Mantenha o nome index.html na raiz publicada.
+3. Ative o GitHub Pages.
+4. Abra o endereço HTTPS no celular.
+5. iPhone/iPad: Safari > Compartilhar > Adicionar à Tela de Início.
+6. Android/Chrome: menu > Instalar aplicativo / Adicionar à tela inicial.
+
+Observação: o PWA é a forma de instalação escolhida nesta versão. O aplicativo continua sendo o sistema web do Projeto Sementes, agora com manifest, service worker e ícone próprio.
