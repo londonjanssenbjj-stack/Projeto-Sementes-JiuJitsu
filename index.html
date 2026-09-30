@@ -590,6 +590,8 @@
     .game-stage-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #6c551e;border-radius:999px;background:#17130b;color:var(--gold2);font-weight:800;font-size:11px;}
     .tatame-student-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
 </style>
+  <link rel="icon" type="image/png" href="logo_projeto_sementes_sem_fundo.png">
+  <link rel="apple-touch-icon" href="logo_projeto_sementes_sem_fundo.png">
 </head>
 
 <body>
@@ -602,7 +604,7 @@
     <div class="login-wrap">
       <div class="logo-box">
         <img id="loginLogo"
-             src="logo_projeto_sementes_transparente.png"
+             src="logo_projeto_sementes_sem_fundo.png"
              alt="Brasão oficial do Projeto Sementes"
              onerror="this.style.display='none'">
       </div>
@@ -672,7 +674,7 @@
       <div class="container">
         <div class="topbar-inner">
           <div class="brand-mini">
-            <img src="logo_projeto_sementes_transparente.png" alt="Projeto Sementes"
+            <img src="logo_projeto_sementes_sem_fundo.png" alt="Projeto Sementes"
                  onerror="this.style.display='none'">
             <strong>PROJETO SEMENTES</strong>
           </div>
@@ -703,6 +705,9 @@
            HOME
            ===================================================== -->
       <section id="homePage" class="page active">
+        <div class="home-brand-logo" aria-label="Logo do Projeto Sementes">
+          <img src="logo_projeto_sementes_sem_fundo.png" alt="Projeto Social Sementes — IEQ Guaicurus Jiu-Jitsu">
+        </div>
         <h1 class="page-title">Bem-vindo à família Sementes</h1>
         <p class="page-sub">Disciplina, valores cristãos, jiu-jitsu e fortalecimento das famílias.</p>
         <div class="bento">
@@ -1710,7 +1715,7 @@ const APP_CONFIG = {
   */
   demoMasterLogin: "londonjanssenbjj@gmail.com",
   demoMasterPassword: "12381314*Lj",
-  logo: "logo_projeto_sementes_transparente.png",
+  logo: "logo_projeto_sementes_sem_fundo.png",
   homeMusic: "Quando%20Ele%20Vem.mp3.mp3.aac"
 };
 
@@ -4342,9 +4347,7 @@ function generateReport(){
     #secretaryDocumentsList > .card{min-height:175px;padding:22px;}
     #enrollmentSuccess iframe{background:#fff;}
     #enrollmentSuccess{overflow:hidden;}
-
-/* V9 — documento oficial e fluxo de matrícula */
-#enrollmentSuccess{font-size:16px;line-height:1.45;}\n#enrollmentSuccess .notice{box-shadow:none;}\n#enrollmentSuccess iframe{height:560px;}\n
+\n/* V9 — documento oficial e fluxo de matrícula */\n#enrollmentSuccess{font-size:16px;line-height:1.45;}\n#enrollmentSuccess .notice{box-shadow:none;}\n#enrollmentSuccess iframe{height:560px;}\n
     /* V14 — documento baseado no termo enviado; identificação unificada CIN/RG */
     #guardianCINRG{min-width:0;}
 
@@ -4357,6 +4360,24 @@ function generateReport(){
     .champion-athlete{padding:10px;border:1px solid #3a3a3a;border-radius:10px;background:#151515}
     .schedule-item{border-left:4px solid var(--gold2);padding:12px 14px;background:#151515;border-radius:10px;margin-bottom:9px}
     .schedule-item time{font-weight:800;color:var(--gold2)}
+
+    /* V21 — logo transparente integrada à tela inicial */
+    .home-brand-logo{
+      width:min(260px,62vw);
+      margin:4px auto 12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:transparent;
+    }
+    .home-brand-logo img{
+      width:100%;
+      height:auto;
+      display:block;
+      object-fit:contain;
+      background:transparent;
+      filter:drop-shadow(0 8px 18px rgba(0,0,0,.24));
+    }
 </style>
       </head>
       <body>
