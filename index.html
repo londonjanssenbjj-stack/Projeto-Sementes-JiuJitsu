@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <!-- V31 — acessos genéricos; Pastor Joel; remove texto restritivo de login -->
   <!-- V28 — logo visível nas telas e usada como ícone do aplicativo -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1610,9 +1611,7 @@
               <i class="icon-gold" data-lucide="key-round"></i>
             </div>
             <button class="btn btn-gold btn-full" id="generateAccess">➕ Gerar Novo Acesso</button>
-            <p class="small muted" style="margin-top:10px">
-              O login do responsável será o nome do responsável. Somente o Administrador Mestre London pode gerar novos acessos.
-            </p>
+
           </article>
 
           <article class="card wide" id="masterManagementCard">
@@ -2195,7 +2194,7 @@ function roleLabel(role){
 }
 
 function canSeeSecretary(){
-  return ["master","director"].includes(state.user?.role);
+  return ["master","pastor","director"].includes(state.user?.role);
 }
 
 function isMaster(){
@@ -2217,10 +2216,37 @@ function canEditStudent(){
 /* -----------------------------
    AUTH DEMO
    ----------------------------- */
+const BUILTIN_ACCESSES = [
+  {
+    login:"JOEL AMORIM",
+    password:"654321JA",
+    name:"Pastor Joel",
+    role:"pastor",
+    studentId:null
+  }
+];
+
 function loginDemo(login,password){
   if(loginLocked()) return false;
   const normalized=String(login??"").trim().toLowerCase();
   const rawPassword=String(password??"");
+
+  // Acesso previamente definido para o Pastor Joel.
+  const builtinAccess=BUILTIN_ACCESSES.find(a=>
+    String(a.login||"").trim().toLowerCase()===normalized &&
+    String(a.password ?? "")===rawPassword
+  );
+  if(builtinAccess){
+    state.user={
+      id:`builtin-${builtinAccess.role}`,
+      name:builtinAccess.name,
+      role:builtinAccess.role,
+      studentId:builtinAccess.studentId||null
+    };
+    sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    clearFailedLogins();
+    return true;
+  }
 
   // Acessos criados pelo Administrador Mestre London.
   const storedAccess=Array.isArray(state.accesses)
@@ -4500,13 +4526,14 @@ function generateAccess(){
             <input id="newAccessName" class="input" required placeholder="Nome completo">
           </div>
           <div class="field">
-            <label>Login (nome de acesso)</label>
-            <input id="newAccessLogin" class="input" required placeholder="Nome do responsável ou nome de acesso">
+            <label>Login</label>
+            <input id="newAccessLogin" class="input" required placeholder="Digite o login que a pessoa usará" autocapitalize="none" autocorrect="off" spellcheck="false">
           </div>
           <div class="field">
             <label>Tipo de acesso</label>
             <select id="newAccessRole" class="select">
               <option value="guardian">Responsável</option>
+              <option value="pastor">Pastor</option>
               <option value="director">Diretoria</option>
               <option value="master">Administrador Mestre London</option>
             </select>
@@ -4559,7 +4586,7 @@ function generateAccess(){
       const login=(role==="guardian"
         ? ($("newAccessLogin").value.trim() || (state.students.find(st=>st.id===studentId)?.guardian||""))
         : $("newAccessLogin").value.trim()
-      ).toUpperCase();
+      );
       const password=$("newAccessPassword").value;
 
       if(!name || !login || password.length<6){
@@ -4775,7 +4802,7 @@ function initEvents(){
     const el=e.target;
     if(!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) return;
     if(el.type==="password" || el.type==="email" || el.type==="date" || el.type==="datetime-local" || el.type==="time" || el.type==="number") return;
-    if(el.id === "login" || el.id === "password") return;
+    if(el.id === "login" || el.id === "password" || el.id === "newAccessLogin" || el.id === "newAccessPassword") return;
     if(el.matches("input[type='search']")) return;
     const start=el.selectionStart, end=el.selectionEnd;
     el.value=el.value.toLocaleUpperCase("pt-BR");
