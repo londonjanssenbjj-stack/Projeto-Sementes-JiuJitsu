@@ -2758,8 +2758,8 @@ function initEnrollment(){
       return;
     }
 
-    // Etapa 1: o responsável recebe o documento e precisa tocar em BAIXAR DOCUMENTO.
-    // Somente depois dessa ação o cadastro é confirmado e a biometria é liberada.
+    // Etapa 1: o responsável recebe o documento e precisa tocar no único
+    // botão dourado "DOCUMENTO GERADO — BAIXE PARA CONTINUAR".
     const successBox=$("enrollmentSuccess");
     successBox.classList.remove("hidden");
     successBox.style.display="block";
@@ -2768,30 +2768,38 @@ function initEnrollment(){
     const pdfUrl=URL.createObjectURL(pdfBlob);
     window.__enrollmentPdfUrl=pdfUrl;
 
-    if(finalizeButton){ finalizeButton.disabled=true; finalizeButton.textContent="📄 Documento gerado — baixe para continuar"; }
+    // O próprio botão que iniciou a finalização vira o único botão de download.
+    // Assim não existem duas mensagens/botões de download na tela.
+    if(finalizeButton){
+      finalizeButton.type="button";
+      finalizeButton.id="downloadEnrollmentPDF";
+      finalizeButton.disabled=false;
+      finalizeButton.style.display="block";
+      finalizeButton.style.width="100%";
+      finalizeButton.style.minHeight="64px";
+      finalizeButton.style.fontSize="19px";
+      finalizeButton.style.fontWeight="900";
+      finalizeButton.textContent="📄 DOCUMENTO GERADO — BAIXE PARA CONTINUAR";
+    }
 
-    if(finalizeButton){ finalizeButton.disabled=true; finalizeButton.textContent="📄 Documento gerado — baixe para continuar"; }
     successBox.innerHTML=`
-      <div style="font-size:22px;font-weight:900;line-height:1.25;color:#b5f3c7">📄 DOCUMENTO GERADO — AGUARDANDO SALVAMENTO</div>
       <div class="notice" style="margin-top:12px;font-size:18px;line-height:1.5;border:2px solid var(--gold);padding:18px">
         <strong style="font-size:21px">⚠️ AVISO IMPORTANTE AO RESPONSÁVEL</strong><br>
-        Antes de continuar, <strong>baixe e salve o documento no seu celular</strong> ou encaminhe-o para um local seguro.
+        O documento foi gerado. <strong>Salve o documento no seu celular ou encaminhe-o para um local seguro antes de continuar.</strong>
         <br><br>
-        <strong>O cadastro somente será confirmado depois que você tocar em “BAIXAR DOCUMENTO”.</strong>
+        <strong>Toque no botão “DOCUMENTO GERADO — BAIXE PARA CONTINUAR” acima para salvar ou encaminhar o documento.</strong>
       </div>
       <div style="margin-top:14px;border:1px solid #d7d7d7;border-radius:12px;overflow:hidden;background:#fff">
         <iframe id="enrollmentPdfViewer" title="Documento de matrícula" src="${pdfUrl}"
           style="display:block;width:100%;height:560px;border:0;background:#fff"></iframe>
       </div>
-      <div class="action-row" style="margin-top:14px">
-        <button class="btn btn-gold" type="button" id="downloadEnrollmentPDF"
-          style="width:100%;min-height:60px;font-size:19px;font-weight:900">
-          📥 BAIXAR DOCUMENTO
-        </button>
-      </div>
       <div id="downloadStepStatus" class="small muted" style="margin-top:10px;text-align:center">
-        O documento ainda não foi confirmado. Toque em <strong>BAIXAR DOCUMENTO</strong> para salvar ou encaminhar e continuar o cadastro.
+        Aguardando o responsável salvar ou encaminhar o documento.
       </div>`;
+
+    if(finalizeButton){
+      successBox.prepend(finalizeButton);
+    }
 
     setTimeout(()=>successBox.scrollIntoView({behavior:"smooth",block:"start"}),150);
 
@@ -2814,16 +2822,22 @@ function initEnrollment(){
         }
       }catch(error){
         if(error?.name==="AbortError"){
-          toast("Documento não foi salvo. Toque em BAIXAR DOCUMENTO para tentar novamente.");
+          toast("Documento não foi salvo. Toque novamente para continuar.");
           return;
         }
-        downloadBlob(pdfBlob,pdf.filename);
-        savedOrShared=true;
+        try{
+          downloadBlob(pdfBlob,pdf.filename);
+          savedOrShared=true;
+        }catch(downloadError){
+          console.error("Falha ao baixar documento",downloadError);
+          toast("Não foi possível salvar o documento. Tente novamente.");
+          return;
+        }
       }
 
       if(!savedOrShared) return;
 
-      // Somente agora o cadastro é efetivado e aparece na Secretaria.
+      // Somente depois da ação de baixar/encaminhar o cadastro é efetivado.
       const pending=state.enrollment;
       let enrolledStudent=state.students.find(st=>
         st.name.toLowerCase()===pending.student.name.toLowerCase()
@@ -2883,14 +2897,15 @@ function initEnrollment(){
         });
       }
       saveState();
+      renderStudents();
+      updateKPIs();
       renderSecretaryDocuments();
 
       button.dataset.completed="1";
       button.disabled=true;
-      button.textContent="✅ DOCUMENTO BAIXADO / ENCAMINHADO";
-      if(finalizeButton) finalizeButton.style.display="none";
+      button.textContent="✅ DOCUMENTO SALVO / ENCAMINHADO";
       const stepStatus=$("downloadStepStatus");
-      if(stepStatus) stepStatus.innerHTML="<strong style='color:#b5f3c7'>Documento salvo ou encaminhado. Cadastro confirmado com sucesso. A biometria será iniciada agora.</strong>";
+      if(stepStatus) stepStatus.innerHTML="<strong style='color:#b5f3c7'>Documento salvo ou encaminhado.</strong>";
 
       await playSuccessSound("finalize");
       successBox.insertAdjacentHTML("afterbegin",
@@ -2907,9 +2922,6 @@ function initEnrollment(){
       $("captureFace").disabled=false;
       $("step2Dot").classList.add("active");
       $("step1Dot").classList.remove("active");
-      renderStudents();
-      updateKPIs();
-      renderSecretaryDocuments();
       toast("Cadastro realizado com sucesso. Agora faça a biometria.");
 
       setTimeout(()=>{
@@ -2996,9 +3008,9 @@ async function captureFace(){
   const biometricStatus=$("biometricStatus");
   if(biometricStatus){
     biometricStatus.classList.remove("hidden");
-    biometricStatus.innerHTML="🔊 <strong>BIOMETRIA REALIZADA COM SUCESSO</strong><br>Biometria vinculada ao cadastro do aluno.";
+    biometricStatus.innerHTML="🔊 <strong>CADASTRO BIOMÉTRICO REALIZADO COM SUCESSO</strong><br>Biometria vinculada ao cadastro do aluno.";
   }
-  toast("🔊 Biometria realizada com sucesso.");
+  toast("🔊 Cadastro biométrico realizado com sucesso.");
   renderStudents();
   saveState();
   setTimeout(resetEnrollmentFormAfterCompletion,1200);
@@ -3052,7 +3064,7 @@ function resetEnrollmentFormAfterCompletion(){
   if(firstField){
     setTimeout(()=>{ firstField.focus(); firstField.scrollIntoView({behavior:"smooth",block:"center"}); },150);
   }
-  toast("Cadastro Biométrico realizado com sucesso. Todos os campos foram limpos.");
+  toast("Cadastro biométrico realizado com sucesso. Todos os campos foram limpos.");
 }
 
 async function openClassCamera(){
