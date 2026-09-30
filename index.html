@@ -1071,12 +1071,8 @@
                 <input id="guardianPhone" class="input" type="tel" required>
               </div>
               <div class="field">
-                <label>CIN</label>
-                <input id="guardianCIN" class="input">
-              </div>
-              <div class="field">
-                <label>RG</label>
-                <input id="guardianRG" class="input">
+                <label>CIN/RG</label>
+                <input id="guardianCINRG" class="input" placeholder="Digite o CIN ou RG do responsável">
               </div>
             </div>
 
@@ -2469,7 +2465,7 @@ function pdfRect(x,y,w,h){ return `${x} ${y} ${w} ${h} re S`; }
 async function buildLegalEnrollmentPDF(e,codigoMatricula){
   /*
    * Modelo oficial solicitado pelo responsável, baseado fielmente no arquivo
-   * "Termo_Autorizacao_Projeto_Sementes.docx" enviado para esta matrícula.
+   * "Termo_Autorizacao_Projeto_Sementes(2).docx" enviado para esta matrícula.
    * O PDF é gerado localmente em uma única página A4, com numeração única e logo.
    */
   const logoData=await getProjectLogoDataURL();
@@ -2531,7 +2527,7 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
 
   section("2. IDENTIFICAÇÃO DO RESPONSÁVEL LEGAL");
   label(M+5,y,"Nome completo",e.guardian?.name||"",92); fieldLine(M+97,y-2,250); label(365,y,"Contato/Whatsapp",e.guardian?.phone||"",82); y-=16;
-  label(M+5,y,"CIN",e.guardian?.cin||e.guardian?.document||"",35); fieldLine(M+40,y-2,155); label(230,y,"RG",e.guardian?.rg||e.guardian?.document||"",28); fieldLine(258,y-2,179); y-=22;
+  label(M+5,y,"CIN/RG",e.guardian?.cinRg||e.guardian?.cinRg||e.guardian?.cin||e.guardian?.document||"",50); fieldLine(M+55,y-2,382); y-=22;
 
   section("3. AUTORIZAÇÃO E CIÊNCIA");
   paragraph("Eu, acima identificado(a), na qualidade de responsável legal, AUTORIZO o(a) menor a participar gratuitamente das atividades de Jiu-Jitsu do Projeto Social “Sementes”. Declaro estar ciente de que a modalidade envolve atividade física e contato corporal próprios do esporte, assumindo o compromisso de informar à coordenação qualquer condição de saúde, limitação, alergia, uso de medicamento ou alteração que possa interferir na participação.",6.25,8.4,137);
@@ -2717,9 +2713,8 @@ function initEnrollment(){
         name:$("guardianName").value.trim(),
         relation:$("guardianRelation").value,
         phone:$("guardianPhone").value.trim(),
-        cin:$("guardianCIN").value.trim(),
-        rg:$("guardianRG").value.trim(),
-        document:$("guardianRG").value.trim()
+        cinRg:$("guardianCINRG").value.trim(),
+        document:$("guardianCINRG").value.trim()
       },
       health,
       imageConsent:true,
@@ -2852,8 +2847,8 @@ function initEnrollment(){
           address:pending.student.address,
           guardian:pending.guardian.name,
           guardianRelation:pending.guardian.relation,
-          guardianCIN:pending.guardian.cin,
-          guardianRG:pending.guardian.rg,
+          guardianCINRG:pending.guardian.cinRg,
+          guardianCIN:pending.guardian.cinRg,
           guardianDocument:pending.guardian.document,
           phone:pending.guardian.phone,
           documentNumber:pdf.codigoMatricula,
@@ -2873,8 +2868,8 @@ function initEnrollment(){
         enrolledStudent.address=pending.student.address;
         enrolledStudent.guardian=pending.guardian.name;
         enrolledStudent.guardianRelation=pending.guardian.relation;
-        enrolledStudent.guardianCIN=pending.guardian.cin;
-        enrolledStudent.guardianRG=pending.guardian.rg;
+        enrolledStudent.guardianCINRG=pending.guardian.cinRg;
+        enrolledStudent.guardianCIN=pending.guardian.cinRg;
         enrolledStudent.guardianDocument=pending.guardian.document;
         enrolledStudent.phone=pending.guardian.phone;
         enrolledStudent.documentNumber=pdf.codigoMatricula;
@@ -4178,7 +4173,10 @@ function generateReport(){
     #secretaryDocumentsList > .card{min-height:175px;padding:22px;}
     #enrollmentSuccess iframe{background:#fff;}
     #enrollmentSuccess{overflow:hidden;}
-\n/* V9 — documento oficial e fluxo de matrícula */\n#enrollmentSuccess{font-size:16px;line-height:1.45;}\n#enrollmentSuccess .notice{box-shadow:none;}\n#enrollmentSuccess iframe{height:560px;}\n</style>
+\n/* V9 — documento oficial e fluxo de matrícula */\n#enrollmentSuccess{font-size:16px;line-height:1.45;}\n#enrollmentSuccess .notice{box-shadow:none;}\n#enrollmentSuccess iframe{height:560px;}\n
+    /* V14 — documento baseado no termo enviado; identificação unificada CIN/RG */
+    #guardianCINRG{min-width:0;}
+</style>
       </head>
       <body>
         <h1>Projeto Sementes — ${escapeHTML(type)}</h1>
