@@ -657,7 +657,7 @@
             <label for="password">Senha</label>
             <div class="input-wrap">
               <i data-lucide="lock-keyhole"></i>
-              <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" required placeholder="Digite sua senha">
+              <input id="password" class="input" type="password" autocomplete="current-password" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha">
               <button class="icon-btn password-toggle" id="togglePassword" type="button"
                       aria-label="Mostrar senha" title="Mostrar senha">
                 <i data-lucide="eye"></i>
@@ -4815,6 +4815,12 @@ function initEvents(){
   });
 
   $("forgotBtn").addEventListener("click",()=>{
+    const isMaster=$("login").value.trim().toLowerCase()===APP_CONFIG.masterEmail.toLowerCase();
+    if(!isMaster){
+      $("forgotBtn").classList.add("hidden");
+      return;
+    }
+
     modal(
       "Esqueci minha senha",
       `
