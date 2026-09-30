@@ -1044,6 +1044,10 @@
                 <input id="studentSchool" class="input">
               </div>
               <div class="field">
+                <label>Bairro</label>
+                <input id="studentNeighborhood" class="input">
+              </div>
+              <div class="field">
                 <label>Endereço Completo</label>
                 <input id="studentAddress" class="input">
               </div>
@@ -1067,8 +1071,12 @@
                 <input id="guardianPhone" class="input" type="tel" required>
               </div>
               <div class="field">
-                <label>CIN / RG</label>
-                <input id="guardianDocument" class="input">
+                <label>CIN</label>
+                <input id="guardianCIN" class="input">
+              </div>
+              <div class="field">
+                <label>RG</label>
+                <input id="guardianRG" class="input">
               </div>
             </div>
 
@@ -2460,344 +2468,177 @@ function pdfRect(x,y,w,h){ return `${x} ${y} ${w} ${h} re S`; }
 
 async function buildLegalEnrollmentPDF(e,codigoMatricula){
   /*
-   * Documento formal em padrão institucional, inspirado na documentação
-   * fornecida pelo Projeto Sementes. Não é denominado "ofício".
-   * O número PS-AAAA/NNNN é único por cadastro e aparece em todas as páginas.
+   * Modelo oficial solicitado pelo responsável, baseado fielmente no arquivo
+   * "Termo_Autorizacao_Projeto_Sementes.docx" enviado para esta matrícula.
+   * O PDF é gerado localmente em uma única página A4, com numeração única e logo.
    */
   const logoData=await getProjectLogoDataURL();
   const logo=await imageDataUrlToJpeg(logoData,520,180);
   const signature=await imageDataUrlToJpeg(e.signature,520,160);
 
-  const W=595,H=842;
-  const M=48, RIGHT=W-M, CONTENT_W=W-(2*M);
-  const encoderLatin1=str=>{
+  const W=595,H=842,M=34,R=W-M,CW=W-2*M;
+  const enc=s=>{
     const map={"€":128,"‚":130,"ƒ":131,"„":132,"…":133,"†":134,"‡":135,"ˆ":136,"‰":137,"Š":138,"‹":139,"Œ":140,"Ž":142,"‘":145,"’":146,"“":147,"”":148,"•":149,"–":150,"—":151,"˜":152,"™":153,"š":154,"›":155,"œ":156,"ž":158,"Ÿ":159};
-    const arr=[];
-    for(const ch of String(str??"")){
-      const cp=ch.charCodeAt(0);
-      arr.push(cp<=255?cp:(map[ch]??63));
-    }
-    return new Uint8Array(arr);
+    return Array.from(String(s??"")).map(ch=>{const cp=ch.charCodeAt(0);return cp<=255?cp:(map[ch]??63);});
   };
-  const esc=t=>Array.from(String(t??"")).map(ch=>ch.charCodeAt(0)).join(","); // unused, keeps text handling local
-
-  const cmdText=(font,size,x,y,text)=>{
-    const safe=String(text??"")
-      .replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
-    return `BT /${font} ${size} Tf 1 0 0 1 ${x.toFixed(2)} ${y.toFixed(2)} Tm (${safe}) Tj ET`;
+  const text=(font,size,x,y,t)=>`BT /${font} ${size} Tf 1 0 0 1 ${x.toFixed(2)} ${y.toFixed(2)} Tm (${enc(t).map(b=>String.fromCharCode(b)).join("").replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)")}) Tj ET`;
+  const line=(x1,y1,x2,y2)=>`${x1} ${y1} m ${x2} ${y2} l S`;
+  const rect=(x,y,w,h,fill=false)=>`${x} ${y} ${w} ${h} re ${fill?"f":"S"}`;
+  const wrap=(str,maxChars)=>{
+    const words=String(str??"").trim().split(/\s+/).filter(Boolean); const out=[]; let cur="";
+    for(const w of words){ const n=cur?cur+" "+w:w; if(cur&&n.length>maxChars){out.push(cur);cur=w;}else cur=n; }
+    if(cur)out.push(cur); return out;
   };
-  const cmdLine=(x1,y1,x2,y2)=>`${x1} ${y1} m ${x2} ${y2} l S`;
-  const cmdRect=(x,y,w,h,fill=false)=>fill?`${x} ${y} ${w} ${h} re f`:`${x} ${y} ${w} ${h} re S`;
+  const c=[]; const push=v=>c.push(v);
+  const navy="0.10 0.20 0.30";
+  const light="0.91 0.93 0.95";
+  const black="0 0 0";
 
-  function wrapText(text,maxChars){
-    const words=String(text??"").trim().split(/\s+/).filter(Boolean);
-    const lines=[]; let line="";
-    for(const word of words){
-      const candidate=line?`${line} ${word}`:word;
-      if(candidate.length>maxChars && line){ lines.push(line); line=word; }
-      else line=candidate;
-    }
-    if(line) lines.push(line);
-    return lines;
+  // Header, closely matching the supplied one-page document.
+  if(logo){
+    const iw=64, ih=Math.max(44,Math.min(64,Math.round(iw*(logo.height/logo.width))));
+    push(`q ${iw} 0 0 ${ih} ${M+2} ${H-92} cm /ImLogo Do Q`);
+  }
+  push(text("F2",10.2,132,H-50,"PROJETO SOCIAL \"SEMENTES\""));
+  push(text("F2",9.2,224,H-64,"JIU-JITSU"));
+  push(text("F2",8.2,176,H-79,"IGREJA DO EVANGELHO"));
+  push(text("F2",8.2,176,H-91,"QUADRANGULAR - GUAICURUS"));
+  push(text("F2",7.2,R-116,H-52,`DOCUMENTO Nº ${codigoMatricula}`));
+  push("0.15 0.15 0.15 RG");
+  push(line(M,H-108,R,H-108));
+
+  let y=H-128;
+  push(text("F2",11,M+84,y,"TERMO ÚNICO DE INSCRIÇÃO, AUTORIZAÇÃO E RESPONSABILIDADE"));
+  y-=25;
+
+  function section(title){
+    push(`${light} rg`); push(rect(M,y-16,CW,18,true)); push(`${navy} rg`);
+    push(text("F2",7.6,M+5,y-11,title)); push(`${black} rg`); y-=24;
+  }
+  function label(x,yy,name,value,offset=68){
+    push(text("F2",6.5,x,yy,name+":")); push(text("F1",6.6,x+offset,yy,String(value||"")));
+  }
+  function fieldLine(x,yy,w){push(line(x,yy,x+w,yy));}
+  function paragraph(str,size=6.45,leading=8.6,maxChars=132){
+    for(const ln of wrap(str,maxChars)){push(text("F1",size,M+5,y,ln));y-=leading;}
+    y-=2;
   }
 
-  const pageStreams=[];
-  const pages=[];
+  section("1. IDENTIFICAÇÃO DO(A) ALUNO(A) – MENOR");
+  label(M+5,y,"Nome completo",e.student?.name||"",92); fieldLine(M+97,y-2,250); label(365,y,"Data de nascimento",formatDate(e.student?.birth)||"",84); y-=16;
+  label(M+5,y,"Escola",e.student?.school||"",55); fieldLine(M+60,y-2,230); label(300,y,"Bairro",e.student?.neighborhood||"",42); fieldLine(342,y-2,95); y-=16;
+  label(M+5,y,"Endereço",e.student?.address||"",55); fieldLine(M+60,y-2,360); y-=22;
+
+  section("2. IDENTIFICAÇÃO DO RESPONSÁVEL LEGAL");
+  label(M+5,y,"Nome completo",e.guardian?.name||"",92); fieldLine(M+97,y-2,250); label(365,y,"Contato/Whatsapp",e.guardian?.phone||"",82); y-=16;
+  label(M+5,y,"CIN",e.guardian?.cin||e.guardian?.document||"",35); fieldLine(M+40,y-2,155); label(230,y,"RG",e.guardian?.rg||e.guardian?.document||"",28); fieldLine(258,y-2,179); y-=22;
+
+  section("3. AUTORIZAÇÃO E CIÊNCIA");
+  paragraph("Eu, acima identificado(a), na qualidade de responsável legal, AUTORIZO o(a) menor a participar gratuitamente das atividades de Jiu-Jitsu do Projeto Social “Sementes”. Declaro estar ciente de que a modalidade envolve atividade física e contato corporal próprios do esporte, assumindo o compromisso de informar à coordenação qualquer condição de saúde, limitação, alergia, uso de medicamento ou alteração que possa interferir na participação.",6.25,8.4,137);
+
+  section("4. DECLARAÇÃO DE SAÚDE");
+  push(text("F2",6.2,M+5,y,"Assinale uma opção em cada item:")); y-=13;
   const health=e.health||{};
+  const healthRows=[
+    ["Problema cardíaco/pressão",health.heart],
+    ["Asma/problema respiratório",health.respiratory],
+    ["Lesão óssea/muscular/articular",health.injury],
+    ["Uso contínuo de medicamento",health.medication],
+    ["Alergia",health.allergy],
+    ["Desmaio/tontura durante exercício",health.fainting]
+  ];
+  const drawChoice=(x,yy,labelText,val)=>{
+    const checked=String(val||"").toUpperCase()==="SIM";
+    push("0.15 0.15 0.15 RG"); push(rect(x,yy-7,7,7,false));
+    if(checked){push(text("F2",6.4,x+1,yy-6,"X"));}
+    push(text("F1",6.1,x+10,yy-5,"SIM"));
+    const x2=x+38; push(rect(x2,yy-7,7,7,false));
+    if(!checked && String(val||"").toUpperCase()==="NÃO"){push(text("F2",6.4,x2+1,yy-6,"X"));}
+    push(text("F1",6.1,x2+10,yy-5,"NÃO"));
+    push(text("F1",6.15,x2+34,yy-5,labelText));
+  };
+  const col1=M+5,col2=300;
+  drawChoice(col1,y,"Problema cardíaco/pressão",health.heart); drawChoice(col2,y,"Asma/problema respiratório",health.respiratory); y-=15;
+  drawChoice(col1,y,"Lesão óssea/muscular/articular",health.injury); drawChoice(col2,y,"Uso contínuo de medicamento",health.medication); y-=15;
+  drawChoice(col1,y,"Alergia",health.allergy); drawChoice(col2,y,"Desmaio/tontura durante exercício",health.fainting); y-=17;
+  push(text("F2",6.2,M+5,y,"Se SIM ou NÃO, especifique:")); y-=11;
+  fieldLine(M+5,y,CW-10); y-=11; fieldLine(M+5,y,CW-10); y-=18;
+  const details=health.details||"";
+  if(details){push(text("F1",6.0,M+8,y,wrap(details,140)[0]||"")); y-=9;}
 
-  function addPage(pageTitle,pageSubtitle,drawBody){
-    const c=[];
-    const push=x=>c.push(x);
-    let y=800;
+  section("5. SEGURANÇA, RESPONSABILIDADE E ATENDIMENTO");
+  paragraph("Declaro que as informações prestadas são verdadeiras e comprometo-me a comunicar qualquer alteração de saúde. Autorizo a equipe responsável a prestar os primeiros cuidados e, em situação de urgência ou emergência, acionar serviço especializado e/ou SAMU, quando necessário. O presente termo não afasta responsabilidades legais decorrentes de dolo, culpa, negligência, imprudência ou imperícia.",6.15,8.2,139);
 
-    // Institutional header
-    if(logo){
-      const iw=64;
-      const ih=Math.max(44,Math.min(62,Math.round(iw*(logo.height/logo.width))));
-      push(`q ${iw} 0 0 ${ih} ${M} ${y-ih+4} cm /ImLogo Do Q`);
-    }
-    push(cmdText("F2",11,126,y,"IGREJA DO EVANGELHO QUADRANGULAR GUAICURUS"));
-    push(cmdText("F1",8.5,126,y-16,'Ministério de Esportes - Projeto Social "Sementes"'));
-    push(cmdText("F1",7.2,126,y-30,"Bairro Guaicurus - Corumbá - MS | Registro: 218"));
-    push(cmdText("F2",7.4,RIGHT-150,y,`DOCUMENTO Nº ${codigoMatricula}`));
-    push(cmdLine(M,y-44,RIGHT,y-44));
-    y-=68;
+  section("6. USO DE IMAGEM, VOZ E NOME");
+  const imageAuthorized=e.imageConsent!==false;
+  push("0.15 0.15 0.15 RG"); push(rect(M+5,y-7,7,7,false)); if(imageAuthorized) push(text("F2",6.4,M+6,y-6,"X"));
+  push(text("F2",6.1,M+15,y-5,"AUTORIZO"));
+  push(rect(M+73,y-7,7,7,false)); if(!imageAuthorized) push(text("F2",6.4,M+74,y-6,"X"));
+  push(text("F2",6.1,M+83,y-5,"NÃO AUTORIZO"));
+  push(text("F1",6.0,M+148,y-5,"a captação e utilização gratuita da imagem, voz e nome do(a) menor em fotos e vídeos realizados no Projeto,")); y-=10;
+  push(text("F1",6.0,M+5,y,"exclusivamente para divulgação institucional, registro e prestação de contas, inclusive em canais oficiais da Igreja/Projeto e redes sociais, sem")); y-=9;
+  push(text("F1",6.0,M+5,y,"finalidade comercial, observada a legislação aplicável.")); y-=20;
 
-    push(cmdText("F2",12,M,y,pageTitle));
-    if(pageSubtitle) push(cmdText("F1",7.4,M,y-15,pageSubtitle));
-    y-=36;
+  section("7. DADOS PESSOAIS E COMUNICAÇÃO");
+  paragraph("Autorizo o tratamento dos dados fornecidos neste termo na medida necessária à inscrição, organização das atividades, contato com o responsável, segurança do(a) aluno(a) e cumprimento de obrigações legais, observados os direitos previstos na legislação aplicável.",6.15,8.2,139);
 
-    const bodyApi={
-      push,
-      get y(){return y;},
-      set y(v){y=v;},
-      section(title){
-        if(y<100) return;
-        push("0.94 0.95 0.97 rg");
-        push(cmdRect(M,y-18,CONTENT_W,20,true));
-        push("0.10 0.20 0.30 rg");
-        push(cmdText("F2",8.2,M+9,y-12,title));
-        push("0 0 0 rg");
-        y-=29;
-      },
-      labelLine(label,value){
-        const v=value||"Não informado";
-        push(cmdText("F2",7.1,M,y,label.toUpperCase()+":"));
-        push(cmdText("F1",7.2,M+92,y,String(v)));
-        y-=15;
-      },
-      two(label1,val1,label2,val2){
-        push(cmdText("F2",7.0,M,y,label1.toUpperCase()+":"));
-        push(cmdText("F1",7.1,M+88,y,String(val1||"Não informado")));
-        push(cmdText("F2",7.0,320,y,label2.toUpperCase()+":"));
-        push(cmdText("F1",7.1,320+82,y,String(val2||"Não informado")));
-        y-=15;
-      },
-      paragraph(text,size=7.5,leading=11,maxChars=105){
-        for(const line of wrapText(text,maxChars)){
-          push(cmdText("F1",size,M,y,line));
-          y-=leading;
-          if(y<70) break;
-        }
-        y-=3;
-      },
-      bullet(text){
-        push(cmdText("F1",7.2,M+2,y,"•"));
-        const lines=wrapText(text,96);
-        push(cmdText("F1",7.2,M+14,y,lines[0]||""));
-        y-=11;
-        for(const line of lines.slice(1)){
-          push(cmdText("F1",7.2,M+14,y,line)); y-=11;
-        }
-        y-=2;
-      }
-    };
-    // Expose the drawing helpers as locals because the document body uses the
-    // concise form section(...), labelLine(...), two(...), paragraph(...).
-    const {section,labelLine,two,paragraph,bullet}=bodyApi;
-    drawBody(bodyApi);
+  section("8. DECLARAÇÃO FINAL");
+  paragraph("Declaro que li, compreendi e concordo com as condições acima, autorizando a participação do(a) menor no Projeto Social “Sementes”, conforme as informações e opções assinaladas neste documento.",6.15,8.2,139);
 
-    // Footer
-    push(cmdLine(M,43,RIGHT,43));
-    push(cmdText("F1",6.3,M,29,`IEQ Guaicurus - Projeto Social "Sementes" | Documento nº ${codigoMatricula}`));
-    push(cmdText("F1",6.3,RIGHT-42,29,String(pages.length+1)));
-    pageStreams.push(c.join("\n"));
-    pages.push(pageTitle);
+  y-=4;
+  push(text("F1",6.4,M+5,y,`Corumbá – MS, ______ de __________________________________________ de ${new Date(e.date||todayISO()).getFullYear()}.`));
+  y-=28;
+  push(line(M+110,y,M+350,y));
+  push(text("F2",6.5,M+188,y-11,"ASSINATURA DO RESPONSÁVEL LEGAL"));
+  if(signature){
+    const sw=190, sh=Math.min(42,Math.round(sw*(signature.height/signature.width)));
+    push(`q ${sw} 0 0 ${sh} ${M+120} ${y+4} cm /ImSig Do Q`);
   }
 
-  addPage(
-    "FICHA DE INSCRIÇÃO E AUTORIZAÇÃO DE PARTICIPAÇÃO",
-    "Documento particular de matrícula e autorizações do responsável legal.",
-    (api)=>{
-      const {section,labelLine,two,paragraph,bullet,push}=api; let y=api.y;
-      section("1. DADOS DO ALUNO (MENOR)");
-      labelLine("Nome completo",e.student?.name);
-      two("Data de nascimento",formatDate(e.student?.birth),"Escola",e.student?.school);
-      labelLine("Endereço residencial",e.student?.address);
+  // Footer
+  push("0.15 0.15 0.15 RG"); push(line(M,38,R,38));
+  push(text("F1",5.8,M,25,`IEQ Guaicurus • Projeto Social “Sementes” • Jiu-Jitsu • Corumbá – MS`));
+  push(text("F1",5.8,R-75,25,`Documento nº ${codigoMatricula} • 1/1`));
 
-      section("2. DADOS DO RESPONSÁVEL LEGAL");
-      labelLine("Nome do responsável",e.guardian?.name);
-      two("Grau de parentesco",e.guardian?.relation,"RG / Documento",e.guardian?.document);
-      labelLine("Telefone / WhatsApp",e.guardian?.phone);
-
-      section("3. TERMO DE AUTORIZAÇÃO DE PARTICIPAÇÃO E RESPONSABILIDADE");
-      paragraph(
-        `Eu, acima identificado(a) como responsável legal, AUTORIZO expressamente o menor sob minha tutela a participar, de forma gratuita, das aulas e atividades de Jiu-Jitsu do Projeto Social "Sementes", promovido pela Igreja do Evangelho Quadrangular Guaicurus.`
-      );
-      paragraph(
-        "Declaro estar ciente de que a atividade esportiva envolve treinamento físico e contato corporal próprios da modalidade e que as atividades serão realizadas sob supervisão da equipe responsável pelo projeto."
-      );
-      paragraph(
-        "Comprometo-me a fornecer informações verdadeiras, comunicar à coordenação qualquer condição que possa interferir na participação do menor e observar as orientações de segurança, funcionamento e convivência estabelecidas pelo projeto."
-      );
-      paragraph(
-        "Esta autorização não implica renúncia a direitos que não possam ser afastados por lei, permanecendo aplicáveis os deveres legais de cuidado, segurança e proteção do menor."
-      );
-
-      if(y<170){
-        // This page is intentionally compact; the final declaration continues on page 3.
-      }
-    }
-  );
-
-  addPage(
-    "DECLARAÇÃO DE APTIDÃO FÍSICA E HISTÓRICO DE SAÚDE",
-    "Informações declaradas pelo responsável legal para fins de segurança durante a prática esportiva.",
-    (api)=>{
-      const {section,labelLine,two,paragraph,bullet,push}=api; let y=api.y;
-      section("4. QUESTIONÁRIO DE SAÚDE");
-      y=api.y;
-      const rows=[
-        ["Problema cardíaco ou de pressão arterial",health.heart],
-        ["Asma, bronquite ou problema respiratório",health.respiratory],
-        ["Lesão óssea, muscular ou articular recorrente",health.injury],
-        ["Uso regular de medicamento controlado",health.medication],
-        ["Alergia a medicamento ou substância",health.allergy],
-        ["Desmaio ou tontura durante exercício físico",health.fainting]
-      ];
-      rows.forEach(([q,a],i)=>{
-        push(cmdText("F1",7.4,M,y,`${i+1}. ${q}`));
-        push(cmdText("F2",7.4,RIGHT-42,y,String(a||"NÃO INFORMADO")));
-        y-=22;
-      });
-
-      push(cmdText("F2",7.3,M,y,"OBSERVAÇÕES DE SAÚDE:"));
-      y-=14;
-      for(const line of wrapText(health.details||"Não informado",102)){
-        push(cmdText("F1",7.3,M,y,line)); y-=11;
-      }
-      y-=8;
-      api.y=y;
-
-      section("5. DECLARAÇÃO DO RESPONSÁVEL");
-      paragraph(
-        "Declaro que as informações de saúde acima foram prestadas de forma verdadeira e completa, dentro do meu conhecimento, e comprometo-me a comunicar imediatamente à coordenação do projeto qualquer alteração relevante no estado de saúde do menor."
-      );
-      paragraph(
-        "A presente declaração tem finalidade de registro e segurança da atividade esportiva e não substitui avaliação ou atestado médico quando este for exigido por profissional de saúde, pela legislação ou pelas regras da atividade."
-      );
-      y=api.y;
-
-      y-=20;
-      push(cmdText("F1",7.3,M,y,`Corumbá - MS, ${formatDate(e.date||todayISO())}`));
-      y-=30;
-      push(cmdLine(M+130,y,M+365,y));
-      push(cmdText("F1",6.8,M+180,y-13,"Assinatura eletrônica do Responsável Legal"));
-      y-=30;
-      push(cmdText("F1",6.6,M,y,"Registro realizado por meio eletrônico no aplicativo Projeto Sementes."));
-    }
-  );
-
-  addPage(
-    "TERMO DE AUTORIZAÇÃO DE USO DE IMAGEM E VOZ",
-    "Autorização específica do responsável legal para utilização institucional.",
-    (api)=>{
-      const {section,labelLine,two,paragraph,bullet,push}=api; let y=api.y;
-      section("6. AUTORIZAÇÃO DE USO DE IMAGEM E VOZ");
-      paragraph(
-        "Eu, responsável legal pelo menor identificado neste documento, AUTORIZO, de forma gratuita, a captação e utilização de sua imagem e voz em fotografias, vídeos e demais registros realizados durante as atividades do Projeto Social \"Sementes\"."
-      );
-      paragraph(
-        "A autorização destina-se exclusivamente a finalidades institucionais, educativas, de divulgação das atividades e de prestação de contas do projeto e da Igreja do Evangelho Quadrangular Guaicurus, incluindo canais institucionais, redes sociais oficiais, murais, apresentações e materiais informativos."
-      );
-      paragraph(
-        "Fica vedada a utilização para exploração comercial ou finalidade lucrativa estranha aos objetivos institucionais aqui descritos. O tratamento dos dados e registros deverá observar a legislação aplicável e as finalidades informadas ao responsável."
-      );
-
-      section("7. DECLARAÇÃO FINAL E REGISTRO ELETRÔNICO");
-      paragraph(
-        "Declaro que li este documento, compreendi seu conteúdo, as autorizações e responsabilidades nele registradas e que os dados fornecidos são verdadeiros. Declaro ainda que a assinatura eletrônica foi realizada na tela do aplicativo pelo responsável legal."
-      );
-      paragraph(
-        "O presente documento integra o registro de matrícula do Projeto Social \"Sementes\" e é identificado pelo número único informado no cabeçalho e no rodapé de todas as páginas."
-      );
-      y=api.y;
-
-      y-=8;
-      if(signature){
-        const sigBoxY=Math.max(180,y-88);
-        push("0.65 0.65 0.65 RG");
-        push(cmdRect(M,sigBoxY,250,58,false));
-        push("0 0 0 rg");
-        const sw=210, sh=Math.min(42,Math.round(sw*(signature.height/signature.width)));
-        push(`q ${sw} 0 0 ${sh} ${M+20} ${sigBoxY+9} cm /ImSig Do Q`);
-        push(cmdText("F2",7.1,M,sigBoxY-13,"ASSINATURA ELETRÔNICA DO RESPONSÁVEL LEGAL"));
-        push(cmdText("F1",6.5,M,sigBoxY-24,"Registro da assinatura realizado no aplicativo."));
-        push(cmdText("F2",7.1,330,sigBoxY+40,"DOCUMENTO Nº"));
-        push(cmdText("F1",8.2,330,sigBoxY+25,codigoMatricula));
-        push(cmdText("F1",7.1,330,sigBoxY+10,`Local: ${APP_CONFIG.city} - MS`));
-        push(cmdText("F1",7.1,330,sigBoxY-4,`Data: ${formatDate(e.date||todayISO())}`));
-      }
-    }
-  );
-
-  // Build PDF objects with shared logo/signature.
-  const encoder=new TextEncoder();
-  const objects=[];
-  const add=obj=>{objects.push(obj);return objects.length;};
-  const catalogNum=add("");
-  const pagesNum=add("");
-  const pageNums=[];
-  const contentNums=[];
+  // Build PDF objects.
+  const encoder=new TextEncoder(); const objects=[];
+  const add=o=>{objects.push(o);return objects.length;};
+  const catalogNum=add(""); const pagesNum=add("");
   const font1=add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
   const font2=add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
-
   let logoNum=null,sigNum=null;
   if(logo) logoNum=add("__LOGO__");
   if(signature) sigNum=add("__SIG__");
-
-  const resourceX=[];
-  if(logoNum) resourceX.push(`/ImLogo ${logoNum} 0 R`);
-  if(sigNum) resourceX.push(`/ImSig ${sigNum} 0 R`);
-
-  pageStreams.forEach(stream=>{
-    const res=`<< /Font << /F1 ${font1} 0 R /F2 ${font2} 0 R >>${resourceX.length?` /XObject << ${resourceX.join(" ")} >>`:""} >>`;
-    const contentNum=add("__CONTENT__");
-    const pageNum=add(`<< /Type /Page /Parent ${pagesNum} 0 R /MediaBox [0 0 ${W} ${H}] /Resources ${res} /Contents ${contentNum} 0 R >>`);
-    contentNums.push(contentNum);
-    pageNums.push(pageNum);
-  });
-
+  const resImages=[]; if(logoNum) resImages.push(`/ImLogo ${logoNum} 0 R`); if(sigNum) resImages.push(`/ImSig ${sigNum} 0 R`);
+  const resources=`<< /Font << /F1 ${font1} 0 R /F2 ${font2} 0 R >> ${resImages.length?`/XObject << ${resImages.join(" ")} >>`:""} >>`;
+  const stream=enc(c.join("\n"));
+  const contentNum=add(`<< /Length ${stream.length} >>\nstream\nBINARY_CONTENT\nendstream`);
+  const pageNum=add(`<< /Type /Page /Parent ${pagesNum} 0 R /MediaBox [0 0 ${W} ${H}] /Resources ${resources} /Contents ${contentNum} 0 R >>`);
   objects[catalogNum-1]=`<< /Type /Catalog /Pages ${pagesNum} 0 R >>`;
-  objects[pagesNum-1]=`<< /Type /Pages /Kids [${pageNums.map(n=>`${n} 0 R`).join(" ")}] /Count ${pageNums.length} >>`;
+  objects[pagesNum-1]=`<< /Type /Pages /Kids [${pageNum} 0 R] /Count 1 >>`;
 
-  const imageBytes={};
-  if(logo) imageBytes.logo=pdfJpegBytes(logo.dataUrl);
-  if(signature) imageBytes.sig=pdfJpegBytes(signature.dataUrl);
+  const imageBytes={}; if(logo) imageBytes.logo=pdfJpegBytes(logo.dataUrl); if(signature) imageBytes.sig=pdfJpegBytes(signature.dataUrl);
+  if(logoNum) objects[logoNum-1]=`<< /Type /XObject /Subtype /Image /Width ${logo.width} /Height ${logo.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.logo.length} >>\nstream\nBINARY_LOGO\nendstream`;
+  if(sigNum) objects[sigNum-1]=`<< /Type /XObject /Subtype /Image /Width ${signature.width} /Height ${signature.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.sig.length} >>\nstream\nBINARY_SIG\nendstream`;
 
-  const contentBytes=pageStreams.map(stream=>encoderLatin1(stream));
-
+  const chunks=[]; const offsets=[0]; let total=0;
+  const header=enc("%PDF-1.4\n%\xFF\xFF\xFF\xFF\n"); chunks.push(header); total=header.length;
   for(let i=0;i<objects.length;i++){
-    if(objects[i]==="__LOGO__"){
-      objects[i]=`<< /Type /XObject /Subtype /Image /Width ${logo.width} /Height ${logo.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.logo.length} >>\nstream\nBINARY_LOGO\nendstream`;
-    }else if(objects[i]==="__SIG__"){
-      objects[i]=`<< /Type /XObject /Subtype /Image /Width ${signature.width} /Height ${signature.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.sig.length} >>\nstream\nBINARY_SIG\nendstream`;
-    }
+    offsets[i+1]=total; const obj=objects[i];
+    let bin=null,marker=null;
+    if(obj.includes("BINARY_CONTENT")){bin=stream;marker="BINARY_CONTENT";}
+    else if(obj.includes("BINARY_LOGO")){bin=imageBytes.logo;marker="BINARY_LOGO";}
+    else if(obj.includes("BINARY_SIG")){bin=imageBytes.sig;marker="BINARY_SIG";}
+    if(bin){
+      const before=enc(`${i+1} 0 obj\n`+obj.slice(0,obj.indexOf(marker)));
+      const after=enc(obj.slice(obj.indexOf(marker)+marker.length)+"\nendobj\n");
+      chunks.push(before,bin,after); total+=before.length+bin.length+after.length;
+    }else{const b=enc(`${i+1} 0 obj\n${obj}\nendobj\n`);chunks.push(b);total+=b.length;}
   }
-  contentNums.forEach((num,i)=>{
-    objects[num-1]=`<< /Length ${contentBytes[i].length} >>\nstream\nBINARY_CONTENT_${i}\nendstream`;
-  });
-
-  const chunks=[];
-  const offsets=[0];
-  const header=encoderLatin1("%PDF-1.4\n%\xFF\xFF\xFF\xFF\n");
-  chunks.push(header);
-  let total=header.length;
-
-  for(let i=0;i<objects.length;i++){
-    offsets[i+1]=total;
-    const obj=objects[i];
-    let binary=null, marker=null;
-    if(obj.includes("BINARY_LOGO")){binary=imageBytes.logo;marker="BINARY_LOGO";}
-    else if(obj.includes("BINARY_SIG")){binary=imageBytes.sig;marker="BINARY_SIG";}
-    else{
-      const m=obj.match(/BINARY_CONTENT_(\d+)/);
-      if(m){binary=contentBytes[Number(m[1])];marker=m[0];}
-    }
-
-    if(binary){
-      const before=obj.slice(0,obj.indexOf(marker));
-      const after=obj.slice(obj.indexOf(marker)+marker.length);
-      const head=encoderLatin1(`${i+1} 0 obj\n`);
-      const b=encoderLatin1(before);
-      const a=encoderLatin1(after);
-      const tail=encoderLatin1("\nendobj\n");
-      chunks.push(head,b,binary,a,tail);
-      total+=head.length+b.length+binary.length+a.length+tail.length;
-    }else{
-      const c=encoderLatin1(`${i+1} 0 obj\n${obj}\nendobj\n`);
-      chunks.push(c);
-      total+=c.length;
-    }
-  }
-
-  const xrefOffset=total;
-  let xref=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
-  for(let i=1;i<=objects.length;i++){
-    xref+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";
-  }
-  xref+=`trailer\n<< /Size ${objects.length+1} /Root ${catalogNum} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-  chunks.push(encoderLatin1(xref));
+  const xref=total; let x=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
+  for(let i=1;i<=objects.length;i++) x+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";
+  x+=`trailer\n<< /Size ${objects.length+1} /Root ${catalogNum} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  chunks.push(enc(x));
   return new Blob(chunks,{type:"application/pdf"});
 }
 
@@ -2869,13 +2710,16 @@ function initEnrollment(){
         name:$("studentName").value.trim(),
         birth:$("studentBirth").value,
         school:$("studentSchool").value.trim(),
+        neighborhood:$("studentNeighborhood").value.trim(),
         address:$("studentAddress").value.trim()
       },
       guardian:{
         name:$("guardianName").value.trim(),
         relation:$("guardianRelation").value,
         phone:$("guardianPhone").value.trim(),
-        document:$("guardianDocument").value.trim()
+        cin:$("guardianCIN").value.trim(),
+        rg:$("guardianRG").value.trim(),
+        document:$("guardianRG").value.trim()
       },
       health,
       imageConsent:true,
@@ -2902,10 +2746,14 @@ function initEnrollment(){
       state.enrollment.documentNumber=pdf.codigoMatricula;
       saveState();
     }catch(error){
-      console.error(error);
       console.error("Falha detalhada ao gerar o documento:", error?.stack || error);
-      toast("Não foi possível gerar o documento. Revise os dados da matrícula e tente finalizar novamente.");
-      const finalizeButton=$('#enrollmentForm button[type="submit"]');
+      const box=$("enrollmentSuccess");
+      if(box){
+        box.classList.remove("hidden");
+        box.style.display="block";
+        box.innerHTML=`<div class="notice" style="border:2px solid #ef5350;padding:16px"><strong>Não foi possível concluir o documento.</strong><br>Toque novamente em <strong>Finalizar Documento</strong>. Se persistir, recarregue a página antes de preencher um novo cadastro.</div>`;
+      }
+      toast("Não foi possível concluir o documento. Tente novamente.");
       if(finalizeButton){ finalizeButton.disabled=false; finalizeButton.textContent="💾 Finalizar Documento"; }
       return;
     }
@@ -2922,6 +2770,7 @@ function initEnrollment(){
 
     if(finalizeButton){ finalizeButton.disabled=true; finalizeButton.textContent="📄 Documento gerado — baixe para continuar"; }
 
+    if(finalizeButton){ finalizeButton.disabled=true; finalizeButton.textContent="📄 Documento gerado — baixe para continuar"; }
     successBox.innerHTML=`
       <div style="font-size:22px;font-weight:900;line-height:1.25;color:#b5f3c7">📄 DOCUMENTO GERADO — AGUARDANDO SALVAMENTO</div>
       <div class="notice" style="margin-top:12px;font-size:18px;line-height:1.5;border:2px solid var(--gold);padding:18px">
@@ -2943,6 +2792,8 @@ function initEnrollment(){
       <div id="downloadStepStatus" class="small muted" style="margin-top:10px;text-align:center">
         O documento ainda não foi confirmado. Toque em <strong>BAIXAR DOCUMENTO</strong> para salvar ou encaminhar e continuar o cadastro.
       </div>`;
+
+    setTimeout(()=>successBox.scrollIntoView({behavior:"smooth",block:"start"}),150);
 
     $("downloadEnrollmentPDF")?.addEventListener("click",async()=>{
       const button=$("downloadEnrollmentPDF");
@@ -2983,9 +2834,12 @@ function initEnrollment(){
           name:pending.student.name,
           birth:pending.student.birth,
           school:pending.student.school,
+          neighborhood:pending.student.neighborhood,
           address:pending.student.address,
           guardian:pending.guardian.name,
           guardianRelation:pending.guardian.relation,
+          guardianCIN:pending.guardian.cin,
+          guardianRG:pending.guardian.rg,
           guardianDocument:pending.guardian.document,
           phone:pending.guardian.phone,
           documentNumber:pdf.codigoMatricula,
@@ -3001,9 +2855,12 @@ function initEnrollment(){
       }else{
         enrolledStudent.birth=pending.student.birth;
         enrolledStudent.school=pending.student.school;
+        enrolledStudent.neighborhood=pending.student.neighborhood;
         enrolledStudent.address=pending.student.address;
         enrolledStudent.guardian=pending.guardian.name;
         enrolledStudent.guardianRelation=pending.guardian.relation;
+        enrolledStudent.guardianCIN=pending.guardian.cin;
+        enrolledStudent.guardianRG=pending.guardian.rg;
         enrolledStudent.guardianDocument=pending.guardian.document;
         enrolledStudent.phone=pending.guardian.phone;
         enrolledStudent.documentNumber=pdf.codigoMatricula;
@@ -3031,6 +2888,7 @@ function initEnrollment(){
       button.dataset.completed="1";
       button.disabled=true;
       button.textContent="✅ DOCUMENTO BAIXADO / ENCAMINHADO";
+      if(finalizeButton) finalizeButton.style.display="none";
       const stepStatus=$("downloadStepStatus");
       if(stepStatus) stepStatus.innerHTML="<strong style='color:#b5f3c7'>Documento salvo ou encaminhado. Cadastro confirmado com sucesso. A biometria será iniciada agora.</strong>";
 
@@ -3149,6 +3007,12 @@ async function captureFace(){
 function resetEnrollmentFormAfterCompletion(){
   const form=$("enrollmentForm");
   if(form) form.reset();
+  const finalizeButton=document.querySelector('#enrollmentForm button[type="submit"]');
+  if(finalizeButton){
+    finalizeButton.disabled=false;
+    finalizeButton.style.display="";
+    finalizeButton.textContent="💾 Finalizar Documento";
+  }
   clearSignature();
   const preview=$("facePreview");
   if(preview){ preview.src=""; preview.classList.add("hidden"); }
@@ -3183,9 +3047,6 @@ function resetEnrollmentFormAfterCompletion(){
   // o registro definitivo do aluno e do documento na Secretaria.
   state.enrollment=null;
   saveState();
-
-  const finalizeButton=document.querySelector('#enrollmentForm button[type="submit"]');
-  if(finalizeButton){ finalizeButton.disabled=false; finalizeButton.textContent="💾 Finalizar Documento"; }
 
   const firstField=$("studentName");
   if(firstField){
@@ -4299,7 +4160,7 @@ function generateReport(){
           table{border-collapse:collapse;width:100%}
           th,td{border:1px solid #ccc;padding:8px;text-align:left}
         
-    /* V10 — finalização: documento para salvar/compartilhar e aviso de cadastro na Secretaria */
+    /* V11 — finalização: documento para salvar/compartilhar e aviso de cadastro na Secretaria */
     #enrollmentSuccess{font-size:17px;line-height:1.45;}
     #enrollmentSuccess .notice{border-width:2px;}
     #secretaryDocumentsList > .card{min-height:175px;padding:22px;}
