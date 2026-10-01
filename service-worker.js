@@ -1,4 +1,4 @@
-const CACHE_NAME = "projeto-sementes-v32-acesso-20261001";
+const CACHE_NAME = "projeto-sementes-v33-acesso-20261001";
 const APP_SHELL = [
   "./",
   "./index.html",
