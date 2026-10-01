@@ -4,6 +4,7 @@
   <!-- V33 — credenciais do Mestre atualizadas e geração de acesso 100% automática -->
   <!-- V32 — acesso inicial único, expiração de 3 dias, redefinição e controle de acessos -->
   <!-- V34 — corrige conflito da credencial Mestre London e limpa override antigo -->
+  <!-- V35 — credencial Mestre London fixada; elimina conflito de senha antiga salva -->
   <!-- V28 — logo visível nas telas e usada como ícone do aplicativo -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -1882,7 +1883,7 @@ const STORAGE_KEYS = {
   accesses: "sementes_accesses",
   passwordResets: "sementes_password_resets_v32",
   masterPasswordOverride: "sementes_master_password_override_v33",
-  masterCredentialVersion: "sementes_master_credential_version_v34",
+  masterCredentialVersion: "sementes_master_credential_version_v35",
   universalAccessStartedAt: "sementes_universal_access_started_v32",
   engagement: "sementes_engagement_v17",
   schedule: "sementes_schedule_v17",
@@ -2266,23 +2267,16 @@ function canEditStudent(){
    ----------------------------- */
 function ensureMasterCredentialVersion(){
   try{
-    const version=localStorage.getItem(STORAGE_KEYS.masterCredentialVersion);
-    if(version!=="V34") {
-      // Limpa eventual senha administrativa antiga que ficou gravada
-      // nas versões anteriores e restabelece a senha oficial solicitada.
-      localStorage.removeItem(STORAGE_KEYS.masterPasswordOverride);
-      localStorage.setItem(STORAGE_KEYS.masterCredentialVersion,"V34");
-    }
+    // V35: elimina qualquer senha administrativa antiga salva localmente.
+    // A credencial mestre oficial abaixo é sempre a fonte de verdade deste front-end.
+    localStorage.removeItem(STORAGE_KEYS.masterPasswordOverride);
+    localStorage.setItem(STORAGE_KEYS.masterCredentialVersion,"V35");
   }catch(_){}
 }
 
 function getMasterPassword(){
-  ensureMasterCredentialVersion();
-  try{
-    return localStorage.getItem(STORAGE_KEYS.masterPasswordOverride) || APP_CONFIG.demoMasterPassword;
-  }catch(_){
-    return APP_CONFIG.demoMasterPassword;
-  }
+  // A senha do Mestre não é lida de localStorage, evitando conflito com versões antigas.
+  return APP_CONFIG.demoMasterPassword;
 }
 
 function normalizeLogin(value){
@@ -2458,7 +2452,7 @@ function loginDemo(login,password){
   const normalized=normalizeLogin(login);
   const rawPassword=String(password??"");
 
-  if(normalized===normalizeLogin(APP_CONFIG.demoMasterLogin) && rawPassword===getMasterPassword()){
+  if(normalized===normalizeLogin("LONDONJANSSENBJJ@GMAIL.COM") && rawPassword==="12381314LJ"){
     state.user={
       id:"master-account",
       name:APP_CONFIG.masterName,
