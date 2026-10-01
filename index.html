@@ -1891,7 +1891,7 @@ const APP_CONFIG = {
 };
 
 /* ============================================================
-   V38 — SINCRONIZAÇÃO CENTRAL ONLINE (SUPABASE)
+   V41 — SINCRONIZAÇÃO CENTRAL ONLINE (SUPABASE) — CORREÇÃO APP_ACCESSES
    ============================================================ */
 const CENTRAL_CONFIG = {
   url: "https://jnxlhgauuuiwwwurbslc.supabase.co",
@@ -1972,7 +1972,7 @@ function centralVisibleFamilyFilter(student){
 async function centralLoadAccessRecord(){
   if(!centralReady || !centralAuthUser) return null;
   const {data,error}=await centralClient.from("app_accesses")
-    .select("id,auth_user_id,login,display_name,role,family_key,guardian_name,active,temporary_password,temporary_expires_at,password_changed_at,created_by,created_at,updated_at")
+    .select("id,auth_user_id,login,display_name,role,family_key,active,temporary_password,temporary_expires_at,password_changed_at,created_by,created_at,updated_at")
     .eq("auth_user_id",centralAuthUser.id).maybeSingle();
   if(error) throw error;
   return data||null;
@@ -1987,7 +1987,7 @@ function centralMapAccess(a){
     accessPassword:"",
     role:a.role,
     studentId:null,
-    guardianName:a.guardian_name||a.display_name||"",
+    guardianName:a.display_name||"",
     familyKey:a.family_key||"",
     active:a.active!==false,
     temporaryPassword:Boolean(a.temporary_password),
@@ -2079,7 +2079,7 @@ async function centralPullState(){
 
     const get=type=>(records||[]).filter(r=>r.record_type===type).map(r=>r.data).filter(Boolean);
     const accessQ=await centralClient.from("app_accesses")
-      .select("id,auth_user_id,login,display_name,role,family_key,guardian_name,active,temporary_password,temporary_expires_at,password_changed_at,created_by,created_at,updated_at")
+      .select("id,auth_user_id,login,display_name,role,family_key,active,temporary_password,temporary_expires_at,password_changed_at,created_by,created_at,updated_at")
       .order("created_at",{ascending:true});
     if(accessQ.error) throw accessQ.error;
 
@@ -2202,7 +2202,7 @@ async function centralResolveCurrentIdentity(){
   state.user={
     id:access.id,authUserId:centralAuthUser.id,name:access.display_name||access.login,
     email:access.login,login:access.login,role:access.role,studentId:null,
-    guardianName:access.guardian_name||access.display_name||"",familyKey,
+    guardianName:access.display_name||"",familyKey,
     temporaryPassword:Boolean(access.temporary_password),passwordExpiresAt:access.temporary_expires_at||null
   };
   sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
@@ -2256,7 +2256,7 @@ async function centralLogin(login,password){
     state.user={
       id:access.id,authUserId:centralAuthUser.id,name:access.display_name||access.login,
       email:access.login,login:access.login,role:access.role,studentId:null,
-      guardianName:access.guardian_name||access.display_name||"",familyKey,
+      guardianName:access.display_name||"",familyKey,
       temporaryPassword:Boolean(access.temporary_password),passwordExpiresAt:access.temporary_expires_at||null
     };
     sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
@@ -2267,7 +2267,7 @@ async function centralLogin(login,password){
     updateAccessSecurityNotice();
     return {ok:true};
   }catch(error){
-    const msg=centralSafeError(error,"Login não autorizado.");
+    const msg=centralSafeError(error,"Login não autorizado. Verifique o acesso e tente novamente.");
     console.error("Falha no login central:", error);
     lastLoginMessage=msg.toLowerCase().includes("expir")?"Acesso expirado. Procure o Administrador.":msg;
     return {ok:false,error};
