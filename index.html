@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- V36 — sincronização local, perfis e acessos legados revisados -->
   <!-- V33 — credenciais do Mestre atualizadas e geração de acesso 100% automática -->
   <!-- V32 — acesso inicial único, expiração de 3 dias, redefinição e controle de acessos -->
   <!-- V34 — corrige conflito da credencial Mestre London e limpa override antigo -->
@@ -686,7 +685,7 @@
 
         <div class="security-badge">
           <i data-lucide="shield-check"></i>
-          Ambiente local com controles de sessão e acesso
+          Ambiente protegido por sandbox e criptografia AES-256
         </div>
       </div>
 
@@ -1889,8 +1888,7 @@ const STORAGE_KEYS = {
   engagement: "sementes_engagement_v17",
   schedule: "sementes_schedule_v17",
   scheduleArchive: "sementes_schedule_archive_v24",
-  championships: "sementes_championships_v17",
-  lastRegisteredStudent: "sementes_last_registered_student_v36"
+  championships: "sementes_championships_v17"
 };
 
 /* -----------------------------
@@ -2485,7 +2483,7 @@ function loginDemo(login,password){
       name:"Acesso Inicial Projeto Sementes",
       login:APP_CONFIG.initialAccessLogin,
       role:"universal",
-      studentId:getLastRegisteredStudentId()||null,
+      studentId:null,
       universalAccess:true,
       universalStartedAt:started
     };
@@ -3488,8 +3486,9 @@ function initEnrollment(){
         });
       }
       saveState();
-      linkCurrentDeviceToRegisteredStudent(enrolledStudent);
-      refreshAllStudentDerivedViews();
+      renderStudents();
+      updateKPIs();
+      renderSecretaryDocuments();
 
       button.dataset.completed="1";
       button.disabled=true;
@@ -3586,11 +3585,6 @@ async function captureFace(){
   if(student){
     student.face=data;
     student.status="complete";
-    persistLastRegisteredStudent(student.id);
-    if(state.user?.role==="universal"){
-      state.user.studentId=student.id;
-      sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-    }
     saveState();
   }
 
@@ -3724,8 +3718,7 @@ function renderStudents(){
   let list=sortedStudents();
 
   if(["guardian","universal"].includes(state.user?.role)){
-    const linkedId = state.user.studentId || getLastRegisteredStudentId();
-    list = linkedId ? list.filter(s=>s.id===linkedId) : [];
+    list=state.user.studentId ? list.filter(s=>s.id===state.user.studentId) : [];
   }
 
   list=list.filter(s=>{
@@ -4896,80 +4889,6 @@ function updateKPIs(){
   renderSecretaryDocuments();
 }
 
-
-function persistLastRegisteredStudent(studentId){
-  if(!studentId) return;
-  try{ localStorage.setItem(STORAGE_KEYS.lastRegisteredStudent,String(studentId)); }catch(_){}
-}
-
-function getLastRegisteredStudentId(){
-  try{ return localStorage.getItem(STORAGE_KEYS.lastRegisteredStudent)||""; }catch(_){ return ""; }
-}
-
-function migrateLegacyAccesses(){
-  let changed=false;
-  const existingByStudent=new Map(
-    state.accesses
-      .filter(a=>a && a.studentId)
-      .map(a=>[a.studentId,a])
-  );
-
-  state.students.forEach(s=>{
-    if(!s || !s.accessLogin) return;
-    if(existingByStudent.has(s.id)) return;
-
-    const password=s.accessPassword||"";
-    if(!password) return;
-
-    const access={
-      id:`legacy-${s.id}`,
-      name:s.guardian||s.name,
-      login:String(s.accessLogin).trim(),
-      password,
-      accessPassword:password,
-      role:"guardian",
-      studentId:s.id,
-      active:true,
-      createdAt:s.enrollmentDate ? new Date(s.enrollmentDate+"T12:00:00").toISOString() : nowISO(),
-      temporaryPassword:false,
-      passwordExpiresAt:"",
-      passwordResetAt:s.enrollmentDate || nowISO(),
-      migratedFromLegacy:true
-    };
-    state.accesses.push(access);
-    changed=true;
-  });
-
-  if(changed) saveState();
-  return changed;
-}
-
-function linkCurrentDeviceToRegisteredStudent(student){
-  if(!student) return;
-
-  // Para o acesso inicial compartilhado, o vínculo fica apenas neste dispositivo.
-  // Isso permite que quem acabou de cadastrar veja o próprio perfil sem expor
-  // os demais alunos no mesmo celular.
-  if(state.user?.role==="universal"){
-    state.user.studentId=student.id;
-    sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-  }
-
-  persistLastRegisteredStudent(student.id);
-}
-
-function refreshAllStudentDerivedViews(){
-  renderStudents();
-  renderTatame();
-  renderFrequency();
-  updateKPIs();
-  renderBirthdays();
-  renderImpactAndMap();
-  renderSecretaryDocuments();
-  renderMasterManagement();
-  renderAccessSecurityManagement();
-}
-
 function renderMasterManagement(){
   const card=$("masterManagementCard");
   const generateBtn=$("generateAccess");
@@ -5670,7 +5589,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   ensureMasterCredentialVersion();
   loadState();
   seedState();
-  migrateLegacyAccesses();
   restoreGame();
 
   initEvents();
