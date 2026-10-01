@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <!-- V33 — credenciais do Mestre atualizadas e geração de acesso 100% automática -->
   <!-- V32 — acesso inicial único, expiração de 3 dias, redefinição e controle de acessos -->
   <!-- V31 — acessos genéricos; Pastor Joel; remove texto restritivo de login -->
   <!-- V28 — logo visível nas telas e usada como ícone do aplicativo -->
@@ -1614,11 +1615,10 @@
 
           <article class="card">
             <div class="card-header">
-              <div><h2 class="section-title">CONTROLE DE ACESSOS</h2><span class="small muted">Acessos dos responsáveis</span></div>
+              <div><h2 class="section-title">CONTROLE DE ACESSOS</h2><span class="small muted">Geração automática de login e senha</span></div>
               <i class="icon-gold" data-lucide="key-round"></i>
             </div>
-            <button class="btn btn-gold btn-full" id="generateAccess">➕ Gerar Novo Acesso</button>
-
+            <button class="btn btn-gold btn-full" id="generateAccess" type="button">🔐 GERAR LOGIN E SENHA AUTOMATICAMENTE</button>
           </article>
 
           <article class="card wide" id="ownPasswordManagementCard">
@@ -1862,7 +1862,7 @@ const APP_CONFIG = {
     Supabase Auth ou outro provedor seguro.
   */
   demoMasterLogin: "LONDONJANSSENBJJ@GMAIL.COM",
-  demoMasterPassword: "12381314*LJ",
+  demoMasterPassword: "12381314LJ",
   initialAccessLogin: "PROJETO SEMENTES",
   initialAccessPassword: "SEMENTES@2026#",
   initialAccessDays: 3,
@@ -1881,7 +1881,7 @@ const STORAGE_KEYS = {
   documentSequence: "sementes_document_sequence_v10",
   accesses: "sementes_accesses",
   passwordResets: "sementes_password_resets_v32",
-  masterPasswordOverride: "sementes_master_password_override_v32",
+  masterPasswordOverride: "sementes_master_password_override_v33",
   universalAccessStartedAt: "sementes_universal_access_started_v32",
   engagement: "sementes_engagement_v17",
   schedule: "sementes_schedule_v17",
@@ -5025,131 +5025,59 @@ function generateAccess(){
     return;
   }
 
+  // Geração 100% automática: nenhum nome, tipo ou senha precisa ser informado.
+  const prefix="SEMENTES";
+  const seq=nextAccessNumber(prefix);
+  const login=`${prefix}-${String(seq).padStart(4,"0")}`;
+  const password=randomPassword(10);
+  const createdAt=nowISO();
+
+  const access={
+    id:`access-${Date.now()}`,
+    name:`Acesso ${login}`,
+    login,
+    password,
+    accessPassword:password,
+    role:"guardian",
+    studentId:null,
+    active:true,
+    temporaryPassword:true,
+    createdAt,
+    passwordExpiresAt:new Date(Date.now()+accessExpiryMs()).toISOString(),
+    createdBy:state.user?.name||APP_CONFIG.masterName
+  };
+
+  state.accesses.push(access);
+  saveState();
+  renderMasterManagement();
+  renderAccessSecurityManagement();
+  renderStudents();
+
   modal(
-    "Gerar Novo Acesso",
+    "Novo acesso gerado",
     `
-      <p class="body-text">
-        O sistema vai gerar automaticamente o login e a senha provisória.
-        A senha vale por <strong>3 dias</strong> e deve ser redefinida pelo usuário.
+      <div class="success-notice">
+        <strong>✓ Login e senha gerados automaticamente.</strong><br>
+        A senha provisória é válida por 3 dias.
+      </div>
+      <div class="card" style="background:#151515;margin-top:12px">
+        <p class="body-text" style="margin:0 0 10px"><strong>LOGIN:</strong><br>
+          <span style="font-size:18px;color:var(--gold2);font-weight:900">${escapeHTML(login)}</span>
+        </p>
+        <p class="body-text" style="margin:0"><strong>SENHA:</strong><br>
+          <span style="font-size:18px;color:var(--gold2);font-weight:900;letter-spacing:1px">${escapeHTML(password)}</span>
+        </p>
+      </div>
+      <div class="action-row" style="margin-top:12px">
+        <button class="btn" type="button" onclick="copyText('${encodeURIComponent(login)}')">📋 Copiar login</button>
+        <button class="btn" type="button" onclick="copyText('${encodeURIComponent(password)}')">📋 Copiar senha</button>
+      </div>
+      <p class="small muted" style="margin-top:12px">
+        Entregue este login e esta senha à pessoa. A senha provisória deverá ser substituída antes do fim dos 3 dias.
       </p>
-      <form id="accessForm">
-        <div class="form-grid">
-          <div class="field">
-            <label>Nome exibido</label>
-            <input id="newAccessName" class="input" required placeholder="Nome completo">
-          </div>
-          <div class="field">
-            <label>Tipo de acesso</label>
-            <select id="newAccessRole" class="select">
-              <option value="guardian">Responsável</option>
-              <option value="pastor">Pastor</option>
-              <option value="director">Diretoria</option>
-            </select>
-          </div>
-          <div class="field full" id="accessStudentWrap">
-            <label>Aluno vinculado (Responsável)</label>
-            <select id="newAccessStudent" class="select"></select>
-          </div>
-        </div>
-        <button class="btn btn-gold" type="submit">🔐 Gerar login e senha automaticamente</button>
-      </form>
     `
   );
-
-  const studentSelect=$("newAccessStudent");
-  if(studentSelect){
-    studentSelect.innerHTML=state.students.length
-      ? state.students.map(st=>`<option value="${escapeHTML(st.id)}">${escapeHTML(st.name)} — ${escapeHTML(st.guardian||"SEM RESPONSÁVEL")}</option>`).join("")
-      : `<option value="">Nenhum aluno cadastrado</option>`;
-  }
-
-  const roleSelect=$("newAccessRole");
-  const updateRoleUI=()=>{
-    const isGuardian=roleSelect?.value==="guardian";
-    if($("accessStudentWrap")) $("accessStudentWrap").style.display=isGuardian?"block":"none";
-  };
-  roleSelect?.addEventListener("change",updateRoleUI);
-  updateRoleUI();
-
-  setTimeout(()=>{
-    $("accessForm")?.addEventListener("submit",e=>{
-      e.preventDefault();
-
-      const name=$("newAccessName").value.trim().toUpperCase();
-      const role=$("newAccessRole").value;
-      const studentId=role==="guardian"?($("newAccessStudent")?.value||null):null;
-
-      if(!name){
-        toast("Preencha o nome.");
-        return;
-      }
-      if(role==="guardian" && !studentId){
-        toast("Selecione o aluno que será vinculado ao responsável.");
-        return;
-      }
-
-      let student=null;
-      if(role==="guardian"){
-        student=state.students.find(st=>st.id===studentId);
-        if(!student){
-          toast("Aluno não encontrado.");
-          return;
-        }
-      }
-
-      const prefix=role==="guardian"?"RESP":role==="director"?"DIR":"PASTOR";
-      const seq=nextAccessNumber(prefix);
-      const login=`${prefix}-${String(seq).padStart(4,"0")}`;
-      const password=randomPassword(10);
-      const createdAt=nowISO();
-
-      const access={
-        id:`access-${Date.now()}`,
-        name,
-        login,
-        password,
-        accessPassword:password,
-        role,
-        studentId,
-        active:true,
-        temporaryPassword:true,
-        createdAt,
-        passwordExpiresAt:new Date(Date.now()+accessExpiryMs()).toISOString(),
-        createdBy:state.user?.name||APP_CONFIG.masterName
-      };
-
-      state.accesses.push(access);
-
-      if(student){
-        student.accessLogin=login;
-        student.accessPassword=password;
-      }
-
-      saveState();
-      renderMasterManagement();
-      renderStudents();
-      renderAccessSecurityManagement();
-
-      modal(
-        "Novo acesso gerado",
-        `
-          <div class="success-notice">
-            <strong>✓ Acesso criado.</strong> A senha provisória expira em 3 dias.
-          </div>
-          <div class="card" style="background:#151515;margin-top:12px">
-            <p class="body-text" style="margin:0 0 10px"><strong>Nome:</strong> ${escapeHTML(name)}</p>
-            <p class="body-text" style="margin:0 0 10px"><strong>Login:</strong> ${escapeHTML(login)}</p>
-            <p class="body-text" style="margin:0"><strong>Senha:</strong> ${escapeHTML(password)}</p>
-          </div>
-          <div class="action-row" style="margin-top:12px">
-            <button class="btn" type="button" onclick="copyText('${encodeURIComponent(login)}')">📋 Copiar login</button>
-            <button class="btn" type="button" onclick="copyText('${encodeURIComponent(password)}')">📋 Copiar senha</button>
-          </div>
-        `
-      );
-      toast("Novo login e senha gerados com sucesso.");
-    });
-  },0);
+  toast("Novo login e senha gerados com sucesso.");
 }
 
 function copyText(encoded){
