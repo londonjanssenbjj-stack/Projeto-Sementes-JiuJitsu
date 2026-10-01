@@ -1894,11 +1894,12 @@ const APP_CONFIG = {
    V38 — SINCRONIZAÇÃO CENTRAL ONLINE (SUPABASE)
    ============================================================ */
 const CENTRAL_CONFIG = {
-  // Preencha estes dois valores depois de criar o projeto Supabase.
-  url: "COLE_AQUI_A_URL_DO_SEU_PROJETO_SUPABASE",
-  publishableKey: "COLE_AQUI_A_PUBLISHABLE_KEY_DO_SUPABASE",
+  url: "https://jnxlhgauuuiwwwurbslc.supabase.co",
+  publishableKey: "sb_publishable_9Ho48jCeAqdXiHwUaM-G7g_5cnBY_s1",
   functionName: "manage-access",
-  enabled: true
+  enabled: true,
+  // Pastor Joel é autenticado pela Edge Function usando os Secrets do Supabase.
+  pastorLogin: "JOEL AMORIM"
 };
 
 let centralClient=null;
@@ -2220,20 +2221,22 @@ function localFamilyForLogin(login){
 async function centralLogin(login,password){
   if(!initCentralClient()) return {ok:false,skipped:true};
   lastLoginMessage="";
+  const cleanLogin=String(login||"").trim();
+  const rawPassword=String(password||"");
   const localAccess=(state.accesses||[]).find(a=>
-    normalizeLogin(a?.login)===normalizeLogin(login)&&
-    String(a?.password||a?.accessPassword||"")===String(password||"")&&a.active!==false
+    normalizeLogin(a?.login)===normalizeLogin(cleanLogin)&&
+    String(a?.password||a?.accessPassword||"")===rawPassword&&a.active!==false
   );
   try{
     const resolved=await centralFunction("resolve-login",{
-      login:String(login||"").trim(),password:String(password||""),
+      login:cleanLogin,password:rawPassword,
       legacyAccess:localAccess?{
         name:localAccess.name||localAccess.guardianName||login,
         login:localAccess.login,role:localAccess.role,studentId:localAccess.studentId||null,
         familyKey:localAccess.familyKey||""
       }:null
     });
-    const signed=await centralClient.auth.signInWithPassword({email:resolved.internalEmail,password:String(password||"")});
+    const signed=await centralClient.auth.signInWithPassword({email:resolved.internalEmail,password:rawPassword});
     if(signed.error) throw signed.error;
     centralAuthUser=signed.data.user;
     let access=await centralLoadAccessRecord();
@@ -2265,6 +2268,7 @@ async function centralLogin(login,password){
     return {ok:true};
   }catch(error){
     const msg=centralSafeError(error,"Login não autorizado.");
+    console.error("Falha no login central:", error);
     lastLoginMessage=msg.toLowerCase().includes("expir")?"Acesso expirado. Procure o Administrador.":msg;
     return {ok:false,error};
   }
