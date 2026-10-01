@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <!-- V38 — fluxo matrícula + biometria + Alunos + família + atualização automática -->
   <!-- V33 — credenciais do Mestre atualizadas e geração de acesso 100% automática -->
   <!-- V32 — acesso inicial único, expiração de 3 dias, redefinição e controle de acessos -->
   <!-- V34 — corrige conflito da credencial Mestre London e limpa override antigo -->
@@ -685,7 +686,7 @@
 
         <div class="security-badge">
           <i data-lucide="shield-check"></i>
-          Ambiente protegido por sandbox e criptografia AES-256
+          Ambiente local com controles de sessão e acesso
         </div>
       </div>
 
@@ -1094,9 +1095,25 @@
           </div>
 
           <div class="notice" style="margin-bottom:18px">
-            <strong>📢 Passo 1 de 2:</strong>
-            preenchimento dos dados e assinatura digital. A biometria facial será liberada somente
-            após a conclusão e assinatura deste documento.
+            <strong>📢 ORIENTAÇÃO — ACESSO PROVISÓRIO:</strong><br>
+            Este acesso é provisório e expira em <strong>3 dias</strong>. Após concluir a matrícula e a biometria,
+            entre em <strong>Alunos → Ver perfil → Redefinir senha</strong> para criar sua senha definitiva.
+          </div>
+
+          <div class="card" style="margin:0 0 18px;background:#151515;border:1px solid var(--gold)">
+            <h3 class="section-title" style="margin:0 0 10px">PASSO A PASSO DO CADASTRAMENTO</h3>
+            <ol class="number-list" style="display:grid;gap:8px;margin:0;padding-left:22px">
+              <li>Preencha os dados completos do aluno e do responsável.</li>
+              <li>Responda toda a declaração de saúde e informe os detalhes quando necessário.</li>
+              <li>Leia e confirme a autorização de uso de imagem e voz.</li>
+              <li>Faça a assinatura do responsável na tela.</li>
+              <li>Toque em <strong>Finalizar Documento</strong>.</li>
+              <li>Salve ou encaminhe o documento gerado. Aguarde a próxima etapa.</li>
+              <li>Abra a câmera, posicione o rosto e toque em <strong>Capturar Face</strong>.</li>
+              <li>Depois da biometria, o cadastro será concluído e o aluno aparecerá em <strong>Alunos</strong>.</li>
+              <li>A aba <strong>Alunos</strong> alimentará automaticamente as demais abas que usam esses dados.</li>
+              <li>Abra <strong>Alunos → Ver perfil → Redefinir senha</strong> e troque a senha dentro dos 3 dias.</li>
+            </ol>
           </div>
 
           <form id="enrollmentForm">
@@ -1831,6 +1848,8 @@
   <source src="quando-ele-vem.mp3" type="audio/mpeg">
 </audio>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 /* ============================================================
    PROJETO SEMENTES — SINGLE FILE APPLICATION
@@ -1871,6 +1890,402 @@ const APP_CONFIG = {
   homeMusic: "Quando%20Ele%20Vem.mp3.mp3.aac"
 };
 
+/* ============================================================
+   V38 — SINCRONIZAÇÃO CENTRAL ONLINE (SUPABASE)
+   ============================================================ */
+const CENTRAL_CONFIG = {
+  // Preencha estes dois valores depois de criar o projeto Supabase.
+  url: "COLE_AQUI_A_URL_DO_SEU_PROJETO_SUPABASE",
+  publishableKey: "COLE_AQUI_A_PUBLISHABLE_KEY_DO_SUPABASE",
+  functionName: "manage-access",
+  enabled: true
+};
+
+let centralClient=null;
+let centralAuthUser=null;
+let centralReady=false;
+let centralSyncTimer=null;
+let centralRefreshTimer=null;
+let centralApplyingRemote=false;
+let lastLoginMessage="";
+
+function centralIsConfigured(){
+  return Boolean(
+    CENTRAL_CONFIG.enabled &&
+    CENTRAL_CONFIG.url &&
+    CENTRAL_CONFIG.publishableKey &&
+    !CENTRAL_CONFIG.url.includes("COLE_AQUI") &&
+    !CENTRAL_CONFIG.publishableKey.includes("COLE_AQUI") &&
+    window.supabase?.createClient
+  );
+}
+
+function initCentralClient(){
+  if(!centralIsConfigured()) return false;
+  try{
+    if(!centralClient){
+      centralClient=window.supabase.createClient(
+        CENTRAL_CONFIG.url.trim(),
+        CENTRAL_CONFIG.publishableKey.trim(),
+        {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}}
+      );
+    }
+    centralReady=true;
+    return true;
+  }catch(error){
+    console.error("Falha ao iniciar banco central",error);
+    centralReady=false;
+    return false;
+  }
+}
+
+async function centralFunction(action,payload={}){
+  if(!initCentralClient()) throw new Error("Banco central ainda não configurado.");
+  const {data,error}=await centralClient.functions.invoke(CENTRAL_CONFIG.functionName,{body:{action,...payload}});
+  if(error) throw error;
+  if(data?.error) throw new Error(data.error);
+  return data||{};
+}
+
+function centralSafeError(error,fallback="Não foi possível comunicar com a base central."){
+  const msg=String(error?.message||error||"").trim();
+  return msg||fallback;
+}
+
+function centralFamilyKey(name,phone){
+  const n=normalizePersonName(name||"");
+  const p=String(phone||"").replace(/\D+/g,"");
+  return `${n}|${p}`.slice(0,180);
+}
+
+function centralRoleIsStaff(role=state.user?.role){
+  return ["master","pastor","director"].includes(role);
+}
+
+function centralVisibleFamilyFilter(student){
+  if(centralRoleIsStaff()) return true;
+  if(!state.user?.familyKey) return false;
+  return studentFamilyKey(student)===state.user.familyKey;
+}
+
+async function centralLoadAccessRecord(){
+  if(!centralReady || !centralAuthUser) return null;
+  const {data,error}=await centralClient.from("app_accesses")
+    .select("id,auth_user_id,login,display_name,role,family_key,guardian_name,active,temporary_password,temporary_expires_at,password_changed_at,created_by,created_at,updated_at")
+    .eq("auth_user_id",centralAuthUser.id).maybeSingle();
+  if(error) throw error;
+  return data||null;
+}
+
+function centralMapAccess(a){
+  return {
+    id:a.id,
+    name:a.display_name||a.login,
+    login:a.login,
+    password:"",
+    accessPassword:"",
+    role:a.role,
+    studentId:null,
+    guardianName:a.guardian_name||a.display_name||"",
+    familyKey:a.family_key||"",
+    active:a.active!==false,
+    temporaryPassword:Boolean(a.temporary_password),
+    passwordExpiresAt:a.temporary_expires_at||"",
+    createdAt:a.created_at||"",
+    passwordResetAt:a.password_changed_at||"",
+    createdBy:a.created_by||""
+  };
+}
+
+function centralRecordRows(type,items,getFamily){
+  return (Array.isArray(items)?items:[]).filter(Boolean).map(item=>({
+    record_type:type,
+    record_id:String(item.id||`${type}-${Date.now()}-${Math.random()}`),
+    family_key:String(getFamily(item)||""),
+    owner_auth_user_id:centralRoleIsStaff()?null:(centralAuthUser?.id||null),
+    data:item,
+    updated_at:new Date().toISOString()
+  }));
+}
+
+function studentFamilyKey(student){
+  return student?.familyKey || centralFamilyKey(student?.guardian||"",student?.phone||"");
+}
+function attendanceFamilyKey(item){
+  const s=state.students.find(x=>x.id===item.studentId);
+  return studentFamilyKey(s)||state.user?.familyKey||"";
+}
+function documentFamilyKey(item){
+  const s=state.students.find(x=>normalizePersonName(x.name)===normalizePersonName(item.studentName));
+  return studentFamilyKey(s)||state.user?.familyKey||"";
+}
+
+async function centralReplace(type,items,getFamily){
+  if(!centralReady||!centralAuthUser) return;
+  const rows=centralRecordRows(type,items,getFamily);
+  if(rows.length){
+    const {error}=await centralClient.from("app_records").upsert(rows,{onConflict:"record_type,record_id"});
+    if(error) throw error;
+  }
+  // Espelha exclusões para que a base central permaneça igual à coleção local permitida ao usuário.
+  const q=centralClient.from("app_records").select("record_id,family_key").eq("record_type",type);
+  if(!centralRoleIsStaff()) q.eq("family_key",state.user?.familyKey||"");
+  const {data:existing,error}=await q;
+  if(error) throw error;
+  const keep=new Set(rows.map(r=>r.record_id));
+  const missing=(existing||[]).map(r=>r.record_id).filter(id=>!keep.has(id));
+  if(missing.length){
+    let d=centralClient.from("app_records").delete().eq("record_type",type).in("record_id",missing);
+    if(!centralRoleIsStaff()) d=d.eq("family_key",state.user?.familyKey||"");
+    const {error:de}=await d; if(de) throw de;
+  }
+}
+
+async function centralSyncStateNow(){
+  if(!centralReady||!centralAuthUser||centralApplyingRemote) return;
+  try{
+    await centralReplace("student",state.students,studentFamilyKey);
+    await centralReplace("attendance",state.attendance,attendanceFamilyKey);
+    await centralReplace("secretary_document",state.secretaryDocuments,documentFamilyKey);
+    if(state.engagement?.length){
+      const rows=centralRecordRows("engagement",state.engagement.slice(-500),()=>"");
+      if(rows.length){const {error}=await centralClient.from("app_records").upsert(rows,{onConflict:"record_type,record_id"});if(error)throw error;}
+    }
+    if(centralRoleIsStaff()){
+      await centralReplace("schedule",state.schedule,()=>"");
+      await centralReplace("schedule_archive",state.scheduleArchive,()=>"");
+      await centralReplace("championship",state.championships,()=>"");
+      await centralReplace("password_reset",state.passwordResets,()=>"");
+    }
+  }catch(error){
+    console.error("Sincronização central falhou",error);
+  }
+}
+
+function centralScheduleSync(){
+  if(!centralReady||!centralAuthUser||centralApplyingRemote) return;
+  clearTimeout(centralSyncTimer);
+  centralSyncTimer=setTimeout(centralSyncStateNow,500);
+}
+
+async function centralPullState(){
+  if(!centralReady||!centralAuthUser) return;
+  try{
+    const {data:records,error}=await centralClient.from("app_records")
+      .select("record_type,record_id,family_key,data,updated_at")
+      .order("updated_at",{ascending:true});
+    if(error) throw error;
+
+    const get=type=>(records||[]).filter(r=>r.record_type===type).map(r=>r.data).filter(Boolean);
+    const accessQ=await centralClient.from("app_accesses")
+      .select("id,auth_user_id,login,display_name,role,family_key,guardian_name,active,temporary_password,temporary_expires_at,password_changed_at,created_by,created_at,updated_at")
+      .order("created_at",{ascending:true});
+    if(accessQ.error) throw accessQ.error;
+
+    centralApplyingRemote=true;
+    const students=get("student");
+    const attendance=get("attendance");
+    const docs=get("secretary_document");
+    const schedules=get("schedule");
+    const archives=get("schedule_archive");
+    const champs=get("championship");
+    const engagement=get("engagement");
+    const resets=get("password_reset");
+
+    if(students.length || centralRoleIsStaff()) state.students=students;
+    if(attendance.length || centralRoleIsStaff()) state.attendance=attendance;
+    if(docs.length || centralRoleIsStaff()) state.secretaryDocuments=docs;
+    if(centralRoleIsStaff()){
+      state.schedule=schedules;
+      state.scheduleArchive=archives;
+      state.championships=champs;
+      state.engagement=engagement;
+      state.passwordResets=resets;
+    }
+    state.accesses=(accessQ.data||[]).map(centralMapAccess);
+
+    if(state.user?.role==="guardian" && state.user.familyKey){
+      state.students=state.students.filter(s=>studentFamilyKey(s)===state.user.familyKey);
+      state.attendance=state.attendance.filter(a=>attendanceFamilyKey(a)===state.user.familyKey);
+      state.secretaryDocuments=state.secretaryDocuments.filter(d=>documentFamilyKey(d)===state.user.familyKey);
+      const ownAccess=state.accesses.find(a=>a.id===state.user.id);
+      if(ownAccess){
+        state.user.familyKey=ownAccess.familyKey||state.user.familyKey;
+        state.user.temporaryPassword=ownAccess.temporaryPassword;
+        state.user.passwordExpiresAt=ownAccess.passwordExpiresAt||null;
+        sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+      }
+    }
+    centralApplyingRemote=false;
+    refreshAllStudentDerivedViews();
+  }catch(error){
+    centralApplyingRemote=false;
+    console.error("Falha ao carregar dados centrais",error);
+  }
+}
+
+async function centralMigrateLocalState(){
+  if(!centralReady||!centralAuthUser) return;
+  try{
+    const {data:existing,error}=await centralClient.from("app_records").select("record_type,record_id").limit(50000);
+    if(error) throw error;
+    const set=new Set((existing||[]).map(r=>`${r.record_type}::${r.record_id}`));
+
+    let students=[...state.students].filter(s=>!(s?.id==="seed-001" && normalizePersonName(s?.name||"")==="aluno de demonstração"));
+    if(state.user?.role==="guardian"){
+      students=students.filter(s=>
+        normalizeLogin(s.accessLogin)===normalizeLogin(state.user.login)||
+        normalizePersonName(s.guardian||"")===normalizePersonName(state.user.guardianName||state.user.name||"")
+      );
+    }
+    const insertMissing=async(type,items,getFamily)=>{
+      const rows=centralRecordRows(type,items,getFamily).filter(r=>!set.has(`${r.record_type}::${r.record_id}`));
+      if(!rows.length) return;
+      const {error:e}=await centralClient.from("app_records").insert(rows);
+      if(e) throw e;
+    };
+    for(const s of students) s.familyKey=studentFamilyKey(s);
+    await insertMissing("student",students,studentFamilyKey);
+    const ids=new Set(students.map(s=>s.id));
+    await insertMissing("attendance",state.attendance.filter(a=>ids.has(a.studentId)),attendanceFamilyKey);
+    await insertMissing("secretary_document",state.secretaryDocuments.filter(d=>students.some(s=>normalizePersonName(s.name)===normalizePersonName(d.studentName))),documentFamilyKey);
+    if(centralRoleIsStaff()){
+      await insertMissing("schedule",state.schedule,()=>"");
+      await insertMissing("schedule_archive",state.scheduleArchive,()=>"");
+      await insertMissing("championship",state.championships,()=>"");
+      await insertMissing("engagement",state.engagement,()=>"");
+      await insertMissing("password_reset",state.passwordResets,()=>"");
+      const legacy=(state.accesses||[]).filter(a=>a?.role==="guardian"&&a.login&&(a.password||a.accessPassword));
+      if(legacy.length){
+        await centralFunction("migrate-legacy-accesses",{accesses:legacy.map(a=>({
+          name:a.name||a.guardianName||a.login,login:a.login,
+          password:a.password||a.accessPassword,studentId:a.studentId||null,
+          familyKey:a.familyKey||""
+        }))});
+      }
+    }
+  }catch(error){
+    console.error("Falha na migração do dispositivo",error);
+  }
+}
+
+async function centralUpdateFamilyAfterRegistration(student){
+  if(!centralReady||!centralAuthUser||state.user?.role!=="guardian"||!student) return;
+  const key=centralFamilyKey(student.guardian,student.phone);
+  student.familyKey=key;
+  state.user.familyKey=key;
+  state.user.guardianName=student.guardian||state.user.guardianName||"";
+  sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+  try{await centralFunction("bind-family",{familyKey:key,guardianName:student.guardian||""});}catch(error){console.error(error);}
+}
+
+async function centralResolveCurrentIdentity(){
+  if(!centralReady) return false;
+  const {data:{session},error}=await centralClient.auth.getSession();
+  if(error||!session?.user) return false;
+  centralAuthUser=session.user;
+  let access=await centralLoadAccessRecord();
+  if(!access) return false;
+  let familyKey=access.family_key||"";
+  if(access.role==="guardian" && !familyKey){
+    const legacyStudent=(state.students||[]).find(s=>normalizeLogin(s.accessLogin)===normalizeLogin(access.login));
+    if(legacyStudent){
+      const legacyFamily=centralFamilyKey(legacyStudent.guardian||"",legacyStudent.phone||"");
+      if(legacyFamily){
+        try{ await centralFunction("bind-family",{familyKey:legacyFamily,guardianName:legacyStudent.guardian||access.display_name||""}); }catch(bindError){ console.warn(bindError); }
+        access=await centralLoadAccessRecord() || access;
+        familyKey=access.family_key||legacyFamily;
+      }
+    }
+  }
+  state.user={
+    id:access.id,authUserId:centralAuthUser.id,name:access.display_name||access.login,
+    email:access.login,login:access.login,role:access.role,studentId:null,
+    guardianName:access.guardian_name||access.display_name||"",familyKey,
+    temporaryPassword:Boolean(access.temporary_password),passwordExpiresAt:access.temporary_expires_at||null
+  };
+  sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+  await centralMigrateLocalState();
+  await centralPullState();
+  centralSubscribeRealtime();
+  updateAccessSecurityNotice();
+  return true;
+}
+
+function localFamilyForLogin(login){
+  const s=(state.students||[]).find(st=>normalizeLogin(st.accessLogin)===normalizeLogin(login));
+  return s ? centralFamilyKey(s.guardian||"",s.phone||"") : "";
+}
+
+async function centralLogin(login,password){
+  if(!initCentralClient()) return {ok:false,skipped:true};
+  lastLoginMessage="";
+  const localAccess=(state.accesses||[]).find(a=>
+    normalizeLogin(a?.login)===normalizeLogin(login)&&
+    String(a?.password||a?.accessPassword||"")===String(password||"")&&a.active!==false
+  );
+  try{
+    const resolved=await centralFunction("resolve-login",{
+      login:String(login||"").trim(),password:String(password||""),
+      legacyAccess:localAccess?{
+        name:localAccess.name||localAccess.guardianName||login,
+        login:localAccess.login,role:localAccess.role,studentId:localAccess.studentId||null,
+        familyKey:localAccess.familyKey||""
+      }:null
+    });
+    const signed=await centralClient.auth.signInWithPassword({email:resolved.internalEmail,password:String(password||"")});
+    if(signed.error) throw signed.error;
+    centralAuthUser=signed.data.user;
+    let access=await centralLoadAccessRecord();
+    if(!access) throw new Error("Perfil de acesso não localizado na base central.");
+    let familyKey=access.family_key||resolved.familyKey||"";
+    if(access.role==="guardian" && !familyKey){
+      const legacyStudent=(state.students||[]).find(s=>normalizeLogin(s.accessLogin)===normalizeLogin(login));
+      if(legacyStudent){
+        const legacyFamily=centralFamilyKey(legacyStudent.guardian||"",legacyStudent.phone||"");
+        if(legacyFamily){
+          try{ await centralFunction("bind-family",{familyKey:legacyFamily,guardianName:legacyStudent.guardian||access.display_name||""}); }catch(bindError){ console.warn("Vínculo de família legado falhou",bindError); }
+          access=await centralLoadAccessRecord() || access;
+          familyKey=access.family_key||legacyFamily;
+        }
+      }
+    }
+    state.user={
+      id:access.id,authUserId:centralAuthUser.id,name:access.display_name||access.login,
+      email:access.login,login:access.login,role:access.role,studentId:null,
+      guardianName:access.guardian_name||access.display_name||"",familyKey,
+      temporaryPassword:Boolean(access.temporary_password),passwordExpiresAt:access.temporary_expires_at||null
+    };
+    sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    clearFailedLogins();
+    await centralMigrateLocalState();
+    await centralPullState();
+    centralSubscribeRealtime();
+    updateAccessSecurityNotice();
+    return {ok:true};
+  }catch(error){
+    const msg=centralSafeError(error,"Login não autorizado.");
+    lastLoginMessage=msg.toLowerCase().includes("expir")?"Acesso expirado. Procure o Administrador.":msg;
+    return {ok:false,error};
+  }
+}
+
+function centralSubscribeRealtime(){
+  if(!centralReady||!centralAuthUser) return;
+  try{
+    centralClient.getChannels().forEach(ch=>centralClient.removeChannel(ch));
+    centralClient.channel("sementes-central-sync")
+      .on("postgres_changes",{event:"*",schema:"public",table:"app_records"},()=>{
+        clearTimeout(centralRefreshTimer);
+        centralRefreshTimer=setTimeout(centralPullState,600);
+      })
+      .on("postgres_changes",{event:"*",schema:"public",table:"app_accesses"},()=>{
+        clearTimeout(centralRefreshTimer);
+        centralRefreshTimer=setTimeout(centralPullState,600);
+      })
+      .subscribe();
+  }catch(error){console.error("Realtime indisponível",error);}
+}
 const STORAGE_KEYS = {
   session: "sementes_session",
   students: "sementes_students",
@@ -1888,7 +2303,9 @@ const STORAGE_KEYS = {
   engagement: "sementes_engagement_v17",
   schedule: "sementes_schedule_v17",
   scheduleArchive: "sementes_schedule_archive_v24",
-  championships: "sementes_championships_v17"
+  championships: "sementes_championships_v17",
+  lastRegisteredStudent: "sementes_last_registered_student_v36",
+  lastRegisteredGuardian: "sementes_last_registered_guardian_v37"
 };
 
 /* -----------------------------
@@ -2182,6 +2599,7 @@ function saveState(){
   localStorage.setItem(STORAGE_KEYS.scheduleArchive, JSON.stringify(state.scheduleArchive));
   localStorage.setItem(STORAGE_KEYS.championships, JSON.stringify(state.championships));
   localStorage.setItem(STORAGE_KEYS.game, JSON.stringify(state.game));
+  if(!centralApplyingRemote) centralScheduleSync();
 }
 
 function loadState(){
@@ -2440,7 +2858,7 @@ function validateSessionAccess(session){
   return true;
 }
 
-let lastLoginMessage="";
+
 
 function loginDemo(login,password){
   lastLoginMessage="";
@@ -2483,7 +2901,8 @@ function loginDemo(login,password){
       name:"Acesso Inicial Projeto Sementes",
       login:APP_CONFIG.initialAccessLogin,
       role:"universal",
-      studentId:null,
+      studentId:getLastRegisteredStudentId()||null,
+      guardianName:getLastRegisteredGuardian()||"",
       universalAccess:true,
       universalStartedAt:started
     };
@@ -2533,6 +2952,7 @@ function loginDemo(login,password){
         name:storedAccess.name,
         login:storedAccess.login,
         role:storedAccess.role,
+        guardianName:storedAccess.guardianName||"",
         studentId:storedAccess.studentId||null,
         temporaryPassword:storedAccess.temporaryPassword!==false,
         passwordExpiresAt:storedAccess.passwordExpiresAt||null
@@ -2576,18 +2996,21 @@ function loginDemo(login,password){
   return false;
 }
 
-function restoreSession(){
+async function restoreSession(){
+  if(initCentralClient()){
+    try{
+      if(await centralResolveCurrentIdentity()){showApp();return;}
+    }catch(error){console.error("Sessão central não restaurada",error);}
+    try{await centralClient.auth.signOut();}catch(_){ }
+    showLogin();
+    return;
+  }
   try{
     const session=JSON.parse(sessionStorage.getItem(STORAGE_KEYS.session)||localStorage.getItem(STORAGE_KEYS.session));
-    if(session && session.role && validateSessionAccess(session)){
-      state.user=session;
-      showApp();
-      return;
-    }
-  }catch(error){ console.error(error); }
+    if(session&&session.role){state.user=session;showApp();return;}
+  }catch(_){}
   showLogin();
 }
-
 function showLogin(){
   $("loginScreen").style.display="flex";
   $("mainScreen").style.display="none";
@@ -2633,10 +3056,12 @@ function selectUniversalStudent(){
         ...state.user,
         role:"guardian",
         studentId:s.id,
+        guardianName:s.guardian||state.user.guardianName||"",
         name:s.guardian||state.user.name,
         universalAccess:true
       };
       sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+      persistLastRegisteredGuardian(state.user.guardianName);
       closeModal();
       renderAll();
       openPage("homePage");
@@ -2664,7 +3089,7 @@ function showApp(){
   updateAccessSecurityNotice();
   renderAccessSecurityManagement();
 
-  if(state.user?.role==="universal"){
+  if(state.user?.role==="universal" && !state.user.guardianName){
     setTimeout(selectUniversalStudent,120);
   }
 }
@@ -2786,7 +3211,7 @@ function renderBirthdays(){
   const month = today.getMonth();
   const day = today.getDate();
 
-  const todayStudents = state.students.filter(s=>{
+  const todayStudents = visibleStudentsForCurrentUser().filter(s=>{
     if(!s.birth) return false;
     const d = new Date(s.birth + "T00:00:00");
     return d.getMonth()===month && d.getDate()===day;
@@ -2806,7 +3231,7 @@ function renderBirthdays(){
     $("birthdayToday").innerHTML = `<div class="small muted">Nenhum aniversariante hoje.</div>`;
   }
 
-  const monthStudents = state.students
+  const monthStudents = visibleStudentsForCurrentUser()
     .filter(s=>{
       if(!s.birth) return false;
       return new Date(s.birth+"T00:00:00").getMonth()===month;
@@ -3331,6 +3756,8 @@ function initEnrollment(){
     try{
       pdf=await generateEnrollmentPDF();
       state.enrollment.documentGenerated=true;
+      state.enrollment.documentDataUri=pdf.dataUri;
+      state.enrollment.documentFilename=pdf.filename;
       state.enrollment.documentFilename=pdf.filename;
       state.enrollment.documentNumber=pdf.codigoMatricula;
       saveState();
@@ -3426,69 +3853,11 @@ function initEnrollment(){
 
       if(!savedOrShared) return;
 
-      // Somente depois da ação de baixar/encaminhar o cadastro é efetivado.
+      // Documento salvo: a matrícula só será concluída após a biometria.
       const pending=state.enrollment;
-      let enrolledStudent=state.students.find(st=>
-        st.name.toLowerCase()===pending.student.name.toLowerCase()
-      );
-      if(!enrolledStudent){
-        enrolledStudent={
-          id:"student-"+Date.now(),
-          name:pending.student.name,
-          birth:pending.student.birth,
-          school:pending.student.school,
-          neighborhood:pending.student.neighborhood,
-          address:pending.student.address,
-          guardian:pending.guardian.name,
-          guardianRelation:pending.guardian.relation,
-          guardianCINRG:pending.guardian.cinRg,
-          guardianCIN:pending.guardian.cinRg,
-          guardianDocument:pending.guardian.document,
-          phone:pending.guardian.phone,
-          documentNumber:pdf.codigoMatricula,
-          enrollmentDate:pending.date,
-          belt:"Branca",
-          degrees:0,
-          status:"pending",
-          startDate:pending.date,
-          face:"",
-          health:pending.health
-        };
-        state.students.push(enrolledStudent);
-      }else{
-        enrolledStudent.birth=pending.student.birth;
-        enrolledStudent.school=pending.student.school;
-        enrolledStudent.neighborhood=pending.student.neighborhood;
-        enrolledStudent.address=pending.student.address;
-        enrolledStudent.guardian=pending.guardian.name;
-        enrolledStudent.guardianRelation=pending.guardian.relation;
-        enrolledStudent.guardianCINRG=pending.guardian.cinRg;
-        enrolledStudent.guardianCIN=pending.guardian.cinRg;
-        enrolledStudent.guardianDocument=pending.guardian.document;
-        enrolledStudent.phone=pending.guardian.phone;
-        enrolledStudent.documentNumber=pdf.codigoMatricula;
-        enrolledStudent.enrollmentDate=pending.date;
-        enrolledStudent.health=pending.health;
-        enrolledStudent.status=enrolledStudent.face ? "complete" : "pending";
-      }
-
-      const alreadyInSecretary=state.secretaryDocuments.some(doc=>doc.documentNumber===pdf.codigoMatricula);
-      if(!alreadyInSecretary){
-        state.secretaryDocuments.push({
-          id:"secretary-"+Date.now(),
-          documentNumber:pdf.codigoMatricula,
-          studentName:pending.student.name,
-          guardianName:pending.guardian.name,
-          date:pending.date,
-          filename:pdf.filename,
-          dataUri:pdf.dataUri,
-          createdAt:new Date().toISOString()
-        });
-      }
+      pending.documentSaved=true;
+      pending.savedOrSharedAt=nowISO();
       saveState();
-      renderStudents();
-      updateKPIs();
-      renderSecretaryDocuments();
 
       button.dataset.completed="1";
       button.disabled=true;
@@ -3497,11 +3866,6 @@ function initEnrollment(){
       if(stepStatus) stepStatus.innerHTML="<strong style='color:#b5f3c7'>Documento salvo ou encaminhado.</strong>";
 
       await playSuccessSound("finalize");
-      successBox.insertAdjacentHTML("afterbegin",
-        `<div id="registrationSuccess" style="margin:12px 0;font-size:21px;font-weight:900;color:#b5f3c7">
-          ✅ CADASTRO REALIZADO COM SUCESSO
-        </div>`);
-
       const biometricSection=$("biometricSection");
       biometricSection.classList.remove("hidden");
       biometricSection.style.display="block";
@@ -3511,7 +3875,7 @@ function initEnrollment(){
       $("captureFace").disabled=false;
       $("step2Dot").classList.add("active");
       $("step1Dot").classList.remove("active");
-      toast("Cadastro realizado com sucesso. Agora faça a biometria.");
+      toast("Documento salvo/encaminhado. Agora conclua a biometria para finalizar o cadastro.");
 
       setTimeout(()=>{
         biometricSection.scrollIntoView({behavior:"smooth",block:"start"});
@@ -3579,14 +3943,81 @@ async function captureFace(){
   $("facePreview").src=data;
   $("facePreview").classList.remove("hidden");
 
-  const name=$("studentName").value.trim();
-  const student=state.students.find(s=>s.name.toLowerCase()===name.toLowerCase());
-
-  if(student){
-    student.face=data;
-    student.status="complete";
-    saveState();
+  const pending=state.enrollment;
+  if(!pending?.documentSaved){
+    toast("Finalize e salve o documento antes da biometria.");
+    return;
   }
+
+  let student=pending.studentId ? state.students.find(s=>s.id===pending.studentId) : null;
+  if(!student){
+    student={
+      id:"student-"+Date.now(),
+      name:pending.student.name,
+      birth:pending.student.birth,
+      school:pending.student.school,
+      neighborhood:pending.student.neighborhood,
+      address:pending.student.address,
+      guardian:pending.guardian.name,
+      guardianRelation:pending.guardian.relation,
+      guardianCINRG:pending.guardian.cinRg,
+      guardianCIN:pending.guardian.cinRg,
+      guardianDocument:pending.guardian.document,
+      phone:pending.guardian.phone,
+      documentNumber:pending.documentNumber||"",
+      enrollmentDate:pending.date,
+      belt:"Branca",
+      degrees:0,
+      status:"complete",
+      startDate:pending.date,
+      face:data,
+      health:pending.health,
+      imageConsent:true,
+      registrationSource:"Matrícula"
+    };
+    state.students.push(student);
+    pending.studentId=student.id;
+  }else{
+    Object.assign(student,{
+      name:pending.student.name,
+      birth:pending.student.birth,
+      school:pending.student.school,
+      neighborhood:pending.student.neighborhood,
+      address:pending.student.address,
+      guardian:pending.guardian.name,
+      guardianRelation:pending.guardian.relation,
+      guardianCINRG:pending.guardian.cinRg,
+      guardianCIN:pending.guardian.cinRg,
+      guardianDocument:pending.guardian.document,
+      phone:pending.guardian.phone,
+      documentNumber:pending.documentNumber||student.documentNumber||"",
+      enrollmentDate:pending.date,
+      health:pending.health,
+      face:data,
+      status:"complete",
+      imageConsent:true
+    });
+  }
+
+  if(!state.secretaryDocuments.some(doc=>doc.documentNumber===pending.documentNumber)){
+    state.secretaryDocuments.push({
+      id:"secretary-"+Date.now(),
+      documentNumber:pending.documentNumber,
+      studentName:pending.student.name,
+      guardianName:pending.guardian.name,
+      date:pending.date,
+      filename:pending.documentFilename||`Ficha-${student.id}.pdf`,
+      dataUri:pending.documentDataUri||"",
+      createdAt:nowISO()
+    });
+  }
+
+  student.familyKey=student.familyKey||centralFamilyKey(student.guardian,student.phone);
+  linkCurrentDeviceToRegisteredStudent(student);
+  persistLastRegisteredGuardian(student.guardian);
+  await centralUpdateFamilyAfterRegistration(student);
+  saveState();
+  refreshAllStudentDerivedViews();
 
   if(faceStream){
     faceStream.getTracks().forEach(t=>t.stop());
@@ -3599,10 +4030,18 @@ async function captureFace(){
     biometricStatus.classList.remove("hidden");
     biometricStatus.innerHTML="🔊 <strong>CADASTRO BIOMÉTRICO REALIZADO COM SUCESSO</strong><br>Biometria vinculada ao cadastro do aluno.";
   }
-  toast("🔊 Cadastro biométrico realizado com sucesso.");
-  renderStudents();
+  const biometricSuccess=$("enrollmentSuccess");
+  if(biometricSuccess){
+    biometricSuccess.classList.remove("hidden");
+    biometricSuccess.style.display="block";
+    biometricSuccess.insertAdjacentHTML("afterbegin",
+      `<div id="registrationSuccess" style="margin:12px 0;font-size:21px;font-weight:900;color:#b5f3c7">✅ CADASTRO E BIOMETRIA REALIZADOS COM SUCESSO</div>
+       <div class="small" style="margin-top:6px">O aluno já aparece em Alunos e suas informações alimentam as abas correspondentes.</div>`);
+  }
+  toast("🔊 Cadastro biométrico realizado com sucesso. O aluno já está disponível em Alunos.");
+  refreshAllStudentDerivedViews();
   saveState();
-  setTimeout(resetEnrollmentFormAfterCompletion,1200);
+  setTimeout(resetEnrollmentFormAfterCompletion,1500);
 }
 
 function resetEnrollmentFormAfterCompletion(){
@@ -3699,6 +4138,30 @@ function captureClassPhoto(){
   );
 }
 
+
+/* V37 — visibilidade da família / filhos */
+function normalizePersonName(value){
+  return String(value||"").trim().replace(/\s+/g," ").toLocaleLowerCase("pt-BR");
+}
+function persistLastRegisteredGuardian(name){
+  if(!name) return;
+  try{ localStorage.setItem(STORAGE_KEYS.lastRegisteredGuardian,String(name)); }catch(_){ }
+}
+function getLastRegisteredGuardian(){
+  try{ return localStorage.getItem(STORAGE_KEYS.lastRegisteredGuardian)||""; }catch(_){ return ""; }
+}
+function visibleStudentsForCurrentUser(){
+  const list=[...state.students];
+  if(["master","pastor","director"].includes(state.user?.role)) return list;
+  const guardianName=normalizePersonName(state.user?.guardianName||"");
+  const linkedId=state.user?.studentId || getLastRegisteredStudentId();
+  if(guardianName){
+    const family=list.filter(s=>normalizePersonName(s.guardian)===guardianName);
+    if(family.length) return family;
+  }
+  return linkedId ? list.filter(s=>s.id===linkedId) : [];
+}
+
 /* -----------------------------
    STUDENTS
    ----------------------------- */
@@ -3715,11 +4178,10 @@ function renderStudents(){
   const search=($("studentSearch")?.value||"").toLowerCase().trim();
   const filter=$("studentFilter")?.value||"all";
 
-  let list=sortedStudents();
-
-  if(["guardian","universal"].includes(state.user?.role)){
-    list=state.user.studentId ? list.filter(s=>s.id===state.user.studentId) : [];
-  }
+  let list=visibleStudentsForCurrentUser().sort((a,b)=>{
+    if(a.status!==b.status) return a.status==="pending" ? -1 : 1;
+    return a.name.localeCompare(b.name,"pt-BR");
+  });
 
   list=list.filter(s=>{
     const matches=s.name.toLowerCase().includes(search);
@@ -3825,7 +4287,7 @@ function openStudent(id){
         }
       </div>
 
-      ${(editable || (state.user?.role==="guardian" && state.user.studentId===s.id)) ? `
+      ${(editable || (["guardian","universal"].includes(state.user?.role) && normalizePersonName(state.user?.guardianName||"")===normalizePersonName(s.guardian||""))) ? `
         <div class="action-row" style="margin-top:14px">
           ${editable ? `<button class="btn btn-gold" onclick="saveStudentProfile('${s.id}')">Salvar alterações</button>` : ""}
           <button class="btn" type="button" onclick="resetGuardianPassword('${s.id}')">🔐 Redefinir senha do responsável</button>
@@ -3839,116 +4301,40 @@ function openStudent(id){
   );
 }
 
-function resetGuardianPassword(id){
-  const s=state.students.find(x=>x.id===id);
-  if(!s) return;
-
-  const allowed=state.user?.role==="master" ||
-    (state.user?.role==="guardian" && state.user.studentId===id);
-
-  if(!allowed){
-    toast("Você não tem permissão para redefinir esta senha.");
-    return;
-  }
-
-  modal(
-    "Redefinir senha do responsável",
-    `
-      <p class="small muted">
-        Defina uma nova senha. A senha provisória deixa de expirar assim que a redefinição for salva.
-      </p>
-      <form id="guardianPasswordForm">
-        <div class="field">
-          <label>Login do responsável</label>
-          <input class="input" value="${escapeHTML(s.accessLogin||s.guardian||s.name||"Ainda não definido")}" disabled>
-        </div>
-        <div class="field">
-          <label>Nova senha</label>
-          <input id="newGuardianPassword" class="input" type="password" minlength="6" required
-                 autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false">
-        </div>
-        <div class="field">
-          <label>Confirmar nova senha</label>
-          <input id="newGuardianPasswordConfirm" class="input" type="password" minlength="6" required
-                 autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false">
-        </div>
-        <button class="btn btn-gold" type="submit">Salvar nova senha</button>
-      </form>
-    `
-  );
-
-  setTimeout(()=>{
-    $("guardianPasswordForm")?.addEventListener("submit",e=>{
-      e.preventDefault();
-      const password=$("newGuardianPassword").value;
-      const confirmPassword=$("newGuardianPasswordConfirm").value;
-
-      if(password.length<6){
-        toast("A senha deve ter pelo menos 6 caracteres.");
-        return;
-      }
-      if(password!==confirmPassword){
-        toast("As senhas não conferem.");
-        return;
-      }
-
-      let login=(s.accessLogin||s.guardian||s.name||"").trim();
-      if(!login){
-        toast("Não foi possível definir o login do responsável.");
-        return;
-      }
-
-      s.accessLogin=login;
-      s.accessPassword=password;
-
-      let access=findAccessForStudent(s);
-      if(!access){
-        access={
-          id:`access-${Date.now()}`,
-          name:s.guardian||s.name,
-          login,
-          password,
-          accessPassword:password,
-          role:"guardian",
-          studentId:s.id,
-          active:true,
-          createdAt:nowISO()
-        };
-        state.accesses.push(access);
-      }
-
-      access.name=s.guardian||s.name;
-      access.login=login;
-      access.password=password;
-      access.accessPassword=password;
-      access.active=true;
-      access.temporaryPassword=false;
-      access.passwordExpiresAt="";
-      access.passwordResetAt=nowISO();
-      delete access.expiredAt;
-
-      state.passwordResets.unshift(passwordResetLogEntry(access.name,access.login,access.role));
-      saveState();
-
-      if(state.user?.role==="guardian" && state.user.studentId===s.id){
-        state.user.id=access.id;
-        state.user.login=access.login;
-        state.user.name=access.name;
-        state.user.role="guardian";
-        state.user.temporaryPassword=false;
-        state.user.passwordExpiresAt=null;
-        sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-      }
-
-      closeModal();
-      renderAll();
-      renderAccessSecurityManagement();
-      updateAccessSecurityNotice();
-      toast("Senha redefinida com sucesso. A senha agora não expira.");
-    });
-  },0);
+async function resetGuardianPassword(id){
+  const s=state.students.find(x=>x.id===id); if(!s) return;
+  const allowed=state.user?.role==="master" || (state.user?.role==="guardian" && studentFamilyKey(s)===state.user?.familyKey);
+  if(!allowed){toast("Você não tem permissão para redefinir esta senha.");return;}
+  let access=findAccessForStudent(s);
+  if(!access && state.user?.role==="guardian") access=state.accesses.find(a=>a.id===state.user.id);
+  modal("Redefinir senha do responsável",`
+    <p class="small muted">Defina uma nova senha. A senha provisória deixa de expirar assim que a redefinição for salva.</p>
+    <form id="guardianPasswordForm">
+      <div class="field"><label>Login do responsável</label><input class="input" value="${escapeHTML(access?.login||s.accessLogin||s.guardian||s.name||"")}" disabled></div>
+      <div class="field"><label>Nova senha</label><input id="newGuardianPassword" class="input" type="password" minlength="6" required autocomplete="new-password"></div>
+      <div class="field"><label>Confirmar nova senha</label><input id="newGuardianPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password"></div>
+      <button class="btn btn-gold" type="submit">Salvar nova senha</button>
+    </form>`);
+  setTimeout(()=>$("guardianPasswordForm")?.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const password=$("newGuardianPassword").value; const confirm=$("newGuardianPasswordConfirm").value;
+    if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");return;}
+    if(password!==confirm){toast("As senhas não conferem.");return;}
+    if(centralReady&&centralAuthUser){
+      try{
+        const targetAccessId=state.user?.role==="guardian"?state.user.id:access?.id;
+        if(!targetAccessId) throw new Error("Acesso do responsável não localizado na base central.");
+        await centralFunction("reset-password",{targetAccessId,newPassword:password});
+        await centralPullState();closeModal();updateAccessSecurityNotice();toast("Senha redefinida com sucesso. A senha agora não expira.");return;
+      }catch(error){toast(centralSafeError(error,"Não foi possível redefinir a senha na base central."));return;}
+    }
+    let login=(s.accessLogin||s.guardian||s.name||"").trim(); if(!login){toast("Não foi possível definir o login do responsável.");return;}
+    s.accessLogin=login;s.accessPassword=password;
+    if(!access){access={id:`access-${Date.now()}`,name:s.guardian||s.name,login,password,accessPassword:password,role:"guardian",guardianName:s.guardian||s.name,studentId:s.id,active:true,createdAt:nowISO()};state.accesses.push(access);}
+    access.password=password;access.accessPassword=password;access.active=true;access.temporaryPassword=false;access.passwordExpiresAt="";access.passwordResetAt=nowISO();
+    state.passwordResets.unshift(passwordResetLogEntry(access.name,access.login,access.role));saveState();closeModal();renderAll();renderAccessSecurityManagement();updateAccessSecurityNotice();toast("Senha redefinida com sucesso. A senha agora não expira.");
+  }),0);
 }
-
 function saveStudentProfile(id){
   if(!canEditStudent()){
     toast("Somente o Mestre London pode alterar graduação e início de treino.");
@@ -3990,7 +4376,7 @@ function renderTatame(){
     return;
   }
 
-  grid.innerHTML=sortedStudents().map(s=>{
+  grid.innerHTML=visibleStudentsForCurrentUser().sort((a,b)=>a.name.localeCompare(b.name,"pt-BR")).map(s=>{
     const present=state.attendance.some(a=>a.date===todayISO()&&a.studentId===s.id);
     return `
       <button class="athlete ${present?"present":""}" onclick="toggleAttendance('${s.id}')">
@@ -4110,7 +4496,7 @@ function renderFrequency(){
   if($("frequencyClassDays")) $("frequencyClassDays").value=String(monthDates.size);
   if($("frequencyClassDaysAll")) $("frequencyClassDaysAll").value=String(allDates.size);
 
-  const students=sortedStudents();
+  const students=visibleStudentsForCurrentUser().sort((a,b)=>a.name.localeCompare(b.name,"pt-BR"));
   let totalMonthlyPresences=0;
   let totalAllPresences=0;
 
@@ -4889,6 +5275,80 @@ function updateKPIs(){
   renderSecretaryDocuments();
 }
 
+
+function persistLastRegisteredStudent(studentId){
+  if(!studentId) return;
+  try{ localStorage.setItem(STORAGE_KEYS.lastRegisteredStudent,String(studentId)); }catch(_){}
+}
+
+function getLastRegisteredStudentId(){
+  try{ return localStorage.getItem(STORAGE_KEYS.lastRegisteredStudent)||""; }catch(_){ return ""; }
+}
+
+function migrateLegacyAccesses(){
+  let changed=false;
+  const existingByStudent=new Map(
+    state.accesses
+      .filter(a=>a && a.studentId)
+      .map(a=>[a.studentId,a])
+  );
+
+  state.students.forEach(s=>{
+    if(!s || !s.accessLogin) return;
+    if(existingByStudent.has(s.id)) return;
+
+    const password=s.accessPassword||"";
+    if(!password) return;
+
+    const access={
+      id:`legacy-${s.id}`,
+      name:s.guardian||s.name,
+      login:String(s.accessLogin).trim(),
+      password,
+      accessPassword:password,
+      role:"guardian",
+      studentId:s.id,
+      active:true,
+      createdAt:s.enrollmentDate ? new Date(s.enrollmentDate+"T12:00:00").toISOString() : nowISO(),
+      temporaryPassword:false,
+      passwordExpiresAt:"",
+      passwordResetAt:s.enrollmentDate || nowISO(),
+      migratedFromLegacy:true
+    };
+    state.accesses.push(access);
+    changed=true;
+  });
+
+  if(changed) saveState();
+  return changed;
+}
+
+function linkCurrentDeviceToRegisteredStudent(student){
+  if(!student) return;
+  student.familyKey=student.familyKey||centralFamilyKey(student.guardian||"",student.phone||"");
+  if(["universal","guardian"].includes(state.user?.role)){
+    state.user.studentId=student.id;
+    state.user.guardianName=student.guardian||state.user.guardianName||"";
+    state.user.familyKey=student.familyKey||state.user.familyKey||"";
+    if(state.user.role==="guardian" && state.user.login) student.accessLogin=state.user.login;
+    persistLastRegisteredGuardian(state.user.guardianName);
+    sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+  }
+  persistLastRegisteredStudent(student.id);
+}
+
+function refreshAllStudentDerivedViews(){
+  renderStudents();
+  renderTatame();
+  renderFrequency();
+  updateKPIs();
+  renderBirthdays();
+  renderImpactAndMap();
+  renderSecretaryDocuments();
+  renderMasterManagement();
+  renderAccessSecurityManagement();
+}
+
 function renderMasterManagement(){
   const card=$("masterManagementCard");
   const generateBtn=$("generateAccess");
@@ -5027,67 +5487,28 @@ function deleteAccessAdmin(){
   toast("Acesso excluído.");
 }
 
-function generateAccess(){
-  if(!isMaster()){
-    toast("Somente o Administrador Mestre London pode gerar novos acessos.");
-    return;
+async function generateAccess(){
+  if(!isMaster()){toast("Somente o Administrador Mestre London pode gerar novos acessos.");return;}
+  if(centralReady&&centralAuthUser){
+    try{
+      const result=await centralFunction("generate-access",{});
+      await centralPullState();renderMasterManagement();renderAccessSecurityManagement();
+      modal("Novo acesso gerado",`
+        <div class="success-notice"><strong>✓ Login e senha gerados automaticamente na base central.</strong><br>A senha provisória é válida por 3 dias.</div>
+        <div class="card" style="background:#151515;margin-top:12px">
+          <p class="body-text" style="margin:0 0 10px"><strong>LOGIN:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900">${escapeHTML(result.login||"")}</span></p>
+          <p class="body-text" style="margin:0"><strong>SENHA:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900;letter-spacing:1px">${escapeHTML(result.password||"")}</span></p>
+        </div>
+        <div class="action-row" style="margin-top:12px"><button class="btn" type="button" onclick="copyText('${encodeURIComponent(result.login||"")}')">📋 Copiar login</button><button class="btn" type="button" onclick="copyText('${encodeURIComponent(result.password||"")}')">📋 Copiar senha</button></div>
+        <p class="small muted" style="margin-top:12px">Entregue os dados à pessoa. Ela deverá fazer a matrícula e redefinir a senha dentro dos 3 dias.</p>`);
+      toast("Novo login e senha gerados na base central.");return;
+    }catch(error){toast(centralSafeError(error,"Não foi possível gerar o acesso na base central."));return;}
   }
-
-  // Geração 100% automática: nenhum nome, tipo ou senha precisa ser informado.
-  const prefix="SEMENTES";
-  const seq=nextAccessNumber(prefix);
-  const login=`${prefix}-${String(seq).padStart(4,"0")}`;
-  const password=randomPassword(10);
-  const createdAt=nowISO();
-
-  const access={
-    id:`access-${Date.now()}`,
-    name:`Acesso ${login}`,
-    login,
-    password,
-    accessPassword:password,
-    role:"guardian",
-    studentId:null,
-    active:true,
-    temporaryPassword:true,
-    createdAt,
-    passwordExpiresAt:new Date(Date.now()+accessExpiryMs()).toISOString(),
-    createdBy:state.user?.name||APP_CONFIG.masterName
-  };
-
-  state.accesses.push(access);
-  saveState();
-  renderMasterManagement();
-  renderAccessSecurityManagement();
-  renderStudents();
-
-  modal(
-    "Novo acesso gerado",
-    `
-      <div class="success-notice">
-        <strong>✓ Login e senha gerados automaticamente.</strong><br>
-        A senha provisória é válida por 3 dias.
-      </div>
-      <div class="card" style="background:#151515;margin-top:12px">
-        <p class="body-text" style="margin:0 0 10px"><strong>LOGIN:</strong><br>
-          <span style="font-size:18px;color:var(--gold2);font-weight:900">${escapeHTML(login)}</span>
-        </p>
-        <p class="body-text" style="margin:0"><strong>SENHA:</strong><br>
-          <span style="font-size:18px;color:var(--gold2);font-weight:900;letter-spacing:1px">${escapeHTML(password)}</span>
-        </p>
-      </div>
-      <div class="action-row" style="margin-top:12px">
-        <button class="btn" type="button" onclick="copyText('${encodeURIComponent(login)}')">📋 Copiar login</button>
-        <button class="btn" type="button" onclick="copyText('${encodeURIComponent(password)}')">📋 Copiar senha</button>
-      </div>
-      <p class="small muted" style="margin-top:12px">
-        Entregue este login e esta senha à pessoa. A senha provisória deverá ser substituída antes do fim dos 3 dias.
-      </p>
-    `
-  );
-  toast("Novo login e senha gerados com sucesso.");
+  const prefix="SEMENTES";const seq=nextAccessNumber(prefix);const login=`${prefix}-${String(seq).padStart(4,"0")}`;const password=randomPassword(10);const createdAt=nowISO();
+  const access={id:`access-${Date.now()}`,name:`Acesso ${login}`,login,password,accessPassword:password,role:"guardian",studentId:null,active:true,temporaryPassword:true,createdAt,passwordExpiresAt:new Date(Date.now()+accessExpiryMs()).toISOString(),createdBy:state.user?.name||APP_CONFIG.masterName};
+  state.accesses.push(access);saveState();renderMasterManagement();renderAccessSecurityManagement();renderStudents();
+  modal("Novo acesso gerado",`<div class="success-notice"><strong>✓ Login e senha gerados automaticamente.</strong><br>A senha provisória é válida por 3 dias.</div><div class="card" style="background:#151515;margin-top:12px"><p class="body-text" style="margin:0 0 10px"><strong>LOGIN:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900">${escapeHTML(login)}</span></p><p class="body-text" style="margin:0"><strong>SENHA:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900;letter-spacing:1px">${escapeHTML(password)}</span></p></div><p class="small muted" style="margin-top:12px">A base central ainda não está configurada; este acesso local não sincroniza entre aparelhos.</p>`);
 }
-
 function copyText(encoded){
   const value=decodeURIComponent(encoded||"");
   if(navigator.clipboard?.writeText){
@@ -5111,64 +5532,42 @@ function copyText(encoded){
   ta.remove();
 }
 
-function resetOwnPassword(){
+async function resetOwnPassword(){
   if(!isOwnAccessResetAllowed()){
     toast("Somente Mestre London e Diretoria podem redefinir a própria senha.");
     return;
   }
-
   const password=$("ownPasswordNew")?.value||"";
   const confirmPassword=$("ownPasswordConfirm")?.value||"";
+  if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");return;}
+  if(password!==confirmPassword){toast("As senhas não conferem.");return;}
 
-  if(password.length<6){
-    toast("A senha deve ter pelo menos 6 caracteres.");
-    return;
-  }
-  if(password!==confirmPassword){
-    toast("As senhas não conferem.");
-    return;
+  if(centralReady&&centralAuthUser){
+    try{
+      await centralFunction("reset-password",{targetAccessId:state.user.id,newPassword:password});
+      state.user.temporaryPassword=false;state.user.passwordExpiresAt=null;
+      sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+      await centralPullState();
+      $("ownPasswordNew").value="";$("ownPasswordConfirm").value="";
+      renderAccessSecurityManagement();updateAccessSecurityNotice();
+      toast("Sua senha foi redefinida com sucesso.");
+      return;
+    }catch(error){toast(centralSafeError(error,"Não foi possível redefinir sua senha na base central."));return;}
   }
 
   if(state.user.role==="master"){
-    localStorage.setItem(STORAGE_KEYS.masterPasswordOverride,password);
-    state.passwordResets.unshift(
-      passwordResetLogEntry(APP_CONFIG.masterDisplayName,APP_CONFIG.demoMasterLogin,"master")
-    );
-    state.user.temporaryPassword=false;
-    sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-    saveState();
+    state.passwordResets.unshift(passwordResetLogEntry(APP_CONFIG.masterDisplayName,APP_CONFIG.demoMasterLogin,"master"));
+    state.user.temporaryPassword=false;sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));saveState();
   }else{
     const access=state.accesses.find(a=>a.id===state.user.id);
-    if(!access){
-      toast("Não encontrei o acesso da Diretoria neste dispositivo.");
-      return;
-    }
-
-    access.password=password;
-    access.accessPassword=password;
-    access.active=true;
-    access.temporaryPassword=false;
-    access.passwordExpiresAt="";
-    access.passwordResetAt=nowISO();
-    delete access.expiredAt;
-
-    state.user.temporaryPassword=false;
-    state.user.passwordExpiresAt=null;
-    state.passwordResets.unshift(
-      passwordResetLogEntry(access.name,access.login,access.role)
-    );
-
-    sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-    saveState();
+    if(!access){toast("Não encontrei o acesso da Diretoria neste dispositivo.");return;}
+    access.password=password;access.accessPassword=password;access.active=true;access.temporaryPassword=false;access.passwordExpiresAt="";access.passwordResetAt=nowISO();delete access.expiredAt;
+    state.user.temporaryPassword=false;state.user.passwordExpiresAt=null;
+    state.passwordResets.unshift(passwordResetLogEntry(access.name,access.login,access.role));
+    sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));saveState();
   }
-
-  $("ownPasswordNew").value="";
-  $("ownPasswordConfirm").value="";
-  renderAccessSecurityManagement();
-  updateAccessSecurityNotice();
-  toast("Sua senha foi redefinida com sucesso.");
+  $("ownPasswordNew").value="";$("ownPasswordConfirm").value="";renderAccessSecurityManagement();updateAccessSecurityNotice();toast("Sua senha foi redefinida com sucesso.");
 }
-
 function generateReport(){
   if(!canSeeSecretary()){
     toast("Somente Mestre London e Pastor Joel podem exportar relatórios.");
@@ -5339,17 +5738,17 @@ function initEvents(){
     try{el.setSelectionRange(start,end);}catch(_){ }
   });
 
-  $("loginForm").addEventListener("submit",e=>{
+  $("loginForm").addEventListener("submit",async e=>{
     e.preventDefault();
-
-    const ok=loginDemo($("login").value,$("password").value);
-
-    if(!ok){
-      toast(lastLoginMessage || "Login ou senha inválidos.");
-      return;
+    const login=$("login").value;
+    const password=$("password").value;
+    if(initCentralClient()) {
+      const result=await centralLogin(login,password);
+      if(!result.ok){toast(lastLoginMessage||"Login ou senha inválidos.");return;}
+    } else {
+      const ok=loginDemo(login,password);
+      if(!ok){toast(lastLoginMessage||"Login ou senha inválidos.");return;}
     }
-
-    // O submit do login é uma ação do usuário. Disparamos o louvor imediatamente, antes de qualquer renderização pesada.
     playBackgroundMusic();
     showApp();
     setTimeout(()=>playBackgroundMusic(),0);
@@ -5570,6 +5969,18 @@ function resetInactivityTimer(){
 }
 for(const evt of ["click","pointerdown","keydown","touchstart"]){document.addEventListener(evt,resetInactivityTimer,{passive:true});}
 setInterval(updateAccessSecurityNotice,60000);
+window.addEventListener("storage",()=>{
+  loadState();
+  refreshAllStudentDerivedViews();
+  updateAccessSecurityNotice();
+  if(centralReady&&centralAuthUser) centralPullState();
+});
+window.addEventListener("focus",()=>{
+  loadState();
+  refreshAllStudentDerivedViews();
+  updateAccessSecurityNotice();
+  if(centralReady&&centralAuthUser) centralPullState();
+});
 
 
 function restoreProjectLogos(){
@@ -5583,13 +5994,15 @@ function restoreProjectLogos(){
   });
 }
 
-document.addEventListener("DOMContentLoaded",()=>{
+document.addEventListener("DOMContentLoaded",async()=>{
   restoreProjectLogos();
   registerPWA();
   ensureMasterCredentialVersion();
   loadState();
   seedState();
+  migrateLegacyAccesses();
   restoreGame();
+  initCentralClient();
 
   initEvents();
   initTabs();
@@ -5598,7 +6011,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   if(window.lucide?.createIcons) window.lucide?.createIcons?.();
 
-  restoreSession();
+  await restoreSession();
 });
 </script>
 
