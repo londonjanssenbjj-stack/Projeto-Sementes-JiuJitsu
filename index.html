@@ -2371,7 +2371,6 @@ async function finalizeResponsibleAccessFlow(student){
       if(submit) submit.disabled=true;
 
       try{
-        const refreshed=await centralClient.auth.refreshSession(); if(refreshed.error||!refreshed.data?.session) throw refreshed.error||new Error("Não foi possível renovar a sessão antes da redefinição."); centralAuthUser=refreshed.data.session.user;
         const result=await centralFunction("finalize-responsible-access",{
           targetAccessId:state.user.id,
           firstName:student.guardian||state.user.guardianName||"RESPONSAVEL",
@@ -2382,18 +2381,16 @@ async function finalizeResponsibleAccessFlow(student){
         });
 
         const finalLogin=String(result.login||generatedLogin).toLocaleUpperCase("pt-BR");
-        const freshEmail=await browserInternalEmail(finalLogin); const freshSession=await centralClient.auth.signInWithPassword({email:freshEmail,password:password});
-        if(freshSession.error || !freshSession.data?.user) throw freshSession.error || new Error("Não foi possível renovar a sessão após a redefinição."); centralAuthUser=freshSession.data.user;
         student.accessLogin=finalLogin;
-        state.user.login=finalLogin;state.user.email=finalLogin;state.user.authUserId=centralAuthUser.id;
+        state.user.login=finalLogin;
+        state.user.email=finalLogin;
         state.user.temporaryPassword=false;
         state.user.passwordExpiresAt=null;
         state.user.familyKey=result.familyKey||state.user.familyKey||student.familyKey||"";
         sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
 
-        centralHydrated=false;
-        await centralPullState();
-        await centralSyncStateNow();
+        void centralSyncStateNow().catch(()=>{});
+        void centralPullState().catch(()=>{});
 
         responsibleFinalizationPending=false;
         responsibleFinalizationStudentId="";
@@ -6817,3 +6814,6 @@ FIM DO ARQUIVO
 -->
 </body>
 </html>
+
+
+
