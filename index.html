@@ -2371,6 +2371,16 @@ async function finalizeResponsibleAccessFlow(student){
       if(submit) submit.disabled=true;
 
       try{
+        // Garante uma sessão Supabase válida antes de concluir a redefinição.
+        let sessionResult=await centralClient.auth.getSession();
+        if(!sessionResult.data?.session?.access_token){
+          sessionResult=await centralClient.auth.refreshSession();
+        }
+        if(sessionResult.error || !sessionResult.data?.session?.access_token){
+          throw new Error("Sessão inválida. Feche e entre novamente para concluir a redefinição.");
+        }
+        centralAuthUser=sessionResult.data.session.user;
+
         const result=await centralFunction("finalize-responsible-access",{
           targetAccessId:state.user.id,
           firstName:student.guardian||state.user.guardianName||"RESPONSAVEL",
