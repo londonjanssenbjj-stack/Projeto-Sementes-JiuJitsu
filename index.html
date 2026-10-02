@@ -655,7 +655,7 @@
     .audit-item{padding:13px;border:1px solid #3a3a3a;border-radius:12px;background:#151515;}
     .audit-item strong{display:block;margin-bottom:4px;}
 
-    /* V61 — LOGO COMPLETA NAS TELAS DE ACESSO E INÍCIO
+    /* V62 — LOGO COMPLETA NAS TELAS DE ACESSO E INÍCIO
        Usa a mesma logo oficial fornecida, sem corte. */
     .logo-box{
       overflow:visible!important;
@@ -2003,7 +2003,7 @@
 
 <script>
 /* ============================================================
-   PROJETO SEMENTES — V61 — FLUXO RESPONSÁVEL E SINCRONIZAÇÃO CENTRAL
+   PROJETO SEMENTES — V62 — FLUXO RESPONSÁVEL E SINCRONIZAÇÃO CENTRAL
    ============================================================
    Este arquivo é uma implementação front-end em HTML/CSS/JS.
    Para produção com dados de menores, use autenticação, banco,
@@ -2096,7 +2096,13 @@ function initCentralClient(){
 
 async function centralFunction(action,payload={}){
   if(!initCentralClient()) throw new Error("Banco central ainda não configurado.");
-  const {data:{session}}=await centralClient.auth.getSession();
+  let {data:{session}}=await centralClient.auth.getSession();
+  if(!session?.access_token){
+    try{
+      const refreshed=await centralClient.auth.refreshSession();
+      if(!refreshed.error && refreshed.data?.session) session=refreshed.data.session;
+    }catch(_){}
+  }
   const headers={"Content-Type":"application/json"};
   if(session?.access_token) headers.Authorization=`Bearer ${session.access_token}`;
   const {data,error}=await centralClient.functions.invoke(
@@ -2371,14 +2377,34 @@ async function finalizeResponsibleAccessFlow(student){
       if(submit) submit.disabled=true;
 
       try{
-        const result=await centralFunction("finalize-responsible-access",{
+        const finalPayload={
           targetAccessId:state.user.id,
           firstName:student.guardian||state.user.guardianName||"RESPONSAVEL",
           documentNumber:student.documentNumber||state.enrollment?.documentNumber||"",
           newPassword:password,
           studentData:student,
           secretaryDocument:(state.secretaryDocuments||[]).find(d=>d.documentNumber===student.documentNumber)||null
-        });
+        };
+
+        let result;
+        try{
+          result=await centralFunction("finalize-responsible-access",finalPayload);
+        }catch(primaryError){
+          const primaryMessage=String(primaryError?.message||primaryError||"").toLocaleLowerCase("pt-BR");
+          if(!primaryMessage.includes("sessão inválida") && !primaryMessage.includes("sessao invalida")){
+            throw primaryError;
+          }
+
+          if(!temporaryAccessPasswordMemory || !state.user?.login){
+            throw new Error("A sessão expirou e o acesso temporário não está mais disponível nesta tela. Faça login novamente com o acesso temporário e repita a última etapa.");
+          }
+
+          result=await centralFunction("finalize-responsible-access-credential",{
+            ...finalPayload,
+            login:state.user.login,
+            temporaryPassword:temporaryAccessPasswordMemory
+          });
+        }
 
         const finalLogin=String(result.login||generatedLogin).toLocaleUpperCase("pt-BR");
         student.accessLogin=finalLogin;
@@ -2386,6 +2412,7 @@ async function finalizeResponsibleAccessFlow(student){
         state.user.email=finalLogin;
         state.user.temporaryPassword=false;
         state.user.passwordExpiresAt=null;
+        temporaryAccessPasswordMemory="";
         state.user.familyKey=result.familyKey||state.user.familyKey||student.familyKey||"";
         sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
 
@@ -2484,7 +2511,7 @@ async function centralLogin(login,password){
   }
 
   try{
-    // V61: autenticação primária diretamente no Supabase Auth.
+    // V62: autenticação primária diretamente no Supabase Auth.
     // O login não depende da disponibilidade da Edge Function.
     const directEmail=await browserInternalEmail(cleanLogin);
     const signed=await centralClient.auth.signInWithPassword({
@@ -2535,6 +2562,7 @@ async function centralLogin(login,password){
       };
 
       sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+      temporaryAccessPasswordMemory=(Boolean(access.temporary_password) ? rawPassword : "");
       clearFailedLogins();
       await centralPullState();
       centralSubscribeRealtime();
@@ -2587,6 +2615,7 @@ async function centralLogin(login,password){
     };
 
     sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    temporaryAccessPasswordMemory=(Boolean(access.temporary_password) ? rawPassword : "");
     clearFailedLogins();
     await centralPullState();
     centralSubscribeRealtime();
@@ -3435,6 +3464,7 @@ function logout(silent=false){
   localStorage.removeItem(STORAGE_KEYS.session);
   state.user=null;
   centralAuthUser=null;
+  temporaryAccessPasswordMemory="";
   centralHydrated=false;
   clearTimeout(inactivityTimer);
   showLogin();
