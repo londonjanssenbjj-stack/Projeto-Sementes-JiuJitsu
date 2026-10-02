@@ -654,7 +654,7 @@
     .audit-item{padding:13px;border:1px solid #3a3a3a;border-radius:12px;background:#151515;}
     .audit-item strong{display:block;margin-bottom:4px;}
 
-    /* V54 — LOGO COMPLETA NAS TELAS DE ACESSO E INÍCIO
+    /* V55 — LOGO COMPLETA NAS TELAS DE ACESSO E INÍCIO
        Usa a mesma logo oficial fornecida, sem corte. */
     .logo-box{
       overflow:visible!important;
@@ -1982,7 +1982,7 @@
 
 <script>
 /* ============================================================
-   PROJETO SEMENTES — V54 — FLUXO RESPONSÁVEL E SINCRONIZAÇÃO CENTRAL
+   PROJETO SEMENTES — V55 — FLUXO RESPONSÁVEL E SINCRONIZAÇÃO CENTRAL
    ============================================================
    Este arquivo é uma implementação front-end em HTML/CSS/JS.
    Para produção com dados de menores, use autenticação, banco,
@@ -2038,6 +2038,7 @@ let centralReady=false;
 let centralSyncTimer=null;
 let centralRefreshTimer=null;
 let centralApplyingRemote=false;
+let centralHydrated=false;
 let lastLoginMessage="";
 let responsibleFinalizationPending=false;
 let responsibleFinalizationStudentId="";
@@ -2175,23 +2176,28 @@ async function centralReplace(type,items,getFamily){
 }
 
 async function centralSyncStateNow(){
-  if(!centralReady||!centralAuthUser||centralApplyingRemote) return;
+  if(!centralReady||!centralAuthUser||centralApplyingRemote||!centralHydrated) return;
   try{
-    await centralReplace("student",state.students,studentFamilyKey);
-    await centralReplace("attendance",state.attendance,attendanceFamilyKey);
-    await centralReplace("secretary_document",state.secretaryDocuments,documentFamilyKey);
-    if(state.engagement?.length){
-      const rows=centralRecordRows("engagement",state.engagement.slice(-500),()=>"");
-      if(rows.length){const {error}=await centralClient.from("app_records").upsert(rows,{onConflict:"record_type,record_id"});if(error)throw error;}
-    }
+    const collections={
+      student:Array.isArray(state.students)?state.students:[],
+      attendance:Array.isArray(state.attendance)?state.attendance:[],
+      secretary_document:Array.isArray(state.secretaryDocuments)?state.secretaryDocuments:[],
+      engagement:Array.isArray(state.engagement)?state.engagement.slice(-500):[]
+    };
+
     if(centralRoleIsStaff()){
-      await centralReplace("schedule",state.schedule,()=>"");
-      await centralReplace("schedule_archive",state.scheduleArchive,()=>"");
-      await centralReplace("championship",state.championships,()=>"");
-      await centralReplace("password_reset",state.passwordResets,()=>"");
+      collections.schedule=Array.isArray(state.schedule)?state.schedule:[];
+      collections.schedule_archive=Array.isArray(state.scheduleArchive)?state.scheduleArchive:[];
+      collections.championship=Array.isArray(state.championships)?state.championships:[];
+      collections.password_reset=Array.isArray(state.passwordResets)?state.passwordResets:[];
     }
+
+    const result=await centralFunction("sync-state",{collections});
+    if(!result?.ok) throw new Error(result?.error||"A sincronização central não foi confirmada.");
+    return result;
   }catch(error){
     console.error("Sincronização central falhou",error);
+    throw error;
   }
 }
 
@@ -2204,18 +2210,14 @@ function centralScheduleSync(){
 async function centralPullState(){
   if(!centralReady||!centralAuthUser) return;
   try{
-    const {data:records,error}=await centralClient.from("app_records")
-      .select("record_type,record_id,family_key,data,updated_at")
-      .order("updated_at",{ascending:true});
-    if(error) throw error;
+    const result=await centralFunction("get-state",{});
+    if(!result?.ok) throw new Error(result?.error||"A base central não retornou os dados.");
 
-    const get=type=>(records||[]).filter(r=>r.record_type===type).map(r=>r.data).filter(Boolean);
-    const accessQ=await centralClient.from("app_accesses")
-      .select("id,auth_user_id,login,display_name,role,family_key,active,temporary_password,temporary_expires_at,password_changed_at,created_by,created_at,updated_at")
-      .order("created_at",{ascending:true});
-    if(accessQ.error) throw accessQ.error;
+    const records=Array.isArray(result.records)?result.records:[];
+    const get=type=>records.filter(r=>r.record_type===type).map(r=>r.data).filter(Boolean);
 
     centralApplyingRemote=true;
+
     const students=get("student");
     const attendance=get("attendance");
     const docs=get("secretary_document");
@@ -2225,22 +2227,28 @@ async function centralPullState(){
     const engagement=get("engagement");
     const resets=get("password_reset");
 
-    if(students.length || centralRoleIsStaff()) state.students=students;
-    if(attendance.length || centralRoleIsStaff()) state.attendance=attendance;
-    if(docs.length || centralRoleIsStaff()) state.secretaryDocuments=docs;
+    state.students=students;
+    state.attendance=attendance;
+    state.secretaryDocuments=docs;
+
     if(centralRoleIsStaff()){
       state.schedule=schedules;
       state.scheduleArchive=archives;
       state.championships=champs;
       state.engagement=engagement;
       state.passwordResets=resets;
+    }else if(centralRoleIsStaff()==false){
+      state.engagement=engagement;
     }
-    state.accesses=(accessQ.data||[]).map(centralMapAccess);
+
+    const accessRows=Array.isArray(result.accesses)?result.accesses:[];
+    state.accesses=accessRows.map(centralMapAccess);
 
     if(state.user?.role==="guardian" && state.user.familyKey){
       state.students=state.students.filter(s=>studentFamilyKey(s)===state.user.familyKey);
       state.attendance=state.attendance.filter(a=>attendanceFamilyKey(a)===state.user.familyKey);
       state.secretaryDocuments=state.secretaryDocuments.filter(d=>documentFamilyKey(d)===state.user.familyKey);
+
       const ownAccess=state.accesses.find(a=>a.id===state.user.id);
       if(ownAccess){
         state.user.familyKey=ownAccess.familyKey||state.user.familyKey;
@@ -2249,14 +2257,16 @@ async function centralPullState(){
         sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
       }
     }
+
     centralApplyingRemote=false;
+    centralHydrated=true;
     refreshAllStudentDerivedViews();
   }catch(error){
     centralApplyingRemote=false;
     console.error("Falha ao carregar dados centrais",error);
+    throw error;
   }
 }
-
 async function centralMigrateLocalState(){
   // V43: corte definitivo da migração legada.
   return;
@@ -2344,6 +2354,8 @@ async function finalizeResponsibleAccessFlow(student){
         sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
         await centralSyncStateNow();
         await centralPullState();
+        const confirmed=state.students.find(s=>s.id===student.id);
+        if(!confirmed) throw new Error("O cadastro não foi confirmado na base central após a redefinição.");
         responsibleFinalizationPending=false;
         responsibleFinalizationStudentId="";
         if(modalClose) modalClose.style.display="";
@@ -2471,11 +2483,11 @@ function centralSubscribeRealtime(){
     centralClient.channel("sementes-central-sync")
       .on("postgres_changes",{event:"*",schema:"public",table:"app_records"},()=>{
         clearTimeout(centralRefreshTimer);
-        centralRefreshTimer=setTimeout(centralPullState,600);
+        centralRefreshTimer=setTimeout(()=>centralPullState().catch(()=>{}),600);
       })
       .on("postgres_changes",{event:"*",schema:"public",table:"app_accesses"},()=>{
         clearTimeout(centralRefreshTimer);
-        centralRefreshTimer=setTimeout(centralPullState,600);
+        centralRefreshTimer=setTimeout(()=>centralPullState().catch(()=>{}),600);
       })
       .subscribe();
   }catch(error){console.error("Realtime indisponível",error);}
@@ -2791,7 +2803,7 @@ function saveState(){
   localStorage.setItem(STORAGE_KEYS.scheduleArchive, JSON.stringify(state.scheduleArchive));
   localStorage.setItem(STORAGE_KEYS.championships, JSON.stringify(state.championships));
   localStorage.setItem(STORAGE_KEYS.game, JSON.stringify(state.game));
-  if(!centralApplyingRemote) centralScheduleSync();
+  if(!centralApplyingRemote && centralHydrated) centralScheduleSync();
 }
 
 function loadState(){
@@ -3296,6 +3308,8 @@ function logout(silent=false){
   sessionStorage.removeItem(STORAGE_KEYS.session);
   localStorage.removeItem(STORAGE_KEYS.session);
   state.user=null;
+  centralAuthUser=null;
+  centralHydrated=false;
   clearTimeout(inactivityTimer);
   showLogin();
   if(!silent) toast("Sessão encerrada.");
@@ -4219,6 +4233,12 @@ async function captureFace(){
   persistLastRegisteredGuardian(student.guardian);
   await centralUpdateFamilyAfterRegistration(student);
   saveState();
+  if(centralReady&&centralAuthUser){
+    await centralSyncStateNow();
+    await centralPullState();
+    const confirmed=state.students.find(s=>s.id===student.id);
+    if(!confirmed) throw new Error("O cadastro não foi confirmado na base central.");
+  }
   refreshAllStudentDerivedViews();
   if(centralReady&&centralAuthUser){
     try{
@@ -6296,6 +6316,7 @@ function resetInactivityTimer(){
 }
 for(const evt of ["click","pointerdown","keydown","touchstart"]){document.addEventListener(evt,resetInactivityTimer,{passive:true});}
 setInterval(updateAccessSecurityNotice,60000);
+setInterval(()=>{if(centralReady&&centralAuthUser) centralPullState().catch(()=>{});},30000);
 window.addEventListener("storage",()=>{
   loadState();
   refreshAllStudentDerivedViews();
