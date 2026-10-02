@@ -2096,13 +2096,7 @@ function initCentralClient(){
 
 async function centralFunction(action,payload={}){
   if(!initCentralClient()) throw new Error("Banco central ainda não configurado.");
-  let {data:{session}}=await centralClient.auth.getSession();
-  if(!session?.access_token){
-    try{
-      const refreshed=await centralClient.auth.refreshSession();
-      if(!refreshed.error && refreshed.data?.session) session=refreshed.data.session;
-    }catch(_){}
-  }
+  const {data:{session}}=await centralClient.auth.getSession();
   const headers={"Content-Type":"application/json"};
   if(session?.access_token) headers.Authorization=`Bearer ${session.access_token}`;
   const {data,error}=await centralClient.functions.invoke(
@@ -2377,34 +2371,14 @@ async function finalizeResponsibleAccessFlow(student){
       if(submit) submit.disabled=true;
 
       try{
-        const finalPayload={
+        const result=await centralFunction("finalize-responsible-access",{
           targetAccessId:state.user.id,
           firstName:student.guardian||state.user.guardianName||"RESPONSAVEL",
           documentNumber:student.documentNumber||state.enrollment?.documentNumber||"",
           newPassword:password,
           studentData:student,
           secretaryDocument:(state.secretaryDocuments||[]).find(d=>d.documentNumber===student.documentNumber)||null
-        };
-
-        let result;
-        try{
-          result=await centralFunction("finalize-responsible-access",finalPayload);
-        }catch(primaryError){
-          const primaryMessage=String(primaryError?.message||primaryError||"").toLocaleLowerCase("pt-BR");
-          if(!primaryMessage.includes("sessão inválida") && !primaryMessage.includes("sessao invalida")){
-            throw primaryError;
-          }
-
-          if(!temporaryAccessPasswordMemory || !state.user?.login){
-            throw new Error("A sessão expirou e o acesso temporário não está mais disponível nesta tela. Faça login novamente com o acesso temporário e repita a última etapa.");
-          }
-
-          result=await centralFunction("finalize-responsible-access-credential",{
-            ...finalPayload,
-            login:state.user.login,
-            temporaryPassword:temporaryAccessPasswordMemory
-          });
-        }
+        });
 
         const finalLogin=String(result.login||generatedLogin).toLocaleUpperCase("pt-BR");
         student.accessLogin=finalLogin;
@@ -2412,7 +2386,6 @@ async function finalizeResponsibleAccessFlow(student){
         state.user.email=finalLogin;
         state.user.temporaryPassword=false;
         state.user.passwordExpiresAt=null;
-        temporaryAccessPasswordMemory="";
         state.user.familyKey=result.familyKey||state.user.familyKey||student.familyKey||"";
         sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
 
@@ -2511,115 +2484,100 @@ async function centralLogin(login,password){
   }
 
   try{
-    // V62: autenticação primária diretamente no Supabase Auth.
-    // O login não depende da disponibilidade da Edge Function.
+    // Autenticação primária diretamente no Supabase Auth.
     const directEmail=await browserInternalEmail(cleanLogin);
     const signed=await centralClient.auth.signInWithPassword({
       email:directEmail,
       password:rawPassword
     });
 
-    if(!signed.error && signed.data?.user){
-      centralAuthUser=signed.data.user;
-
-      let access=null;
-      try{
-        access=await centralLoadAccessRecord();
-      }catch(accessError){
-        console.warn("Falha ao ler app_accesses diretamente; tentando get-state.",accessError);
-      }
-
-      // Fallback para o estado central quando o RLS não permitir a leitura
-      // direta da linha de acesso.
-      if(!access){
-        try{
-          const resolved=await centralFunction("get-state",{});
-          access=(Array.isArray(resolved.accesses)?resolved.accesses:[]).find(a=>
-            String(a.auth_user_id||"")===String(centralAuthUser.id) ||
-            normalizeLogin(a.login)===normalizeLogin(cleanLogin)
-          ) || null;
-        }catch(stateError){
-          console.warn("Fallback get-state indisponível após login direto.",stateError);
-        }
-      }
-
-      if(!access){
-        throw new Error("Usuário autenticado, mas o perfil de acesso não foi localizado na base.");
-      }
-
-      state.user={
-        id:access.id,
-        authUserId:centralAuthUser.id,
-        name:access.display_name||access.login||cleanLogin,
-        email:access.login||cleanLogin,
-        login:access.login||cleanLogin,
-        role:access.role||centralAuthUser.user_metadata?.role||centralAuthUser.app_metadata?.role||"guardian",
-        studentId:null,
-        guardianName:access.display_name||"",
-        familyKey:access.family_key||"",
-        temporaryPassword:Boolean(access.temporary_password),
-        passwordExpiresAt:access.temporary_expires_at||null
-      };
-
-      sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-      temporaryAccessPasswordMemory=(Boolean(access.temporary_password) ? rawPassword : "");
-      clearFailedLogins();
-      await centralPullState();
-      centralSubscribeRealtime();
-      updateAccessSecurityNotice();
-      return {ok:true};
+    if(signed.error || !signed.data?.user){
+      throw signed.error || new Error("Login ou senha inválidos.");
     }
 
-    // Fallback apenas para contas que ainda precisem ser provisionadas
-    // através do manage-access.
-    const localAccess=(state.accesses||[]).find(a=>
-      normalizeLogin(a?.login)===normalizeLogin(cleanLogin)&&
-      String(a?.password||a?.accessPassword||"")===rawPassword&&
-      a.active!==false
-    );
+    centralAuthUser=signed.data.user;
 
-    const resolved=await centralFunction("resolve-login",{
-      login:cleanLogin,
-      password:rawPassword,
-      legacyAccess:localAccess?{
-        name:localAccess.name||localAccess.guardianName||cleanLogin,
-        login:localAccess.login,
-        role:localAccess.role,
-        studentId:localAccess.studentId||null,
-        familyKey:localAccess.familyKey||""
-      }:null
-    });
+    // Recupera o cadastro de acesso sem exigir que a Edge Function
+    // esteja disponível para a autenticação do usuário.
+    let access=null;
 
-    const signedFallback=await centralClient.auth.signInWithPassword({
-      email:resolved.internalEmail,
-      password:rawPassword
-    });
-    if(signedFallback.error) throw signedFallback.error;
+    try{
+      access=await centralLoadAccessRecord();
+    }catch(error){
+      console.warn("Leitura direta de app_accesses indisponível.",error);
+    }
 
-    centralAuthUser=signedFallback.data.user;
-    const access=await centralLoadAccessRecord();
-    if(!access) throw new Error("Perfil de acesso não localizado na base central.");
+    if(!access){
+      try{
+        const resolved=await centralFunction("get-state",{});
+        access=(Array.isArray(resolved.accesses)?resolved.accesses:[]).find(a=>
+          String(a.auth_user_id||"")===String(centralAuthUser.id) ||
+          normalizeLogin(a.login)===normalizeLogin(cleanLogin)
+        )||null;
+      }catch(error){
+        console.warn("Leitura de perfil via Edge Function indisponível.",error);
+      }
+    }
+
+    // Fallback de perfil usando os metadados gravados no Auth.
+    // Isso permite que Mestre/Diretoria/Responsável entrem mesmo se a
+    // consulta do perfil estiver temporariamente indisponível.
+    if(!access){
+      const metadataRole=centralAuthUser.app_metadata?.role || centralAuthUser.user_metadata?.role || "";
+      const metadataLogin=centralAuthUser.user_metadata?.login || cleanLogin;
+
+      if(["master","pastor","director","guardian"].includes(metadataRole)){
+        access={
+          id:`auth-${centralAuthUser.id}`,
+          auth_user_id:centralAuthUser.id,
+          login:String(metadataLogin).toLocaleUpperCase("pt-BR"),
+          display_name:centralAuthUser.user_metadata?.name || String(metadataLogin),
+          role:metadataRole,
+          family_key:centralAuthUser.user_metadata?.familyKey || "",
+          active:true,
+          temporary_password:Boolean(centralAuthUser.user_metadata?.temporaryPassword),
+          temporary_expires_at:centralAuthUser.user_metadata?.passwordExpiresAt || null
+        };
+      }
+    }
+
+    if(!access){
+      try{await centralClient.auth.signOut();}catch(_){}
+      centralAuthUser=null;
+      throw new Error("Usuário autenticado, mas o perfil de acesso não foi localizado.");
+    }
 
     state.user={
       id:access.id,
       authUserId:centralAuthUser.id,
-      name:access.display_name||access.login,
-      email:access.login,
-      login:access.login,
-      role:access.role,
+      name:access.display_name||access.login||cleanLogin,
+      email:access.login||cleanLogin,
+      login:access.login||cleanLogin,
+      role:access.role||"guardian",
       studentId:null,
       guardianName:access.display_name||"",
-      familyKey:access.family_key||resolved.familyKey||"",
+      familyKey:access.family_key||"",
       temporaryPassword:Boolean(access.temporary_password),
       passwordExpiresAt:access.temporary_expires_at||null
     };
 
     sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-    temporaryAccessPasswordMemory=(Boolean(access.temporary_password) ? rawPassword : "");
     clearFailedLogins();
-    await centralPullState();
-    centralSubscribeRealtime();
-    updateAccessSecurityNotice();
+
+    // A entrada não fica bloqueada se a atualização dos dados centrais
+    // estiver temporariamente indisponível. Ela será tentada novamente.
+    showApp();
+
+    try{
+      await centralPullState();
+      centralSubscribeRealtime();
+      updateAccessSecurityNotice();
+    }catch(syncError){
+      console.warn("Login realizado; atualização central pendente.",syncError);
+      setTimeout(()=>centralPullState().catch(()=>{}),1500);
+      updateAccessSecurityNotice();
+    }
+
     return {ok:true};
 
   }catch(error){
@@ -3459,15 +3417,21 @@ function showApp(){
   }
 }
 
-function logout(silent=false){
+async function logout(silent=false){
   sessionStorage.removeItem(STORAGE_KEYS.session);
   localStorage.removeItem(STORAGE_KEYS.session);
   state.user=null;
   centralAuthUser=null;
-  temporaryAccessPasswordMemory="";
   centralHydrated=false;
   clearTimeout(inactivityTimer);
+
+  // Volta imediatamente para o login e encerra também a sessão do Supabase.
   showLogin();
+  if(centralClient){
+    try{ await centralClient.auth.signOut(); }
+    catch(error){ console.warn("Encerramento da sessão central:",error); }
+  }
+
   if(!silent) toast("Sessão encerrada.");
 }
 
