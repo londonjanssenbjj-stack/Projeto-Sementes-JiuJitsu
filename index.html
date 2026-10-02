@@ -746,9 +746,6 @@
            HOME
            ===================================================== -->
       <section id="homePage" class="page active">
-        <div class="home-brand-logo" aria-label="Logo do Projeto Sementes">
-          <img id="homeLogo" src="app-icon-512.png" alt="Projeto Social Sementes — IEQ Guaicurus Jiu-Jitsu">
-        </div>
         <h1 class="page-title">Bem-vindo à família Sementes</h1>
         <p class="page-sub">Disciplina, valores cristãos, jiu-jitsu e fortalecimento das famílias.</p>
         <div class="app-install-row" style="display:flex;justify-content:center;margin:10px 0 18px">
@@ -3157,6 +3154,10 @@ function openPage(pageId){
   document.querySelectorAll("#mainNav button").forEach(btn=>{
     btn.classList.toggle("active",btn.dataset.page===pageId);
   });
+
+  // Na página inicial, ocultar as duas logos; nas demais páginas, manter a logo do cabeçalho.
+  const brandLogo = $("brandLogo");
+  if(brandLogo) brandLogo.style.display = pageId === "homePage" ? "none" : "";
 
   if(pageId==="homePage" || pageId==="faithPage") {
     playBackgroundMusic();
