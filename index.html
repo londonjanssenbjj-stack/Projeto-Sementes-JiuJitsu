@@ -21,6 +21,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="app-icon-180.png">
   <link rel="icon" type="image/png" sizes="192x192" href="app-icon-192.png">
   <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <title>Projeto Sementes — Jiu-Jitsu</title>
 
   <!-- FONTES -->
@@ -654,7 +655,7 @@
     .audit-item{padding:13px;border:1px solid #3a3a3a;border-radius:12px;background:#151515;}
     .audit-item strong{display:block;margin-bottom:4px;}
 
-    /* V58 — LOGO COMPLETA NAS TELAS DE ACESSO E INÍCIO
+    /* V61 — LOGO COMPLETA NAS TELAS DE ACESSO E INÍCIO
        Usa a mesma logo oficial fornecida, sem corte. */
     .logo-box{
       overflow:visible!important;
@@ -1861,7 +1862,23 @@
             <div id="impactSocialDashboard" class="stats"></div>
             <div class="card" style="background:#151515;margin-top:12px">
               <div class="card-header"><div><h3 class="section-title" style="font-size:20px">MAPA TERRITORIAL</h3><span class="small muted">Concentração por bairro informado no cadastro</span></div><i class="icon-gold" data-lucide="map"></i></div>
-              <div id="territorialMap" class="territorial-map"></div>
+              <div id="territorialMap" class="territorial-map">
+                <div class="territorial-map-headline">
+                  <div>
+                    <strong>CONCENTRAÇÃO POR BAIRRO</strong>
+                    <span>CRIANÇAS CADASTRADAS POR BAIRRO INFORMADO</span>
+                  </div>
+                  <div id="territorialCoverageSummary" class="territorial-summary-pill">0 BAIRROS • 0 CRIANÇAS</div>
+                </div>
+                <div id="territorialMapCanvas" class="territorial-map-canvas" aria-label="Mapa territorial de Corumbá-MS"></div>
+                <div class="territorial-map-legend">
+                  <span><i class="legend-dot low"></i> MENOR PROPORÇÃO</span>
+                  <span><i class="legend-dot high"></i> MAIOR PROPORÇÃO</span>
+                  <span><i class="legend-dot church"></i> IEQ GUAICURUS</span>
+                </div>
+                <div id="territorialRanking" class="territorial-ranking"></div>
+                <div id="territorialUnmapped" class="territorial-unmapped"></div>
+              </div>
             </div>
           </article>
 
@@ -1981,11 +1998,12 @@
   <source src="quando-ele-vem.mp3" type="audio/mpeg">
 </audio>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 /* ============================================================
-   PROJETO SEMENTES — V58 — FLUXO RESPONSÁVEL E SINCRONIZAÇÃO CENTRAL
+   PROJETO SEMENTES — V61 — FLUXO RESPONSÁVEL E SINCRONIZAÇÃO CENTRAL
    ============================================================
    Este arquivo é uma implementação front-end em HTML/CSS/JS.
    Para produção com dados de menores, use autenticação, banco,
@@ -2466,7 +2484,7 @@ async function centralLogin(login,password){
   }
 
   try{
-    // V58: autenticação primária diretamente no Supabase Auth.
+    // V61: autenticação primária diretamente no Supabase Auth.
     // O login não depende da disponibilidade da Edge Function.
     const directEmail=await browserInternalEmail(cleanLogin);
     const signed=await centralClient.auth.signInWithPassword({
@@ -4250,16 +4268,26 @@ async function startCamera(){
   }
 }
 
+async function syncEnrollmentCentral(student){
+  if(!centralReady||!centralAuthUser||!student) return false;
+  const documentRecord=(state.secretaryDocuments||[]).find(d=>String(d.documentNumber||"")===String(student.documentNumber||""))||null;
+  try{
+    const result=await centralFunction("sync-enrollment",{studentData:student,secretaryDocument:documentRecord});
+    return result?.ok===true;
+  }catch(error){
+    console.error("Sincronização do cadastro:",error);
+    // Não interrompe a conclusão da biometria por causa de rede.
+    return false;
+  }
+}
+
 async function captureFace(){
   const video=$("cameraVideo");
-  if(!video.srcObject){
-    toast("Abra a câmera primeiro.");
-    return;
-  }
+  if(!video.srcObject){toast("Abra a câmera primeiro.");return;}
 
   const canvas=$("faceCanvas");
-  canvas.width=video.videoWidth || 640;
-  canvas.height=video.videoHeight || 480;
+  canvas.width=video.videoWidth||640;
+  canvas.height=video.videoHeight||480;
   const ctx=canvas.getContext("2d");
   ctx.drawImage(video,0,0,canvas.width,canvas.height);
 
@@ -4268,12 +4296,9 @@ async function captureFace(){
   $("facePreview").classList.remove("hidden");
 
   const pending=state.enrollment;
-  if(!pending?.documentSaved){
-    toast("Finalize e salve o documento antes da biometria.");
-    return;
-  }
+  if(!pending?.documentSaved){toast("Finalize e salve o documento antes da biometria.");return;}
 
-  let student=pending.studentId ? state.students.find(s=>s.id===pending.studentId) : null;
+  let student=pending.studentId?state.students.find(s=>s.id===pending.studentId):null;
   if(!student){
     student={
       id:"student-"+Date.now(),
@@ -4336,30 +4361,21 @@ async function captureFace(){
     });
   }
 
-  student.familyKey=( ["guardian","director"].includes(state.user?.role) && state.user.familyKey) ? state.user.familyKey : (student.familyKey||centralFamilyKey(student.guardian,student.phone));
-  linkCurrentDeviceToRegisteredStudent(student);
-  persistLastRegisteredGuardian(student.guardian);
-  await centralUpdateFamilyAfterRegistration(student);
-  saveState();
-  refreshAllStudentDerivedViews();
-  if(centralReady&&centralAuthUser){
-    try{
-      await centralSyncStateNow();
-      await centralPullState();
-      const access=await centralLoadAccessRecord();
-      if(access && state.user){
-        state.user.familyKey=access.family_key||state.user.familyKey||"";
-        state.user.temporaryPassword=Boolean(access.temporary_password);
-        state.user.passwordExpiresAt=access.temporary_expires_at||null;
-        sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-      }
-    }catch(syncError){
-      console.error("Sincronização imediata pós-biometria falhou",syncError);
-      toast(centralSafeError(syncError,"Não foi possível confirmar a sincronização central. Tente novamente."));
-      return;
-    }
+  if(["guardian","director"].includes(state.user?.role)){
+    student.familyKey=state.user.familyKey||centralFamilyKey(student.guardian,student.phone);
+    state.user.familyKey=student.familyKey;
+    state.user.guardianName=student.guardian||state.user.guardianName||"";
+    sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+  }else{
+    student.familyKey=student.familyKey||"";
   }
 
+  linkCurrentDeviceToRegisteredStudent(student);
+  persistLastRegisteredGuardian(student.guardian);
+  saveState();
+  refreshAllStudentDerivedViews();
+
+  // BIOMETRIA: concluir visualmente antes de qualquer comunicação externa.
   if(faceStream){
     faceStream.getTracks().forEach(t=>t.stop());
     faceStream=null;
@@ -4369,28 +4385,34 @@ async function captureFace(){
   const biometricStatus=$("biometricStatus");
   if(biometricStatus){
     biometricStatus.classList.remove("hidden");
-    biometricStatus.innerHTML="🔊 <strong>CADASTRO BIOMÉTRICO REALIZADO COM SUCESSO</strong><br>Biometria vinculada ao cadastro do aluno.";
+    biometricStatus.innerHTML="🔊 <strong>BIOMETRIA CADASTRADA COM SUCESSO</strong><br>Face vinculada ao cadastro do aluno.";
   }
+
   const biometricSuccess=$("enrollmentSuccess");
   if(biometricSuccess){
     biometricSuccess.classList.remove("hidden");
     biometricSuccess.style.display="block";
-    biometricSuccess.insertAdjacentHTML("afterbegin",
-      `<div id="registrationSuccess" style="margin:12px 0;font-size:21px;font-weight:900;color:#b5f3c7">✅ CADASTRO E BIOMETRIA REALIZADOS COM SUCESSO</div>
-       <div class="small" style="margin-top:6px">O aluno já aparece em Alunos e suas informações alimentam as abas correspondentes.</div>`);
+    biometricSuccess.innerHTML=`
+      <div id="registrationSuccess" style="margin:12px 0;font-size:21px;font-weight:900;color:#b5f3c7">✅ CADASTRO E BIOMETRIA REALIZADOS COM SUCESSO</div>
+      <div class="small" style="margin-top:6px">O cadastro seguirá automaticamente para a próxima etapa.</div>
+    `;
   }
-  toast("🔊 Cadastro biométrico realizado com sucesso. O aluno já está disponível em Alunos.");
-  refreshAllStudentDerivedViews();
-  saveState();
+
+  // RESPONSÁVEL TEMPORÁRIO: abrir imediatamente a tela solicitada.
   if(state.user?.role==="guardian" && state.user?.temporaryPassword===true){
     const done=await finalizeResponsibleAccessFlow(student);
     if(done) return;
-    toast("A redefinição de senha é necessária para concluir o acesso definitivo.");
+    toast("Conclua a redefinição de senha para finalizar o acesso.");
     return;
   }
+
+  // MESTRE / PASTOR / DIRETORIA e responsáveis já definitivos:
+  // sincronização específica sem bloquear o fluxo.
+  void syncEnrollmentCentral(student);
+
+  toast("✅ BIOMETRIA CADASTRADA COM SUCESSO.");
   setTimeout(resetEnrollmentFormAfterCompletion,1500);
 }
-
 function resetEnrollmentFormAfterCompletion(){
   const form=$("enrollmentForm");
   if(form) form.reset();
@@ -5097,18 +5119,190 @@ function renderFaithDashboard(){
   html+=`</tbody></table>`; box.innerHTML=html;
 }
 
+let territorialLeafletMap=null;
+let territorialLayerGroup=null;
+let territorialGeocodeCache={};
+
+function territoryColor(pct){
+  const p=Math.max(0,Math.min(100,pct));
+  const hue=48-(p*0.28);
+  return `hsl(${hue.toFixed(0)} 82% 56%)`;
+}
+function territoryRadius(count){
+  return Math.max(8,Math.min(26,8+Math.sqrt(Math.max(0,count))*4));
+}
+function normalizeNeighborhoodName(v){
+  return String(v||"").trim().replace(/\s+/g," ").toLocaleUpperCase("pt-BR");
+}
+function territoryGeocodeCacheKey(name){
+  return `PS_TERRITORY_${normalizeNeighborhoodName(name)}`;
+}
+async function geocodeCorumbaPlace(place){
+  const key=territoryGeocodeCacheKey(place);
+  if(territorialGeocodeCache[key]) return territorialGeocodeCache[key];
+  try{
+    const cached=localStorage.getItem(key);
+    if(cached){
+      const parsed=JSON.parse(cached);
+      if(parsed?.lat&&parsed?.lon){
+        territorialGeocodeCache[key]=parsed;
+        return parsed;
+      }
+    }
+  }catch(_){}
+  const query=encodeURIComponent(`${place}, Corumbá, Mato Grosso do Sul, Brasil`);
+  const response=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q=${query}`);
+  if(!response.ok) throw new Error(`Geocodificação HTTP ${response.status}`);
+  const items=await response.json();
+  const first=Array.isArray(items)?items[0]:null;
+  if(!first?.lat||!first?.lon) return null;
+  const result={lat:Number(first.lat),lon:Number(first.lon),display:first.display_name||""};
+  territorialGeocodeCache[key]=result;
+  try{localStorage.setItem(key,JSON.stringify(result));}catch(_){}
+  return result;
+}
+function initTerritorialLeaflet(){
+  if(!window.L) return null;
+  const el=$("territorialMapCanvas");
+  if(!el) return null;
+  if(territorialLeafletMap){
+    setTimeout(()=>territorialLeafletMap.invalidateSize(),50);
+    return territorialLeafletMap;
+  }
+  territorialLeafletMap=L.map(el,{zoomControl:true,scrollWheelZoom:true,attributionControl:true});
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(territorialLeafletMap);
+  territorialLayerGroup=L.layerGroup().addTo(territorialLeafletMap);
+  territorialLeafletMap.setView([-19.008,-57.652],12);
+  setTimeout(()=>territorialLeafletMap.invalidateSize(),80);
+  return territorialLeafletMap;
+}
+async function refreshTerritorialLeaflet(neighborhoods,total){
+  const map=initTerritorialLeaflet();
+  if(!map||!territorialLayerGroup) return;
+  territorialLayerGroup.clearLayers();
+
+  const entries=Object.entries(neighborhoods)
+    .filter(([bairro])=>bairro!=="NÃO INFORMADO")
+    .sort((a,b)=>b[1]-a[1]);
+  const unmapped=[];
+  const denominator=Math.max(0,total);
+
+  for(const [bairro,count] of entries){
+    try{
+      const geo=await geocodeCorumbaPlace(bairro);
+      if(!geo){unmapped.push(bairro);continue;}
+      const pct=denominator?((count/denominator)*100):0;
+      const marker=L.circleMarker([geo.lat,geo.lon],{
+        radius:territoryRadius(count),
+        color:"#4b3a12",
+        weight:1.5,
+        fillColor:territoryColor(pct),
+        fillOpacity:.82
+      }).addTo(territorialLayerGroup);
+
+      marker.bindTooltip(`<span style="font-weight:800;color:#111">${escapeHTML(bairro)}</span>`,{direction:"top",opacity:.94});
+      marker.bindPopup(`
+        <div style="min-width:175px;font-family:Arial,sans-serif">
+          <strong>${escapeHTML(bairro)}</strong><br>
+          <b>${count}</b> ${count===1?"CRIANÇA":"CRIANÇAS"} CADASTRADAS<br>
+          <span>${pct.toFixed(1)}% DOS CADASTROS COM BAIRRO INFORMADO</span>
+        </div>
+      `);
+    }catch(error){
+      console.warn("Bairro sem geocodificação:",bairro,error);
+      unmapped.push(bairro);
+    }
+  }
+
+  // Tenta localizar a IEQ Guaicurus sem inventar coordenada.
+  for(const q of ["IEQ - Guaicurus, Corumbá, MS","IEQ Guaicurus, Corumbá, MS","Igreja do Evangelho Quadrangular, Corumbá, MS"]){
+    try{
+      const geo=await geocodeCorumbaPlace(q);
+      if(!geo) continue;
+      const icon=L.divIcon({
+        className:"",
+        html:`<div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#111;border:2px solid #5ee28c;box-shadow:0 2px 9px rgba(0,0,0,.45);font-size:15px">⛪</div>`,
+        iconSize:[28,28],iconAnchor:[14,14]
+      });
+      L.marker([geo.lat,geo.lon],{icon,zIndexOffset:1000})
+        .addTo(territorialLayerGroup)
+        .bindPopup("<strong>IEQ GUAICURUS</strong><br><span>REFERÊNCIA DO PONTO DE ALCANCE</span>");
+      break;
+    }catch(_){}
+  }
+
+  if(territorialLayerGroup.getLayers().length){
+    const bounds=L.featureGroup(territorialLayerGroup.getLayers()).getBounds();
+    if(bounds.isValid()) map.fitBounds(bounds.pad(.18));
+  }else{
+    map.setView([-19.008,-57.652],12);
+  }
+
+  const unmappedBox=$("territorialUnmapped");
+  if(unmappedBox){
+    unmappedBox.innerHTML=unmapped.length
+      ? `<strong>BAIRROS CADASTRADOS SEM POSIÇÃO CARTOGRÁFICA AUTOMÁTICA:</strong> ${unmapped.map(escapeHTML).join(" • ")}`
+      : "";
+  }
+}
+
 function renderImpactAndMap(){
   const impact=$("impactSocialDashboard"), map=$("territorialMap");
   if(!impact&&!map) return;
+
   const total=state.students.length;
   const complete=state.students.filter(s=>s.status==="complete").length;
-  const families=total;
+  const withNeighborhood=state.students.filter(s=>String(s.neighborhood||s.bairro||"").trim()).length;
   const neighborhoods={};
-  state.students.forEach(s=>{const b=(s.neighborhood||s.bairro||"Não informado").trim()||"Não informado"; neighborhoods[b]=(neighborhoods[b]||0)+1;});
-  if(impact) impact.innerHTML=`<div class="card stat"><span>Alunos cadastrados</span><strong>${total}</strong></div><div class="card stat"><span>Cadastros completos</span><strong>${complete}</strong></div><div class="card stat"><span>Famílias alcançadas</span><strong>${families}</strong></div>`;
-  if(map){const entries=Object.entries(neighborhoods).sort((a,b)=>b[1]-a[1]); map.innerHTML=entries.length?entries.map(([b,n])=>`<div class="territory-zone"><strong>${n}</strong><span>${escapeHTML(b)}</span><small>${n===1?"aluno cadastrado":"alunos cadastrados"}</small></div>`).join(""): `<div class="notice">Ainda não há alunos cadastrados com bairro informado.</div>`;}
-}
 
+  state.students.forEach(s=>{
+    const b=String(s.neighborhood||s.bairro||"").trim()||"NÃO INFORMADO";
+    const normalized=normalizeNeighborhoodName(b);
+    if(normalized) neighborhoods[normalized]=(neighborhoods[normalized]||0)+1;
+  });
+
+  const covered=Object.keys(neighborhoods).filter(x=>x!=="NÃO INFORMADO").length;
+  const denominator=withNeighborhood;
+
+  if(impact){
+    impact.innerHTML=`
+      <div class="card stat"><span>ALUNOS CADASTRADOS</span><strong>${total}</strong></div>
+      <div class="card stat"><span>CADASTROS COMPLETOS</span><strong>${complete}</strong></div>
+      <div class="card stat"><span>BAIRROS ALCANÇADOS</span><strong>${covered}</strong></div>
+      <div class="card stat"><span>CADASTROS COM BAIRRO</span><strong>${withNeighborhood}</strong></div>
+    `;
+  }
+
+  const summary=$("territorialCoverageSummary");
+  if(summary) summary.textContent=`${covered} BAIRROS • ${withNeighborhood} CRIANÇAS`;
+
+  const ranking=$("territorialRanking");
+  if(ranking){
+    const entries=Object.entries(neighborhoods)
+      .filter(([b])=>b!=="NÃO INFORMADO")
+      .sort((a,b)=>b[1]-a[1]);
+
+    ranking.innerHTML=entries.length
+      ? entries.map(([b,n])=>{
+          const pct=denominator?((n/denominator)*100):0;
+          const fill=territoryColor(pct);
+          return `<div class="territory-zone">
+            <strong>${escapeHTML(b)}</strong>
+            <span>${n} ${n===1?"CRIANÇA":"CRIANÇAS"}</span>
+            <div class="territory-bar"><i style="width:${Math.min(100,pct).toFixed(1)}%;background:${fill}"></i></div>
+            <div class="territory-meta"><span>PROPORÇÃO DO ALCANCE</span><b>${pct.toFixed(1)}%</b></div>
+          </div>`;
+        }).join("")
+      : `<div class="notice">AINDA NÃO HÁ CRIANÇAS COM BAIRRO INFORMADO.</div>`;
+  }
+
+  if(window.L){
+    clearTimeout(window.__territorialMapTimer);
+    window.__territorialMapTimer=setTimeout(()=>{
+      refreshTerritorialLeaflet(neighborhoods,denominator).catch(error=>console.warn("Mapa territorial:",error));
+    },0);
+  }
+}
 function archivePastScheduleEvents(){
   const now=Date.now();
   const active=[];
@@ -6094,10 +6288,28 @@ function generateReport(){
     /* V14 — documento baseado no termo enviado; identificação unificada CIN/RG */
     #guardianCINRG{min-width:0;}
 
-    .territorial-map{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:8px}
-    .territory-zone{border:1px solid #6e571b;border-radius:14px;padding:14px;background:linear-gradient(145deg,#171717,#101010);min-height:90px}
-    .territory-zone strong{font-size:20px;color:var(--gold2)}
-    .territory-zone span{display:block;margin-top:5px;color:#aaa;font-size:12px}
+    .territorial-map{display:block;padding:8px}
+    .territorial-map-headline{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap;padding:4px 4px 12px}
+    .territorial-map-headline strong{display:block;color:var(--gold2);font-size:15px;letter-spacing:.4px}
+    .territorial-map-headline span{display:block;color:#9c9c9c;font-size:11px;margin-top:3px}
+    .territorial-summary-pill{padding:8px 11px;border:1px solid #5b4916;border-radius:999px;color:var(--gold2);font-size:11px;font-weight:800;white-space:nowrap}
+    .territorial-map-canvas{height:420px;min-height:320px;border:1px solid #594719;border-radius:16px;overflow:hidden;background:#111;margin-bottom:10px}
+    .territorial-map-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:#9c9c9c;padding:4px 3px 12px}
+    .legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle;border:1px solid rgba(255,255,255,.45)}
+    .legend-dot.low{background:#f7e7a5}
+    .legend-dot.high{background:#d97706}
+    .legend-dot.church{background:#5ee28c}
+    .territorial-ranking{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+    .territory-zone{border:1px solid #6e571b;border-radius:14px;padding:14px;background:linear-gradient(145deg,#171717,#101010);min-height:105px}
+    .territory-zone strong{font-size:18px;color:var(--gold2)}
+    .territory-zone span{display:block;margin-top:5px;color:#e9e9e9;font-size:13px;font-weight:700}
+    .territory-zone small{display:block;margin-top:4px;color:#9d9d9d;font-size:11px}
+    .territory-bar{height:7px;border-radius:99px;background:#2a2a2a;overflow:hidden;margin-top:10px}
+    .territory-bar i{display:block;height:100%;border-radius:99px}
+    .territory-meta{display:flex;justify-content:space-between;gap:8px;margin-top:7px;font-size:10px;color:#aaa}
+    .territorial-unmapped{margin-top:10px;font-size:11px;color:#8e8e8e}
+    .territorial-unmapped strong{color:#d7d7d7}
+    @media(max-width:640px){.territorial-map-canvas{height:340px}.territorial-map{padding:4px}.territorial-map-headline{align-items:flex-start}}
     .engagement-pill{display:inline-flex;gap:6px;align-items:center;padding:6px 9px;border:1px solid #3a3a3a;border-radius:999px;margin:3px}
     .champion-athletes{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:10px}
     .champion-athlete{padding:10px;border:1px solid #3a3a3a;border-radius:10px;background:#151515}
