@@ -654,7 +654,7 @@
     .audit-item{padding:13px;border:1px solid #3a3a3a;border-radius:12px;background:#151515;}
     .audit-item strong{display:block;margin-bottom:4px;}
 
-    /* V55 — LOGO COMPLETA NAS TELAS DE ACESSO E INÍCIO
+    /* V57 — LOGO COMPLETA NAS TELAS DE ACESSO E INÍCIO
        Usa a mesma logo oficial fornecida, sem corte. */
     .logo-box{
       overflow:visible!important;
@@ -1694,6 +1694,9 @@
         <p class="page-sub">Painel administrativo, governança, indicadores, impacto e relatórios.</p>
 
         <div class="notice" style="margin-bottom:14px">
+          <div class="action-row" style="justify-content:flex-end;margin-bottom:10px">
+            <button class="btn btn-gold" id="refreshCentralAllBtn" type="button">🔄 ATUALIZAR DADOS E ACESSOS</button>
+          </div>
           <strong>Secretaria — Documentos de Matrícula</strong><br>
           Os documentos cadastrados ficam visíveis somente para a Diretoria e Administrador. A exclusão é permitida exclusivamente ao Administrador Mestre London.
           <span class="small muted">Neste arquivo HTML, o armazenamento é local ao dispositivo; para receber documentos de outros celulares/computadores é necessário conectar um backend seguro.</span>
@@ -1982,7 +1985,7 @@
 
 <script>
 /* ============================================================
-   PROJETO SEMENTES — V55 — FLUXO RESPONSÁVEL E SINCRONIZAÇÃO CENTRAL
+   PROJETO SEMENTES — V57 — FLUXO RESPONSÁVEL E SINCRONIZAÇÃO CENTRAL
    ============================================================
    Este arquivo é uma implementação front-end em HTML/CSS/JS.
    Para produção com dados de menores, use autenticação, banco,
@@ -2075,8 +2078,23 @@ function initCentralClient(){
 
 async function centralFunction(action,payload={}){
   if(!initCentralClient()) throw new Error("Banco central ainda não configurado.");
-  const {data,error}=await centralClient.functions.invoke(CENTRAL_CONFIG.functionName,{body:{action,...payload}});
-  if(error) throw error;
+  const {data:{session}}=await centralClient.auth.getSession();
+  const headers={"Content-Type":"application/json"};
+  if(session?.access_token) headers.Authorization=`Bearer ${session.access_token}`;
+  const {data,error}=await centralClient.functions.invoke(
+    CENTRAL_CONFIG.functionName,
+    {body:{action,...payload},headers}
+  );
+  if(error){
+    let detail=String(error.message||error||"");
+    try{
+      if(error.context?.json){
+        const body=await error.context.json();
+        if(body?.error) detail=String(body.error);
+      }
+    }catch(_){}
+    throw new Error(detail||"A Edge Function recusou a operação.");
+  }
   if(data?.error) throw new Error(data.error);
   return data||{};
 }
@@ -2177,28 +2195,21 @@ async function centralReplace(type,items,getFamily){
 
 async function centralSyncStateNow(){
   if(!centralReady||!centralAuthUser||centralApplyingRemote||!centralHydrated) return;
-  try{
-    const collections={
-      student:Array.isArray(state.students)?state.students:[],
-      attendance:Array.isArray(state.attendance)?state.attendance:[],
-      secretary_document:Array.isArray(state.secretaryDocuments)?state.secretaryDocuments:[],
-      engagement:Array.isArray(state.engagement)?state.engagement.slice(-500):[]
-    };
-
-    if(centralRoleIsStaff()){
-      collections.schedule=Array.isArray(state.schedule)?state.schedule:[];
-      collections.schedule_archive=Array.isArray(state.scheduleArchive)?state.scheduleArchive:[];
-      collections.championship=Array.isArray(state.championships)?state.championships:[];
-      collections.password_reset=Array.isArray(state.passwordResets)?state.passwordResets:[];
-    }
-
-    const result=await centralFunction("sync-state",{collections});
-    if(!result?.ok) throw new Error(result?.error||"A sincronização central não foi confirmada.");
-    return result;
-  }catch(error){
-    console.error("Sincronização central falhou",error);
-    throw error;
+  const collections={
+    student:Array.isArray(state.students)?state.students:[],
+    attendance:Array.isArray(state.attendance)?state.attendance:[],
+    secretary_document:Array.isArray(state.secretaryDocuments)?state.secretaryDocuments:[],
+    engagement:Array.isArray(state.engagement)?state.engagement.slice(-500):[]
+  };
+  if(centralRoleIsStaff()){
+    collections.schedule=Array.isArray(state.schedule)?state.schedule:[];
+    collections.schedule_archive=Array.isArray(state.scheduleArchive)?state.scheduleArchive:[];
+    collections.championship=Array.isArray(state.championships)?state.championships:[];
+    collections.password_reset=Array.isArray(state.passwordResets)?state.passwordResets:[];
   }
+  const result=await centralFunction("sync-state",{collections});
+  if(!result?.ok) throw new Error(result?.error||"A sincronização central não foi confirmada.");
+  return result;
 }
 
 function centralScheduleSync(){
@@ -2217,50 +2228,41 @@ async function centralPullState(){
     const get=type=>records.filter(r=>r.record_type===type).map(r=>r.data).filter(Boolean);
 
     centralApplyingRemote=true;
-
-    const students=get("student");
-    const attendance=get("attendance");
-    const docs=get("secretary_document");
-    const schedules=get("schedule");
-    const archives=get("schedule_archive");
-    const champs=get("championship");
-    const engagement=get("engagement");
-    const resets=get("password_reset");
-
-    state.students=students;
-    state.attendance=attendance;
-    state.secretaryDocuments=docs;
+    state.students=get("student");
+    state.attendance=get("attendance");
+    state.secretaryDocuments=get("secretary_document");
 
     if(centralRoleIsStaff()){
-      state.schedule=schedules;
-      state.scheduleArchive=archives;
-      state.championships=champs;
-      state.engagement=engagement;
-      state.passwordResets=resets;
-    }else if(centralRoleIsStaff()==false){
-      state.engagement=engagement;
+      state.schedule=get("schedule");
+      state.scheduleArchive=get("schedule_archive");
+      state.championships=get("championship");
+      state.engagement=get("engagement");
+      state.passwordResets=get("password_reset");
+    }else{
+      state.engagement=get("engagement");
     }
 
-    const accessRows=Array.isArray(result.accesses)?result.accesses:[];
-    state.accesses=accessRows.map(centralMapAccess);
+    state.accesses=(Array.isArray(result.accesses)?result.accesses:[]).map(centralMapAccess);
 
     if(state.user?.role==="guardian" && state.user.familyKey){
       state.students=state.students.filter(s=>studentFamilyKey(s)===state.user.familyKey);
       state.attendance=state.attendance.filter(a=>attendanceFamilyKey(a)===state.user.familyKey);
       state.secretaryDocuments=state.secretaryDocuments.filter(d=>documentFamilyKey(d)===state.user.familyKey);
+    }
 
-      const ownAccess=state.accesses.find(a=>a.id===state.user.id);
-      if(ownAccess){
-        state.user.familyKey=ownAccess.familyKey||state.user.familyKey;
-        state.user.temporaryPassword=ownAccess.temporaryPassword;
-        state.user.passwordExpiresAt=ownAccess.passwordExpiresAt||null;
-        sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-      }
+    const ownAccess=state.accesses.find(a=>a.id===state.user?.id);
+    if(ownAccess && state.user){
+      state.user.familyKey=ownAccess.familyKey||state.user.familyKey||"";
+      state.user.login=ownAccess.login||state.user.login;
+      state.user.temporaryPassword=ownAccess.temporaryPassword;
+      state.user.passwordExpiresAt=ownAccess.passwordExpiresAt||null;
+      sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
     }
 
     centralApplyingRemote=false;
     centralHydrated=true;
     refreshAllStudentDerivedViews();
+    updateAccessSecurityNotice();
   }catch(error){
     centralApplyingRemote=false;
     console.error("Falha ao carregar dados centrais",error);
@@ -2297,74 +2299,96 @@ async function finalizeResponsibleAccessFlow(student){
     toast("A base central não está disponível. Não é possível concluir a redefinição agora.");
     return false;
   }
-  const generatedLogin=responsibleGeneratedLogin(student.guardian||state.user.guardianName,student.documentNumber||state.enrollment?.documentNumber);
+
+  const generatedLogin=responsibleGeneratedLogin(
+    student.guardian||state.user.guardianName,
+    student.documentNumber||state.enrollment?.documentNumber
+  );
   responsibleFinalizationPending=true;
   responsibleFinalizationStudentId=student.id;
+
   const modalClose=$("modalClose");
   if(modalClose) modalClose.style.display="none";
+
   modal("REDEFINIÇÃO DE SENHA",`
     <div class="success-notice" style="margin-bottom:12px">
-      <strong>✅ BIOMETRIA REALIZADA COM SUCESSO</strong><br>
-      O cadastro foi sincronizado com a base central. Agora crie somente a sua senha definitiva.
+      <strong>✅ BIOMETRIA CADASTRADA COM SUCESSO</strong><br>
+      O cadastro do aluno está pronto. Agora crie somente a sua senha definitiva.
     </div>
     <div class="card" style="background:#151515;margin-bottom:12px">
       <p class="small muted" style="margin:0 0 5px">LOGIN GERADO AUTOMATICAMENTE</p>
       <div style="font-size:19px;color:var(--gold2);font-weight:900;word-break:break-word">${escapeHTML(generatedLogin)}</div>
-      <p class="small muted" style="margin:10px 0 0">O login é formado pelo primeiro nome do responsável + número do documento gerado.</p>
+      <p class="small muted" style="margin:10px 0 0">PRIMEIRO NOME DO RESPONSÁVEL + NÚMERO DO DOCUMENTO GERADO.</p>
     </div>
     <form id="responsibleFinalizationForm">
-      <div class="field"><label>NOVA SENHA</label><input id="responsibleFinalPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
-      <div class="field"><label>CONFIRMAR NOVA SENHA</label><input id="responsibleFinalPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
+      <div class="field"><label>NOVA SENHA</label>
+        <input id="responsibleFinalPassword" class="input" type="password" minlength="6" required
+               autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="field"><label>CONFIRMAR NOVA SENHA</label>
+        <input id="responsibleFinalPasswordConfirm" class="input" type="password" minlength="6" required
+               autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false">
+      </div>
       <button class="btn btn-gold btn-full" type="submit">🔐 REDEFINIR SENHA E CONCLUIR ACESSO</button>
     </form>
     <div id="responsibleFinalizationStatus" class="small muted" style="margin-top:10px;text-align:center"></div>
   `);
+
   return new Promise(resolve=>{
     const form=$("responsibleFinalizationForm");
-    if(!form){responsibleFinalizationPending=false;resolve(false);return;}
+    if(!form){responsibleFinalizationPending=false;responsibleFinalizationStudentId="";if(modalClose)modalClose.style.display="";resolve(false);return;}
+
     form.addEventListener("submit",async e=>{
       e.preventDefault();
-      const password=$("responsibleFinalPassword")?.value.toLocaleUpperCase("pt-BR")||"";
-      const confirmPassword=$("responsibleFinalPasswordConfirm")?.value.toLocaleUpperCase("pt-BR")||"";
-      if($("responsibleFinalPassword")) $("responsibleFinalPassword").value=password;
-      if($("responsibleFinalPasswordConfirm")) $("responsibleFinalPasswordConfirm").value=confirmPassword;
+      const password=$("responsibleFinalPassword").value.toLocaleUpperCase("pt-BR");
+      const confirmPassword=$("responsibleFinalPasswordConfirm").value.toLocaleUpperCase("pt-BR");
+      $("responsibleFinalPassword").value=password;
+      $("responsibleFinalPasswordConfirm").value=confirmPassword;
       if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");return;}
       if(password!==confirmPassword){toast("As senhas não conferem.");return;}
+
       const status=$("responsibleFinalizationStatus");
       if(status) status.textContent="SALVANDO SENHA E SINCRONIZANDO...";
       const submit=form.querySelector("button[type='submit']");
       if(submit) submit.disabled=true;
+
       try{
         const result=await centralFunction("finalize-responsible-access",{
           targetAccessId:state.user.id,
           firstName:student.guardian||state.user.guardianName||"RESPONSAVEL",
           documentNumber:student.documentNumber||state.enrollment?.documentNumber||"",
-          newPassword:password
+          newPassword:password,
+          studentData:student,
+          secretaryDocument:(state.secretaryDocuments||[]).find(d=>d.documentNumber===student.documentNumber)||null
         });
+
         const finalLogin=String(result.login||generatedLogin).toLocaleUpperCase("pt-BR");
         student.accessLogin=finalLogin;
-        for(const s of state.students){
-          if(studentFamilyKey(s)===studentFamilyKey(student)) s.accessLogin=finalLogin;
-        }
         state.user.login=finalLogin;
         state.user.email=finalLogin;
         state.user.temporaryPassword=false;
         state.user.passwordExpiresAt=null;
         state.user.familyKey=result.familyKey||state.user.familyKey||student.familyKey||"";
         sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+
         await centralSyncStateNow();
         await centralPullState();
-        const confirmed=state.students.find(s=>s.id===student.id);
-        if(!confirmed) throw new Error("O cadastro não foi confirmado na base central após a redefinição.");
+
         responsibleFinalizationPending=false;
         responsibleFinalizationStudentId="";
         if(modalClose) modalClose.style.display="";
         closeModal();
         updateAccessSecurityNotice();
         refreshAllStudentDerivedViews();
-        saveState();
-        modal("REDEFINIÇÃO CONCLUÍDA",`<div class="success-notice"><strong>✅ REDEFINIÇÃO DE SENHA REALIZADA COM SUCESSO</strong><br><br><strong>LOGIN:</strong> ${escapeHTML(finalLogin)}<br><strong>SENHA:</strong> criada por você e não expira mais.</div>`);
-        setTimeout(()=>{closeModal();resetEnrollmentFormAfterCompletion();},1800);
+
+        modal("REDEFINIÇÃO CONCLUÍDA",`
+          <div class="success-notice">
+            <strong>✅ REDEFINIÇÃO DE SENHA REALIZADA COM SUCESSO</strong><br><br>
+            <strong>LOGIN:</strong> ${escapeHTML(finalLogin)}<br>
+            <strong>SENHA:</strong> criada por você e não expira mais.
+          </div>
+        `);
+        setTimeout(()=>{closeModal();resetEnrollmentFormAfterCompletion();},2200);
         resolve(true);
       }catch(error){
         responsibleFinalizationPending=true;
@@ -2375,7 +2399,6 @@ async function finalizeResponsibleAccessFlow(student){
     });
   });
 }
-
 async function centralResolveCurrentIdentity(){
   if(!centralReady) return false;
   const {data:{session},error}=await centralClient.auth.getSession();
@@ -2483,11 +2506,11 @@ function centralSubscribeRealtime(){
     centralClient.channel("sementes-central-sync")
       .on("postgres_changes",{event:"*",schema:"public",table:"app_records"},()=>{
         clearTimeout(centralRefreshTimer);
-        centralRefreshTimer=setTimeout(()=>centralPullState().catch(()=>{}),600);
+        centralRefreshTimer=setTimeout(centralPullState,600);
       })
       .on("postgres_changes",{event:"*",schema:"public",table:"app_accesses"},()=>{
         clearTimeout(centralRefreshTimer);
-        centralRefreshTimer=setTimeout(()=>centralPullState().catch(()=>{}),600);
+        centralRefreshTimer=setTimeout(centralPullState,600);
       })
       .subscribe();
   }catch(error){console.error("Realtime indisponível",error);}
@@ -4233,20 +4256,22 @@ async function captureFace(){
   persistLastRegisteredGuardian(student.guardian);
   await centralUpdateFamilyAfterRegistration(student);
   saveState();
-  if(centralReady&&centralAuthUser){
-    await centralSyncStateNow();
-    await centralPullState();
-    const confirmed=state.students.find(s=>s.id===student.id);
-    if(!confirmed) throw new Error("O cadastro não foi confirmado na base central.");
-  }
   refreshAllStudentDerivedViews();
   if(centralReady&&centralAuthUser){
     try{
       await centralSyncStateNow();
       await centralPullState();
+      const access=await centralLoadAccessRecord();
+      if(access && state.user){
+        state.user.familyKey=access.family_key||state.user.familyKey||"";
+        state.user.temporaryPassword=Boolean(access.temporary_password);
+        state.user.passwordExpiresAt=access.temporary_expires_at||null;
+        sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+      }
     }catch(syncError){
       console.error("Sincronização imediata pós-biometria falhou",syncError);
       toast(centralSafeError(syncError,"Não foi possível confirmar a sincronização central. Tente novamente."));
+      return;
     }
   }
 
@@ -4538,7 +4563,7 @@ function openStudent(id){
       ${(editable || (["guardian","universal"].includes(state.user?.role) && normalizePersonName(state.user?.guardianName||"")===normalizePersonName(s.guardian||""))) ? `
         <div class="action-row" style="margin-top:14px">
           ${editable ? `<button class="btn btn-gold" onclick="saveStudentProfile('${s.id}')">Salvar alterações</button>` : ""}
-          <button class="btn" type="button" onclick="resetGuardianPassword('${s.id}')">🔐 Redefinir senha do responsável</button>
+          
         </div>
       ` : `
         <p class="small muted" style="margin-top:12px">
@@ -5865,6 +5890,29 @@ async function resetOwnPassword(){
   }
   $("ownPasswordNew").value="";$("ownPasswordConfirm").value="";renderAccessSecurityManagement();updateAccessSecurityNotice();toast("Sua senha foi redefinida com sucesso.");
 }
+async function refreshCentralEverything(){
+  if(!centralReady||!centralAuthUser){
+    toast("A base central não está conectada.");
+    return;
+  }
+  const btn=$("refreshCentralAllBtn");
+  try{
+    if(btn){btn.disabled=true;btn.textContent="⏳ ATUALIZANDO...";}
+    await centralPullState();
+    refreshAllStudentDerivedViews();
+    renderSchedule();
+    renderChampionships();
+    renderMasterManagement();
+    renderAccessSecurityManagement();
+    updateAccessSecurityNotice();
+    toast("✅ TODAS AS ABAS E ACESSOS FORAM ATUALIZADOS.");
+  }catch(error){
+    toast(centralSafeError(error,"Não foi possível atualizar a base central."));
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent="🔄 ATUALIZAR DADOS E ACESSOS";}
+  }
+}
+
 function generateReport(){
   if(!canSeeSecretary()){
     toast("Somente Mestre London e Pastor Joel podem exportar relatórios.");
@@ -6175,6 +6223,7 @@ function initEvents(){
   $("captureClassPhoto").addEventListener("click",captureClassPhoto);
 
   $("generateAccess").addEventListener("click",generateAccess);
+  $("refreshCentralAllBtn")?.addEventListener("click",refreshCentralEverything);
   $("generateDirectorAccesses")?.addEventListener("click",generateDirectorAccesses);
   $("resetProjectQuickBtn")?.addEventListener("click",resetProjectAll);
   $("ownPasswordForm")?.addEventListener("submit",e=>{e.preventDefault();resetOwnPassword();});
@@ -6316,7 +6365,7 @@ function resetInactivityTimer(){
 }
 for(const evt of ["click","pointerdown","keydown","touchstart"]){document.addEventListener(evt,resetInactivityTimer,{passive:true});}
 setInterval(updateAccessSecurityNotice,60000);
-setInterval(()=>{if(centralReady&&centralAuthUser) centralPullState().catch(()=>{});},30000);
+  setInterval(()=>{if(centralReady&&centralAuthUser) centralPullState().catch(()=>{});},30000);
 window.addEventListener("storage",()=>{
   loadState();
   refreshAllStudentDerivedViews();
