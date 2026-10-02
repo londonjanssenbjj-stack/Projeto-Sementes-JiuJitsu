@@ -1202,8 +1202,8 @@
 
           <div class="notice" style="margin-bottom:18px">
             <strong>📢 ORIENTAÇÃO — ACESSO PROVISÓRIO:</strong><br>
-            Este acesso é provisório e expira em <strong>3 dias</strong>. Após concluir a matrícula e a biometria,
-            entre em <strong>Alunos → Ver perfil → Redefinir senha</strong> para criar sua senha definitiva.
+            Este acesso é provisório e expira em <strong>3 dias</strong>. Depois de concluir a matrícula e a biometria,
+            o aplicativo abrirá <strong>automaticamente a Redefinição de senha</strong>. O login será gerado pelo aplicativo.
           </div>
 
           <div class="card" style="margin:0 0 18px;background:#151515;border:1px solid var(--gold)">
@@ -1218,7 +1218,7 @@
               <li>Abra a câmera, posicione o rosto e toque em <strong>Capturar Face</strong>.</li>
               <li>Depois da biometria, o cadastro será concluído e o aluno aparecerá em <strong>Alunos</strong>.</li>
               <li>A aba <strong>Alunos</strong> alimentará automaticamente as demais abas que usam esses dados.</li>
-              <li>Abra <strong>Alunos → Ver perfil → Redefinir senha</strong> e troque a senha dentro dos 3 dias.</li>
+              <li>Para acesso provisório de responsável, o aplicativo abrirá automaticamente a <strong>Redefinição de senha</strong> após a biometria.</li>
             </ol>
           </div>
 
@@ -1982,7 +1982,7 @@
 
 <script>
 /* ============================================================
-   PROJETO SEMENTES — V43 — RECOMEÇO TOTAL
+   PROJETO SEMENTES — V54 — FLUXO RESPONSÁVEL E SINCRONIZAÇÃO CENTRAL
    ============================================================
    Este arquivo é uma implementação front-end em HTML/CSS/JS.
    Para produção com dados de menores, use autenticação, banco,
@@ -2039,6 +2039,8 @@ let centralSyncTimer=null;
 let centralRefreshTimer=null;
 let centralApplyingRemote=false;
 let lastLoginMessage="";
+let responsibleFinalizationPending=false;
+let responsibleFinalizationStudentId="";
 
 function centralIsConfigured(){
   return Boolean(
@@ -2269,6 +2271,97 @@ async function centralUpdateFamilyAfterRegistration(student){
   state.user.guardianName=student.guardian||state.user.guardianName||"";
   sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
   try{await centralFunction("bind-family",{familyKey:key,guardianName:state.user.guardianName||""});}catch(error){console.error(error);}
+}
+
+function responsibleGeneratedLogin(name,documentNumber){
+  const first=String(name||"").trim().split(/\s+/)[0]||"RESPONSAVEL";
+  const cleanFirst=first.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]/g,"").toUpperCase()||"RESPONSAVEL";
+  const doc=String(documentNumber||"").trim().toUpperCase().replace(/[^A-Z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+  if(!doc) return `${cleanFirst}-DOCUMENTO`;
+  return `${cleanFirst}-${doc}`.slice(0,120);
+}
+
+async function finalizeResponsibleAccessFlow(student){
+  if(!student || state.user?.role!=="guardian" || state.user?.temporaryPassword!==true) return true;
+  if(!centralReady || !centralAuthUser){
+    toast("A base central não está disponível. Não é possível concluir a redefinição agora.");
+    return false;
+  }
+  const generatedLogin=responsibleGeneratedLogin(student.guardian||state.user.guardianName,student.documentNumber||state.enrollment?.documentNumber);
+  responsibleFinalizationPending=true;
+  responsibleFinalizationStudentId=student.id;
+  const modalClose=$("modalClose");
+  if(modalClose) modalClose.style.display="none";
+  modal("REDEFINIÇÃO DE SENHA",`
+    <div class="success-notice" style="margin-bottom:12px">
+      <strong>✅ BIOMETRIA REALIZADA COM SUCESSO</strong><br>
+      O cadastro foi sincronizado com a base central. Agora crie somente a sua senha definitiva.
+    </div>
+    <div class="card" style="background:#151515;margin-bottom:12px">
+      <p class="small muted" style="margin:0 0 5px">LOGIN GERADO AUTOMATICAMENTE</p>
+      <div style="font-size:19px;color:var(--gold2);font-weight:900;word-break:break-word">${escapeHTML(generatedLogin)}</div>
+      <p class="small muted" style="margin:10px 0 0">O login é formado pelo primeiro nome do responsável + número do documento gerado.</p>
+    </div>
+    <form id="responsibleFinalizationForm">
+      <div class="field"><label>NOVA SENHA</label><input id="responsibleFinalPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
+      <div class="field"><label>CONFIRMAR NOVA SENHA</label><input id="responsibleFinalPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
+      <button class="btn btn-gold btn-full" type="submit">🔐 REDEFINIR SENHA E CONCLUIR ACESSO</button>
+    </form>
+    <div id="responsibleFinalizationStatus" class="small muted" style="margin-top:10px;text-align:center"></div>
+  `);
+  return new Promise(resolve=>{
+    const form=$("responsibleFinalizationForm");
+    if(!form){responsibleFinalizationPending=false;resolve(false);return;}
+    form.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const password=$("responsibleFinalPassword")?.value.toLocaleUpperCase("pt-BR")||"";
+      const confirmPassword=$("responsibleFinalPasswordConfirm")?.value.toLocaleUpperCase("pt-BR")||"";
+      if($("responsibleFinalPassword")) $("responsibleFinalPassword").value=password;
+      if($("responsibleFinalPasswordConfirm")) $("responsibleFinalPasswordConfirm").value=confirmPassword;
+      if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");return;}
+      if(password!==confirmPassword){toast("As senhas não conferem.");return;}
+      const status=$("responsibleFinalizationStatus");
+      if(status) status.textContent="SALVANDO SENHA E SINCRONIZANDO...";
+      const submit=form.querySelector("button[type='submit']");
+      if(submit) submit.disabled=true;
+      try{
+        const result=await centralFunction("finalize-responsible-access",{
+          targetAccessId:state.user.id,
+          firstName:student.guardian||state.user.guardianName||"RESPONSAVEL",
+          documentNumber:student.documentNumber||state.enrollment?.documentNumber||"",
+          newPassword:password
+        });
+        const finalLogin=String(result.login||generatedLogin).toLocaleUpperCase("pt-BR");
+        student.accessLogin=finalLogin;
+        for(const s of state.students){
+          if(studentFamilyKey(s)===studentFamilyKey(student)) s.accessLogin=finalLogin;
+        }
+        state.user.login=finalLogin;
+        state.user.email=finalLogin;
+        state.user.temporaryPassword=false;
+        state.user.passwordExpiresAt=null;
+        state.user.familyKey=result.familyKey||state.user.familyKey||student.familyKey||"";
+        sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+        await centralSyncStateNow();
+        await centralPullState();
+        responsibleFinalizationPending=false;
+        responsibleFinalizationStudentId="";
+        if(modalClose) modalClose.style.display="";
+        closeModal();
+        updateAccessSecurityNotice();
+        refreshAllStudentDerivedViews();
+        saveState();
+        modal("REDEFINIÇÃO CONCLUÍDA",`<div class="success-notice"><strong>✅ REDEFINIÇÃO DE SENHA REALIZADA COM SUCESSO</strong><br><br><strong>LOGIN:</strong> ${escapeHTML(finalLogin)}<br><strong>SENHA:</strong> criada por você e não expira mais.</div>`);
+        setTimeout(()=>{closeModal();resetEnrollmentFormAfterCompletion();},1800);
+        resolve(true);
+      }catch(error){
+        responsibleFinalizationPending=true;
+        if(submit) submit.disabled=false;
+        if(status) status.textContent="";
+        toast(centralSafeError(error,"Não foi possível concluir a redefinição na base central."));
+      }
+    });
+  });
 }
 
 async function centralResolveCurrentIdentity(){
@@ -3234,7 +3327,7 @@ function updateAccessSecurityNotice(){
         message="<strong>SENHA EXPIRADA:</strong> procure o Administrador.";
       }else{
         mode=remaining<24*60*60*1000?"danger":"";
-        message=`<strong>Redefina sua senha:</strong> este acesso temporário expira em ${formatRemaining(remaining)}. Para responsável: <strong>Alunos → Ver perfil → Redefinir senha</strong>.`;
+        message=`<strong>Redefina sua senha:</strong> este acesso temporário expira em ${formatRemaining(remaining)}. Após a biometria, o aplicativo abrirá automaticamente a <strong>Redefinição de senha</strong>.`;
       }
     }
   }
@@ -4121,12 +4214,21 @@ async function captureFace(){
     });
   }
 
-  student.familyKey=(["guardian","director"].includes(state.user?.role) && state.user.familyKey) ? state.user.familyKey : (student.familyKey||centralFamilyKey(student.guardian,student.phone));
+  student.familyKey=( ["guardian","director"].includes(state.user?.role) && state.user.familyKey) ? state.user.familyKey : (student.familyKey||centralFamilyKey(student.guardian,student.phone));
   linkCurrentDeviceToRegisteredStudent(student);
   persistLastRegisteredGuardian(student.guardian);
   await centralUpdateFamilyAfterRegistration(student);
   saveState();
   refreshAllStudentDerivedViews();
+  if(centralReady&&centralAuthUser){
+    try{
+      await centralSyncStateNow();
+      await centralPullState();
+    }catch(syncError){
+      console.error("Sincronização imediata pós-biometria falhou",syncError);
+      toast(centralSafeError(syncError,"Não foi possível confirmar a sincronização central. Tente novamente."));
+    }
+  }
 
   if(faceStream){
     faceStream.getTracks().forEach(t=>t.stop());
@@ -4150,6 +4252,12 @@ async function captureFace(){
   toast("🔊 Cadastro biométrico realizado com sucesso. O aluno já está disponível em Alunos.");
   refreshAllStudentDerivedViews();
   saveState();
+  if(state.user?.role==="guardian" && state.user?.temporaryPassword===true){
+    const done=await finalizeResponsibleAccessFlow(student);
+    if(done) return;
+    toast("A redefinição de senha é necessária para concluir o acesso definitivo.");
+    return;
+  }
   setTimeout(resetEnrollmentFormAfterCompletion,1500);
 }
 
@@ -6056,8 +6164,12 @@ function initEvents(){
   $("generateReport").addEventListener("click",generateReport);
   setupManagementForms();
 
-  $("modalClose").addEventListener("click",closeModal);
+  $("modalClose").addEventListener("click",()=>{
+    if(responsibleFinalizationPending) return;
+    closeModal();
+  });
   $("modalBackdrop").addEventListener("click",e=>{
+    if(responsibleFinalizationPending) return;
     if(e.target===$("modalBackdrop")) closeModal();
   });
 }
@@ -6195,6 +6307,10 @@ window.addEventListener("focus",()=>{
   refreshAllStudentDerivedViews();
   updateAccessSecurityNotice();
   if(centralReady&&centralAuthUser) centralPullState();
+});
+
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible" && centralReady&&centralAuthUser) centralPullState();
 });
 
 
