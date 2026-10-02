@@ -1593,6 +1593,16 @@
           <span class="small muted">Neste arquivo HTML, o armazenamento é local ao dispositivo; para receber documentos de outros celulares/computadores é necessário conectar um backend seguro.</span>
         </div>
 
+        <article class="card wide gold-border" id="quickResetCard" style="margin-bottom:14px">
+          <div class="card-header">
+            <div><h2 class="section-title">⚠️ INÍCIO DE UMA NOVA FASE</h2><span class="small muted">Somente o Administrador Mestre London</span></div>
+            <i class="icon-gold" data-lucide="database-zap"></i>
+          </div>
+          <p class="body-text" style="margin-bottom:10px">Apaga da base central todos os cadastros, alunos, frequência, documentos, cronograma, campeonatos, engajamento e acessos dos responsáveis e da Diretoria. Mantém somente Mestre London e Pastor Joel.</p>
+          <button class="btn btn-gold btn-full" id="resetProjectQuickBtn" type="button">⚠️ ZERAR TODOS OS CADASTROS E COMEÇAR NOVO</button>
+          <p class="small muted" style="margin-top:8px">O acesso antigo <strong>PROJETO SEMENTES</strong> fica bloqueado. Depois da zeragem, gere novos acessos individuais.</p>
+        </article>
+
         <article class="card wide" style="margin-bottom:14px">
           <div class="card-header">
             <div><h2 class="section-title">DOCUMENTOS DE MATRÍCULA</h2><span class="small muted">Cadastro, numeração e arquivo oficial</span></div>
@@ -1633,10 +1643,21 @@
 
           <article class="card">
             <div class="card-header">
-              <div><h2 class="section-title">CONTROLE DE ACESSOS</h2><span class="small muted">Geração automática de login e senha</span></div>
+              <div><h2 class="section-title">CONTROLE DE ACESSOS</h2><span class="small muted">Geração automática para responsáveis</span></div>
               <i class="icon-gold" data-lucide="key-round"></i>
             </div>
-            <button class="btn btn-gold btn-full" id="generateAccess" type="button">🔐 GERAR LOGIN E SENHA AUTOMATICAMENTE</button>
+            <button class="btn btn-gold btn-full" id="generateAccess" type="button">🔐 GERAR LOGIN E SENHA DO RESPONSÁVEL</button>
+          </article>
+
+          <article class="card wide gold-border" id="directorAccessCard">
+            <div class="card-header">
+              <div><h2 class="section-title">DIRETORIA — PAIS DO ALUNO</h2><span class="small muted">Diretoria + Responsável • acesso completo à Diretoria e à própria família</span></div>
+              <i class="icon-gold" data-lucide="users-round"></i>
+            </div>
+            <p class="small muted" style="margin-bottom:10px">Antonio e Adriana fazem parte da <strong>Diretoria</strong> e também são responsáveis pelo mesmo aluno. Os dois terão acesso às áreas da Diretoria e, ao mesmo tempo, manterão a mesma família central do filho para cadastro e acompanhamento de perfil, matrícula, frequência, tatame e documentos permitidos.</p>
+            <button class="btn btn-gold btn-full" id="generateDirectorAccesses" type="button">🔐 GERAR / REATIVAR ACESSOS DE ANTONIO E ADRIANA</button>
+            <div class="notice" style="margin-top:12px"><strong>Família compartilhada:</strong> os dois diretores-responsáveis usarão a mesma família central para acompanhar o filho.</div>
+            <div id="directorAccessResult" style="margin-top:12px"></div>
           </article>
 
           <article class="card wide" id="ownPasswordManagementCard">
@@ -2134,13 +2155,14 @@ async function centralMigrateLocalState(){
 }
 
 async function centralUpdateFamilyAfterRegistration(student){
-  if(!centralReady||!centralAuthUser||state.user?.role!=="guardian"||!student) return;
-  const key=centralFamilyKey(student.guardian,student.phone);
+  if(!centralReady||!centralAuthUser||!["guardian","director"].includes(state.user?.role)||!student) return;
+  // Diretor-responsável e responsável usam a mesma family_key para os filhos.
+  const key=state.user.familyKey || centralFamilyKey(student.guardian,student.phone);
   student.familyKey=key;
   state.user.familyKey=key;
   state.user.guardianName=student.guardian||state.user.guardianName||"";
   sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-  try{await centralFunction("bind-family",{familyKey:key,guardianName:student.guardian||""});}catch(error){console.error(error);}
+  try{await centralFunction("bind-family",{familyKey:key,guardianName:state.user.guardianName||""});}catch(error){console.error(error);}
 }
 
 async function centralResolveCurrentIdentity(){
@@ -2796,7 +2818,7 @@ function passwordResetLogEntry(name,login,role){
 }
 
 function isOwnAccessResetAllowed(){
-  return ["master","director"].includes(state.user?.role);
+  return ["master","director","guardian"].includes(state.user?.role);
 }
 
 function validateSessionAccess(session){
@@ -3989,7 +4011,7 @@ async function captureFace(){
     });
   }
 
-  student.familyKey=student.familyKey||centralFamilyKey(student.guardian,student.phone);
+  student.familyKey=(["guardian","director"].includes(state.user?.role) && state.user.familyKey) ? state.user.familyKey : (student.familyKey||centralFamilyKey(student.guardian,student.phone));
   linkCurrentDeviceToRegisteredStudent(student);
   persistLastRegisteredGuardian(student.guardian);
   await centralUpdateFamilyAfterRegistration(student);
@@ -4280,10 +4302,11 @@ function openStudent(id){
 
 async function resetGuardianPassword(id){
   const s=state.students.find(x=>x.id===id); if(!s) return;
-  const allowed=state.user?.role==="master" || (state.user?.role==="guardian" && studentFamilyKey(s)===state.user?.familyKey);
+  const allowed=state.user?.role==="master" ||
+    (["guardian","director"].includes(state.user?.role) && studentFamilyKey(s)===state.user?.familyKey);
   if(!allowed){toast("Você não tem permissão para redefinir esta senha.");return;}
   let access=findAccessForStudent(s);
-  if(!access && state.user?.role==="guardian") access=state.accesses.find(a=>a.id===state.user.id);
+  if(!access && ["guardian","director"].includes(state.user?.role)) access=state.accesses.find(a=>a.id===state.user.id);
   modal("Redefinir senha do responsável",`
     <p class="small muted">Defina uma nova senha. A senha provisória deixa de expirar assim que a redefinição for salva.</p>
     <form id="guardianPasswordForm">
@@ -5270,11 +5293,11 @@ function migrateLegacyAccesses(){
 function linkCurrentDeviceToRegisteredStudent(student){
   if(!student) return;
   student.familyKey=student.familyKey||centralFamilyKey(student.guardian||"",student.phone||"");
-  if(["universal","guardian"].includes(state.user?.role)){
+  if(["universal","guardian","director"].includes(state.user?.role)){
     state.user.studentId=student.id;
     state.user.guardianName=student.guardian||state.user.guardianName||"";
     state.user.familyKey=student.familyKey||state.user.familyKey||"";
-    if(state.user.role==="guardian" && state.user.login) student.accessLogin=state.user.login;
+    if(["guardian","director"].includes(state.user.role) && state.user.login) student.accessLogin=state.user.login;
     persistLastRegisteredGuardian(state.user.guardianName);
     sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
   }
@@ -5296,8 +5319,12 @@ function refreshAllStudentDerivedViews(){
 function renderMasterManagement(){
   const card=$("masterManagementCard");
   const generateBtn=$("generateAccess");
+  const directorCard=$("directorAccessCard");
+  const quickResetCard=$("quickResetCard");
 
   if(generateBtn) generateBtn.style.display=isMaster()?"":"none";
+  if(directorCard) directorCard.style.display=isMaster()?"":"none";
+  if(quickResetCard) quickResetCard.style.display=isMaster()?"":"none";
   if(card) card.style.display=isMaster()?"block":"none";
 
   if(!isMaster()){
@@ -5476,6 +5503,32 @@ async function resetProjectAll(){
     toast(`Base zerada. ${Number(result?.recordsDeleted||0)} registros e ${Number(result?.guardiansDeleted||0)} acessos de responsáveis foram removidos.`);
   }catch(error){
     toast(centralSafeError(error,"Não foi possível zerar a base central."));
+  }
+}
+
+async function generateDirectorAccesses(){
+  if(!isMaster()){toast("Somente o Administrador Mestre London pode gerar os acessos dos pais.");return;}
+  if(!(centralReady&&centralAuthUser)){
+    toast("O banco central ainda não está conectado.");
+    return;
+  }
+  try{
+    const result=await centralFunction("ensure-directors",{});
+    await centralPullState();
+    renderMasterManagement();
+    const rows=Array.isArray(result.directors)?result.directors:[];
+    $("directorAccessResult").innerHTML=rows.length ? `
+      <div class="success-notice"><strong>✓ Acessos dos pais criados/reativados na base central.</strong><br>Os dois estão vinculados à mesma família.</div>
+      ${rows.map(r=>`<div class="card" style="background:#151515;margin-top:8px">
+        <strong style="color:var(--gold2)">${escapeHTML(r.name||r.login)}</strong>
+        <div class="small" style="margin-top:4px"><strong>LOGIN:</strong> ${escapeHTML(r.login||"")}</div>
+        <div class="small" style="margin-top:2px"><strong>SENHA:</strong> ${escapeHTML(r.password||"")}</div>
+        <div class="small muted" style="margin-top:4px">Acesso de Diretoria + Responsável; os dois compartilham a mesma família do filho.</div>
+      </div>`).join("")}
+    ` : `<div class="notice">Nenhum acesso dos pais foi retornado.</div>`;
+    toast("Acessos de Antonio e Adriana prontos.");
+  }catch(error){
+    toast(centralSafeError(error,"Não foi possível gerar os acessos dos pais."));
   }
 }
 
@@ -5827,6 +5880,8 @@ function initEvents(){
   $("captureClassPhoto").addEventListener("click",captureClassPhoto);
 
   $("generateAccess").addEventListener("click",generateAccess);
+  $("generateDirectorAccesses")?.addEventListener("click",generateDirectorAccesses);
+  $("resetProjectQuickBtn")?.addEventListener("click",resetProjectAll);
   $("ownPasswordForm")?.addEventListener("submit",e=>{e.preventDefault();resetOwnPassword();});
   $("deleteStudentBtn")?.addEventListener("click",deleteStudentAdmin);
   $("deleteAccessBtn")?.addEventListener("click",deleteAccessAdmin);
