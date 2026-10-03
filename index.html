@@ -3349,6 +3349,8 @@ async function restoreSession(){
   showLogin();
 }
 function showLogin(){
+  // Sempre parar o louvor e limpar a sessão visual ao voltar para o login.
+  stopBackgroundMusic();
   $("loginScreen").style.display="flex";
   $("mainScreen").style.display="none";
   const notice=$("accessSecurityNotice");
@@ -3498,7 +3500,7 @@ function openPage(pageId){
   const brandLogo = $("brandLogo");
   if(brandLogo) brandLogo.style.display = pageId === "homePage" ? "none" : "";
 
-  if(pageId==="homePage" || pageId==="faithPage") {
+  if(isAuthenticatedAppVisible() && (pageId==="homePage" || pageId==="faithPage")) {
     playBackgroundMusic();
   } else stopBackgroundMusic();
 
@@ -5004,9 +5006,19 @@ async function playErrorSound(){
 function playClickSound(){ ensureAudioReady().then(()=>playTone(220,.06,"triangle",.025,0)); }
 
 let musicReady=false;
+function isAuthenticatedAppVisible(){
+  const loginScreen=$("loginScreen");
+  const mainScreen=$("mainScreen");
+  return Boolean(
+    state.user && state.user.role &&
+    mainScreen && mainScreen.style.display !== "none" &&
+    loginScreen && loginScreen.style.display === "none"
+  );
+}
+
 function playBackgroundMusic(){
-  // NUNCA tocar o louvor na tela de login ou antes da autenticação.
-  if(!state.user || !state.user.role) return Promise.resolve(false);
+  // BLOQUEIO ABSOLUTO: o louvor jamais pode tocar na tela de login.
+  if(!isAuthenticatedAppVisible()) return Promise.resolve(false);
   const audio=$("homeMusic");
   if(!audio) return Promise.resolve(false);
   try{
@@ -5058,8 +5070,8 @@ document.addEventListener("visibilitychange",()=>{
     stopBackgroundMusic();
     return;
   }
-  // Ao retornar, só tenta retomar se a tela atual for Início ou Fé.
-  if(document.visibilityState==="visible" && state.user){
+  // Só retoma depois de autenticar e somente com o aplicativo visível.
+  if(document.visibilityState==="visible" && isAuthenticatedAppVisible()){
     const active=document.querySelector(".page.active")?.id;
     if(active==="homePage" || active==="faithPage") playBackgroundMusic();
   }
@@ -5071,11 +5083,11 @@ window.addEventListener("pagehide",()=>{ stopBackgroundMusic(); });
 // Se o navegador bloqueou o, a primeira interação do usuário libera o áudio
 // sem mostrar um botão de música na interface.
 document.addEventListener("pointerdown",()=>{
-  if(state.user){
-    const active=document.querySelector(".page.active")?.id;
-    if(active==="homePage" || active==="faithPage") playBackgroundMusic();
-    if(audioContext && audioContext.state==="suspended") audioContext.resume().catch(()=>{});
-  }
+  // A interação na tela de login NÃO libera nem inicia o louvor.
+  if(!isAuthenticatedAppVisible()) return;
+  const active=document.querySelector(".page.active")?.id;
+  if(active==="homePage" || active==="faithPage") playBackgroundMusic();
+  if(audioContext && audioContext.state==="suspended") audioContext.resume().catch(()=>{});
 },{passive:true});
 
 document.addEventListener("click",e=>{
@@ -6433,15 +6445,21 @@ function initEvents(){
       return;
     }
     try{
+      // Primeiro tenta a autenticação central. Se a base/Internet/Auth falhar,
+      // usa imediatamente o mecanismo local já existente no HTML. Isso evita
+      // que o usuário fique impedido de entrar por uma falha externa.
+      let authenticated=false;
       if(initCentralClient()) {
-        const result=await centralLogin(login,password);
-        if(!result.ok){
-          const msg=lastLoginMessage||"Login ou senha inválidos.";
-          toast(msg);
-          if(errorBox){errorBox.textContent=msg;errorBox.style.display="block";}
-          return;
+        try{
+          const result=await centralLogin(login,password);
+          authenticated=Boolean(result?.ok);
+        }catch(error){
+          console.warn("Autenticação central indisponível; usando acesso local.",error);
+          authenticated=false;
         }
-      } else {
+      }
+
+      if(!authenticated){
         const ok=loginDemo(login,password);
         if(!ok){
           const msg=lastLoginMessage||"Login ou senha inválidos.";
