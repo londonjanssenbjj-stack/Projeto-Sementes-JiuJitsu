@@ -510,7 +510,10 @@
       position:absolute;right:8px;top:50%;transform:translateY(-50%);
       width:38px;height:38px;border-radius:10px;border:1px solid #3a3a3a;
       background:#191919;color:#f4d76e;display:grid;place-items:center;
+      z-index:20;pointer-events:auto;cursor:pointer;
     }
+    #password{padding-right:58px !important;}
+    #togglePassword{font-size:20px;line-height:1;}
     .password-toggle svg{width:18px;height:18px}
 
     /* GAME PREMIUM */
@@ -774,13 +777,8 @@
               <i data-lucide="lock-keyhole"></i>
               <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha" style="text-transform:none!important;">
               <button class="icon-btn password-toggle" id="togglePassword" type="button"
-                      aria-label="Mostrar senha" title="Mostrar senha">
-                <i data-lucide="eye"></i>
-              </button>
+                      aria-label="Mostrar senha" title="Mostrar senha">👁</button>
             </div>
-            <label style="display:flex;align-items:center;gap:7px;margin-top:7px;font-size:12px;cursor:pointer;">
-              <input id="showLoginPassword" type="checkbox" style="width:auto;accent-color:var(--gold2);"> Mostrar senha
-            </label>
           </div>
 
           <button class="btn btn-gold btn-full" type="submit">
@@ -6470,20 +6468,17 @@ function initEvents(){
     $("forgotBtn").classList.toggle("hidden",!isMaster);
   });
 
-  $("togglePassword").addEventListener("click",()=>{
-    const input=$("password");
-    const visible=input.type==="text";
-    input.type=visible?"password":"text";
-    $("togglePassword").innerHTML=`<i data-lucide="${visible?"eye":"eye-off"}"></i>`;
-    $("togglePassword").setAttribute("aria-label",visible?"Mostrar senha":"Ocultar senha");
-    $("togglePassword").title=visible?"Mostrar senha":"Ocultar senha";
-    if(window.lucide?.createIcons) window.lucide?.createIcons?.();
-  });
-
-  $("showLoginPassword")?.addEventListener("change",()=>{
+  $("togglePassword").addEventListener("click",(event)=>{
+    event.preventDefault();
+    event.stopPropagation();
     const input=$("password");
     if(!input) return;
-    input.type=$("showLoginPassword").checked?"text":"password";
+    const visible=input.type==="text";
+    input.type=visible?"password":"text";
+    $("togglePassword").textContent=visible?"👁":"🙈";
+    $("togglePassword").setAttribute("aria-label",visible?"Mostrar senha":"Ocultar senha");
+    $("togglePassword").title=visible?"Mostrar senha":"Ocultar senha";
+    input.focus();
   });
 
   $("forgotBtn").addEventListener("click",()=>{
