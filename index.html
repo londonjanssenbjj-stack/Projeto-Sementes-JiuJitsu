@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- V64 — correção definitiva do fluxo de senha: preserva maiúsculas/minúsculas; PDF sem logo -->
   <!-- V49 — logo oficial inserida na página inicial conforme referência visual -->
   <!-- V38 — fluxo matrícula + biometria + Alunos + família + atualização automática -->
   <!-- V33 — credenciais do Mestre atualizadas e geração de acesso 100% automática -->
@@ -630,8 +629,10 @@
 
     /* V48 — todos os preenchimentos textuais em MAIÚSCULAS */
     input[type="text"], input[type="tel"], input[type="search"], input[type="email"],
+    input[type="password"]{ text-transform:none !important; }
     textarea, select{ text-transform:uppercase; }
-    #login{ text-transform:uppercase !important; }
+    #login,#password,#ownPasswordNew,#ownPasswordConfirm,
+    #newGuardianPassword,#newGuardianPasswordConfirm{ text-transform:none !important; }
     input[type="date"], input[type="datetime-local"], input[type="month"],
     input[type="number"], input[type="time"], input[type="checkbox"],
     input[type="radio"], input[type="range"], input[type="file"], input[type="color"]{ text-transform:none; }
@@ -769,7 +770,7 @@
             <label for="password">Senha</label>
             <div class="input-wrap">
               <i data-lucide="lock-keyhole"></i>
-              <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="characters" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha">
+              <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha">
               <button class="icon-btn password-toggle" id="togglePassword" type="button"
                       aria-label="Mostrar senha" title="Mostrar senha">
                 <i data-lucide="eye"></i>
@@ -1782,11 +1783,11 @@
               </div>
               <div class="field">
                 <label>Nova senha</label>
-                <input id="ownPasswordNew" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false" autocapitalize="none" autocorrect="off" spellcheck="false">
+                <input id="ownPasswordNew" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" autocapitalize="none" autocorrect="off" spellcheck="false">
               </div>
               <div class="field">
                 <label>Confirmar nova senha</label>
-                <input id="ownPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false" autocapitalize="none" autocorrect="off" spellcheck="false">
+                <input id="ownPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" autocapitalize="none" autocorrect="off" spellcheck="false">
               </div>
               <div class="field full">
                 <button class="btn btn-gold" type="submit">🔐 Redefinir minha senha</button>
@@ -2003,6 +2004,11 @@
 
 <script>
 /* ============================================================
+   PROJETO SEMENTES — V64 — AUTENTICAÇÃO/SENHA/SINCRONIZAÇÃO CORRIGIDAS
+   - Senhas preservam maiúsculas/minúsculas
+   - Finalização reautentica após troca de senha/e-mail antes de sincronizar
+   - Campos de senha não recebem transformação visual para maiúsculas
+   ============================================================
    PROJETO SEMENTES — V63 — CORREÇÕES SOLICITADAS
    ============================================================
    Este arquivo é uma implementação front-end em HTML/CSS/JS.
@@ -2340,10 +2346,10 @@ function toggleResponsiblePassword(id,button){const input=$(id);if(!input)return
     </div>
     <form id="responsibleFinalizationForm">
       <div class="field"><label>NOVA SENHA</label>
-        <div style="display:flex;gap:8px"><input id="responsibleFinalPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"><button class="btn" type="button" style="min-width:52px" onclick="toggleResponsiblePassword('responsibleFinalPassword',this)">👁</button></div>
+        <div style="display:flex;gap:8px"><input id="responsibleFinalPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false"><button class="btn" type="button" style="min-width:52px" onclick="toggleResponsiblePassword('responsibleFinalPassword',this)">👁</button></div>
       </div>
       <div class="field"><label>CONFIRMAR NOVA SENHA</label>
-        <div style="display:flex;gap:8px"><input id="responsibleFinalPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"><button class="btn" type="button" style="min-width:52px" onclick="toggleResponsiblePassword('responsibleFinalPasswordConfirm',this)">👁</button></div>
+        <div style="display:flex;gap:8px"><input id="responsibleFinalPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false"><button class="btn" type="button" style="min-width:52px" onclick="toggleResponsiblePassword('responsibleFinalPasswordConfirm',this)">👁</button></div>
       </div>
       <button class="btn btn-gold btn-full" type="submit">🔐 REDEFINIR SENHA E CONCLUIR ACESSO</button>
     </form>
@@ -2356,8 +2362,10 @@ function toggleResponsiblePassword(id,button){const input=$(id);if(!input)return
 
     form.addEventListener("submit",async e=>{
       e.preventDefault();
-      const password=String($("responsibleFinalPassword").value??"");
-      const confirmPassword=String($("responsibleFinalPasswordConfirm").value??"");
+      const password=$("responsibleFinalPassword").value;
+      const confirmPassword=$("responsibleFinalPasswordConfirm").value;
+      $("responsibleFinalPassword").value=password;
+      $("responsibleFinalPasswordConfirm").value=confirmPassword;
       if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");return;}
       if(password!==confirmPassword){toast("As senhas não conferem.");return;}
 
@@ -2376,7 +2384,7 @@ function toggleResponsiblePassword(id,button){const input=$(id);if(!input)return
           secretaryDocument:(state.secretaryDocuments||[]).find(d=>d.documentNumber===student.documentNumber)||null
         });
 
-        const finalLogin=String(result.login||generatedLogin).toLocaleUpperCase("pt-BR");
+        const finalLogin=String(result.login||generatedLogin);
         student.accessLogin=finalLogin;
         state.user.login=finalLogin;
         state.user.email=finalLogin;
@@ -2385,6 +2393,10 @@ function toggleResponsiblePassword(id,button){const input=$(id);if(!input)return
         state.user.familyKey=result.familyKey||state.user.familyKey||student.familyKey||"";
         sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
 
+        // Reautentica no Supabase com a nova identidade/senha antes de sincronizar.
+        // A finalização altera email e senha do usuário Auth; o token antigo não deve ser reutilizado.
+        const reauth=await centralLogin(finalLogin,password);
+        if(!reauth.ok) throw new Error(lastLoginMessage||"A nova sessão não pôde ser criada após a redefinição.");
         await centralSyncStateNow();
         await centralPullState();
         refreshAllStudentDerivedViews();
@@ -2474,7 +2486,7 @@ async function centralLogin(login,password){
   lastLoginMessage="";
 
   const cleanLogin=String(login||"").trim().toLocaleUpperCase("pt-BR");
-  const rawPassword=String(password??"");
+  const rawPassword=String(password||"");
 
   if(normalizeLogin(cleanLogin)==="projeto sementes"){
     lastLoginMessage="O acesso compartilhado antigo foi encerrado. Solicite um login individual.";
@@ -3885,16 +3897,19 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   const section=(title,y)=>{box(M,y,CW,29,light,"#aeb7bf");text(title,M+9,y+20,13,true,navy,CW-18);return y+40;};
   const field=(x,y,label,value,width)=>{const labelW=ctx.measureText(label+":").width;text(label+":",x,y,11,true,gray);text(value||"",x+labelW+8,y,11,false,"#111",width-labelW-8);rule(x,y+10,x+width,y+10,"#777",.8);};
 
-  // Cabeçalho do documento — SEM LOGO, conforme solicitado.
-  // A identidade visual com logo permanece apenas nas telas do aplicativo.
-  text("PROJETO SOCIAL \"SEMENTES\"",M,72,22,true,"#111",CW-320);
-  text("JIU-JITSU",M,101,18,true,"#111",110);
-  text("IGREJA DO EVANGELHO QUADRANGULAR – GUAICURUS",M,128,16,true,"#111",620);
-  text(`DOCUMENTO Nº ${codigoMatricula}`,925,72,14,true,"#111",260);
-  rule(M,150,R,150,"#555",1.4);
-  text("TERMO ÚNICO DE INSCRIÇÃO, AUTORIZAÇÃO E RESPONSABILIDADE",M,183,20,true,"#111",CW);
+  // Cabeçalho — reproduzindo o padrão visual do documento enviado: logo centralizada,
+  // identificação institucional centralizada e número do documento no canto superior direito.
+  const logoEl=await new Promise(resolve=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>resolve(null);im.src="projeto-sementes-logo-home.png";});
+  if(logoEl?.naturalWidth){try{ctx.drawImage(logoEl,W/2-58,18,116,116);}catch(_){}}
+  text("PROJETO SOCIAL \"SEMENTES\"",W/2-180,154,22,true,"#111",360);
+  text("JIU-JITSU",W/2-55,181,18,true,"#111",110);
+  text("IGREJA DO EVANGELHO",W/2-115,207,16,true,"#111",230);
+  text("QUADRANGULAR – GUAICURUS",W/2-155,229,16,true,"#111",310);
+  text(`DOCUMENTO Nº ${codigoMatricula}`,925,45,14,true,"#111",260);
+  rule(M,250,R,250,"#555",1.4);
+  text("TERMO ÚNICO DE INSCRIÇÃO, AUTORIZAÇÃO E RESPONSABILIDADE",M,283,20,true,"#111",CW);
 
-  let y=210;
+  let y=310;
   y=section("1. IDENTIFICAÇÃO DO(A) ALUNO(A) – MENOR",y);
   field(M+8,y,"Nome completo",esc(e.student?.name),570);
   field(650,y,"Data de nascimento",fmtDate(e.student?.birth),260); y+=42;
@@ -4678,14 +4693,16 @@ async function resetGuardianPassword(id){
     <p class="small muted">Defina uma nova senha. A senha provisória deixa de expirar assim que a redefinição for salva.</p>
     <form id="guardianPasswordForm">
       <div class="field"><label>Login do responsável</label><input class="input" value="${escapeHTML(access?.login||s.accessLogin||s.guardian||s.name||"")}" disabled></div>
-      <div class="field"><label>Nova senha</label><input id="newGuardianPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
-      <div class="field"><label>Confirmar nova senha</label><input id="newGuardianPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
+      <div class="field"><label>Nova senha</label><input id="newGuardianPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+      <div class="field"><label>Confirmar nova senha</label><input id="newGuardianPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
       <button class="btn btn-gold" type="submit">Salvar nova senha</button>
     </form>`);
   setTimeout(()=>$("guardianPasswordForm")?.addEventListener("submit",async e=>{
     e.preventDefault();
-    const password=String($("newGuardianPassword").value??"");
-    const confirm=String($("newGuardianPasswordConfirm").value??"");
+    const password=$("newGuardianPassword").value;
+    const confirm=$("newGuardianPasswordConfirm").value;
+    $("newGuardianPassword").value=password;
+    $("newGuardianPasswordConfirm").value=confirm;
     if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");return;}
     if(password!==confirm){toast("As senhas não conferem.");return;}
     if(centralReady&&centralAuthUser){
@@ -6402,8 +6419,9 @@ function initEvents(){
   document.addEventListener("input",e=>{
     const el=e.target;
     if(!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) return;
-    const excluded=["date","datetime-local","month","time","number","checkbox","radio","range","file","color"];
+    const excluded=["date","datetime-local","month","time","number","checkbox","radio","range","file","color","password"];
     if(el instanceof HTMLInputElement && excluded.includes(el.type)) return;
+    if(el.type==="password") return;
     const start=el.selectionStart, end=el.selectionEnd;
     el.value=el.value.toLocaleUpperCase("pt-BR");
     try{el.setSelectionRange(start,end);}catch(_){}
@@ -6565,7 +6583,7 @@ document.addEventListener("change",e=>{
   const el=e.target;
   if(!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) return;
   const type=(el.getAttribute("type")||"text").toLowerCase();
-  if(el.id === "login" || el.id === "password" || type === "password") return;
+  if(el.id === "login" || el.id === "password") return;
   if(el instanceof HTMLTextAreaElement || ["text","tel","search"].includes(type)) el.value=el.value.toLocaleUpperCase("pt-BR");
 });
 
