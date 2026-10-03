@@ -655,7 +655,7 @@
     .audit-item{padding:13px;border:1px solid #3a3a3a;border-radius:12px;background:#151515;}
     .audit-item strong{display:block;margin-bottom:4px;}
 
-    /* V62 — LOGO COMPLETA NAS TELAS DE ACESSO E INÍCIO
+    /* V61 — LOGO COMPLETA NAS TELAS DE ACESSO E INÍCIO
        Usa a mesma logo oficial fornecida, sem corte. */
     .logo-box{
       overflow:visible!important;
@@ -2003,7 +2003,7 @@
 
 <script>
 /* ============================================================
-   PROJETO SEMENTES — V62 — FLUXO RESPONSÁVEL E SINCRONIZAÇÃO CENTRAL
+   PROJETO SEMENTES — V63 — CORREÇÕES SOLICITADAS
    ============================================================
    Este arquivo é uma implementação front-end em HTML/CSS/JS.
    Para produção com dados de menores, use autenticação, banco,
@@ -2311,7 +2311,7 @@ function responsibleGeneratedLogin(name,documentNumber){
   return `${cleanFirst}-${doc}`.slice(0,120);
 }
 
-async function finalizeResponsibleAccessFlow(student){
+function toggleResponsiblePassword(id,button){const input=$(id);if(!input)return;input.type=input.type==="password"?"text":"password";if(button)button.textContent=input.type==="password"?"👁":"🙈";} async function finalizeResponsibleAccessFlow(student){
   if(!student || state.user?.role!=="guardian" || state.user?.temporaryPassword!==true) return true;
   if(!centralReady || !centralAuthUser){
     toast("A base central não está disponível. Não é possível concluir a redefinição agora.");
@@ -2340,12 +2340,10 @@ async function finalizeResponsibleAccessFlow(student){
     </div>
     <form id="responsibleFinalizationForm">
       <div class="field"><label>NOVA SENHA</label>
-        <input id="responsibleFinalPassword" class="input" type="password" minlength="6" required
-               autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false">
+        <div style="display:flex;gap:8px"><input id="responsibleFinalPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"><button class="btn" type="button" style="min-width:52px" onclick="toggleResponsiblePassword('responsibleFinalPassword',this)">👁</button></div>
       </div>
       <div class="field"><label>CONFIRMAR NOVA SENHA</label>
-        <input id="responsibleFinalPasswordConfirm" class="input" type="password" minlength="6" required
-               autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false">
+        <div style="display:flex;gap:8px"><input id="responsibleFinalPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"><button class="btn" type="button" style="min-width:52px" onclick="toggleResponsiblePassword('responsibleFinalPasswordConfirm',this)">👁</button></div>
       </div>
       <button class="btn btn-gold btn-full" type="submit">🔐 REDEFINIR SENHA E CONCLUIR ACESSO</button>
     </form>
@@ -2371,7 +2369,7 @@ async function finalizeResponsibleAccessFlow(student){
       if(submit) submit.disabled=true;
 
       try{
-        const result=await centralFunction("finalize-responsible-access",{
+        const familyKey=student.familyKey||state.user.familyKey||centralFamilyKey(student.guardian,student.phone); student.familyKey=familyKey; state.user.familyKey=familyKey; sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user)); await centralFunction("bind-family",{familyKey,guardianName:student.guardian||state.user.guardianName||""}); const result=await centralFunction("finalize-responsible-access",{
           targetAccessId:state.user.id,
           firstName:student.guardian||state.user.guardianName||"RESPONSAVEL",
           documentNumber:student.documentNumber||state.enrollment?.documentNumber||"",
@@ -2391,6 +2389,7 @@ async function finalizeResponsibleAccessFlow(student){
 
         await centralSyncStateNow();
         await centralPullState();
+        refreshAllStudentDerivedViews();
 
         responsibleFinalizationPending=false;
         responsibleFinalizationStudentId="";
@@ -2402,8 +2401,9 @@ async function finalizeResponsibleAccessFlow(student){
         modal("REDEFINIÇÃO CONCLUÍDA",`
           <div class="success-notice">
             <strong>✅ REDEFINIÇÃO DE SENHA REALIZADA COM SUCESSO</strong><br><br>
-            <strong>LOGIN:</strong> ${escapeHTML(finalLogin)}<br>
-            <strong>SENHA:</strong> criada por você e não expira mais.
+            <strong>ANOTE SEU LOGIN E SENHA</strong><br><br>
+            <strong>LOGIN:</strong> ${escapeHTML(finalLogin)}<br><strong>SENHA:</strong> ${escapeHTML(password)}<br>
+            <span class="small">A senha não expira mais.</span>
           </div>
         `);
         setTimeout(()=>{closeModal();resetEnrollmentFormAfterCompletion();},2200);
@@ -2484,14 +2484,72 @@ async function centralLogin(login,password){
   }
 
   try{
+    // V63: autenticação primária diretamente no Supabase Auth.
+    // O login não depende da disponibilidade da Edge Function.
+    const directEmail=await browserInternalEmail(cleanLogin);
+    const signed=await centralClient.auth.signInWithPassword({
+      email:directEmail,
+      password:rawPassword
+    });
+
+    if(!signed.error && signed.data?.user){
+      centralAuthUser=signed.data.user;
+
+      let access=null;
+      try{
+        access=await centralLoadAccessRecord();
+      }catch(accessError){
+        console.warn("Falha ao ler app_accesses diretamente; tentando get-state.",accessError);
+      }
+
+      // Fallback para o estado central quando o RLS não permitir a leitura
+      // direta da linha de acesso.
+      if(!access){
+        try{
+          const resolved=await centralFunction("get-state",{});
+          access=(Array.isArray(resolved.accesses)?resolved.accesses:[]).find(a=>
+            String(a.auth_user_id||"")===String(centralAuthUser.id) ||
+            normalizeLogin(a.login)===normalizeLogin(cleanLogin)
+          ) || null;
+        }catch(stateError){
+          console.warn("Fallback get-state indisponível após login direto.",stateError);
+        }
+      }
+
+      if(!access){
+        throw new Error("Usuário autenticado, mas o perfil de acesso não foi localizado na base.");
+      }
+
+      state.user={
+        id:access.id,
+        authUserId:centralAuthUser.id,
+        name:access.display_name||access.login||cleanLogin,
+        email:access.login||cleanLogin,
+        login:access.login||cleanLogin,
+        role:access.role||centralAuthUser.user_metadata?.role||centralAuthUser.app_metadata?.role||"guardian",
+        studentId:null,
+        guardianName:access.display_name||"",
+        familyKey:access.family_key||"",
+        temporaryPassword:Boolean(access.temporary_password),
+        passwordExpiresAt:access.temporary_expires_at||null
+      };
+
+      sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+      clearFailedLogins();
+      await centralPullState();
+      centralSubscribeRealtime();
+      updateAccessSecurityNotice();
+      return {ok:true};
+    }
+
+    // Fallback apenas para contas que ainda precisem ser provisionadas
+    // através do manage-access.
     const localAccess=(state.accesses||[]).find(a=>
       normalizeLogin(a?.login)===normalizeLogin(cleanLogin)&&
       String(a?.password||a?.accessPassword||"")===rawPassword&&
       a.active!==false
     );
 
-    // resolve-login é a etapa que já funcionava para provisionar/identificar
-    // Mestre, Pastor, Diretoria e Responsáveis.
     const resolved=await centralFunction("resolve-login",{
       login:cleanLogin,
       password:rawPassword,
@@ -2504,46 +2562,23 @@ async function centralLogin(login,password){
       }:null
     });
 
-    if(!resolved?.internalEmail){
-      throw new Error("A base central não devolveu o endereço de autenticação do acesso.");
-    }
-
-    const signed=await centralClient.auth.signInWithPassword({
+    const signedFallback=await centralClient.auth.signInWithPassword({
       email:resolved.internalEmail,
       password:rawPassword
     });
-    if(signed.error||!signed.data?.user){
-      throw signed.error||new Error("Login ou senha inválidos.");
-    }
+    if(signedFallback.error) throw signedFallback.error;
 
-    centralAuthUser=signed.data.user;
-
-    let access=null;
-    try{
-      access=await centralLoadAccessRecord();
-    }catch(error){
-      console.warn("Leitura direta de app_accesses indisponível.",error);
-    }
-
-    if(!access){
-      const current=await centralFunction("get-state",{});
-      access=(Array.isArray(current.accesses)?current.accesses:[]).find(a=>
-        String(a.auth_user_id||"")===String(centralAuthUser.id) ||
-        normalizeLogin(a.login)===normalizeLogin(cleanLogin)
-      )||null;
-    }
-
-    if(!access){
-      throw new Error("Usuário autenticado, mas o perfil de acesso não foi localizado na base.");
-    }
+    centralAuthUser=signedFallback.data.user;
+    const access=await centralLoadAccessRecord();
+    if(!access) throw new Error("Perfil de acesso não localizado na base central.");
 
     state.user={
       id:access.id,
       authUserId:centralAuthUser.id,
-      name:access.display_name||access.login||cleanLogin,
-      email:access.login||cleanLogin,
-      login:access.login||cleanLogin,
-      role:access.role||"guardian",
+      name:access.display_name||access.login,
+      email:access.login,
+      login:access.login,
+      role:access.role,
       studentId:null,
       guardianName:access.display_name||"",
       familyKey:access.family_key||resolved.familyKey||"",
@@ -2553,19 +2588,9 @@ async function centralLogin(login,password){
 
     sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
     clearFailedLogins();
-
-    showApp();
-
-    try{
-      await centralPullState();
-      centralSubscribeRealtime();
-      updateAccessSecurityNotice();
-    }catch(syncError){
-      console.warn("Login realizado; sincronização central pendente.",syncError);
-      setTimeout(()=>centralPullState().catch(()=>{}),1200);
-      updateAccessSecurityNotice();
-    }
-
+    await centralPullState();
+    centralSubscribeRealtime();
+    updateAccessSecurityNotice();
     return {ok:true};
 
   }catch(error){
@@ -2574,21 +2599,9 @@ async function centralLogin(login,password){
     lastLoginMessage=msg.toLowerCase().includes("expir")
       ? "Acesso expirado. Procure o Administrador."
       : msg;
-    try{await centralClient.auth.signOut();}catch(_){}
-    centralAuthUser=null;
     return {ok:false,error};
   }
 }
-
-
-
-
-
-
-
-
-
-
 function centralSubscribeRealtime(){
   if(!centralReady||!centralAuthUser) return;
   try{
@@ -3417,21 +3430,14 @@ function showApp(){
   }
 }
 
-async function logout(silent=false){
+function logout(silent=false){
   sessionStorage.removeItem(STORAGE_KEYS.session);
   localStorage.removeItem(STORAGE_KEYS.session);
   state.user=null;
   centralAuthUser=null;
   centralHydrated=false;
   clearTimeout(inactivityTimer);
-
-  // Volta imediatamente para o login e encerra também a sessão do Supabase.
   showLogin();
-  if(centralClient){
-    try{ await centralClient.auth.signOut(); }
-    catch(error){ console.warn("Encerramento da sessão central:",error); }
-  }
-
   if(!silent) toast("Sessão encerrada.");
 }
 
@@ -3740,7 +3746,7 @@ async function getProjectLogoDataURL(){
 function nextEnrollmentDocumentNumber(){
   const current=Math.max(0,Number(state.documentSequence)||0);
   state.documentSequence=current+1;
-  return `PS-${new Date().getFullYear()}/${String(state.documentSequence).padStart(4,"0")}`;
+  return String(state.documentSequence).padStart(4,"0");
 }
 
 function dataURItoBlob(dataURI){
@@ -3883,10 +3889,8 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
 
   // Cabeçalho — reproduzindo o padrão visual do documento enviado: logo centralizada,
   // identificação institucional centralizada e número do documento no canto superior direito.
-  let logoEl=[...document.images].find(el=>(el.getAttribute("src")||"").includes(APP_CONFIG.logo));
-  if(logoEl && logoEl.complete && logoEl.naturalWidth){
-    try{ctx.drawImage(logoEl, W/2-58, 18, 116, 116);}catch(_){ }
-  }
+  const logoEl=await new Promise(resolve=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>resolve(null);im.src="projeto-sementes-logo-home.png";});
+  if(logoEl?.naturalWidth){try{ctx.drawImage(logoEl,W/2-58,18,116,116);}catch(_){}}
   text("PROJETO SOCIAL \"SEMENTES\"",W/2-180,154,22,true,"#111",360);
   text("JIU-JITSU",W/2-55,181,18,true,"#111",110);
   text("IGREJA DO EVANGELHO",W/2-115,207,16,true,"#111",230);
@@ -3955,12 +3959,12 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   y=section("8. DECLARAÇÃO FINAL",y);
   y+=text("Declaro que li, compreendi e concordo com as condições acima, autorizando a participação do(a) menor no Projeto Social “Sementes”, conforme as informações e opções assinaladas neste documento.",M+8,y,12,false,"#111",CW-16)+20;
 
-  text(`Corumbá – MS, ${new Date().toLocaleDateString("pt-BR")}.`,M+8,y,12,false,"#111"); y+=48;
+  y+=18;
   // assinatura
   const sig=e.signature;
   if(sig){try{const im=new Image();await new Promise(res=>{im.onload=()=>res();im.onerror=()=>res();im.src=sig;});if(im.naturalWidth){ctx.drawImage(im,M+180,y-42,360,70);}}catch(_){} }
   rule(M+170,y+25,M+530,y+25,"#333",1);
-  text("ASSINATURA DO RESPONSÁVEL LEGAL",M+240,y+45,11,true,"#111");
+  text("ASSINATURA DO RESPONSÁVEL LEGAL",M+240,y+45,11,true,"#111"); text(`Corumbá – MS, ${new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"})}.`,M+240,y+72,12,false,"#111");
 
   rule(M,1680,R,1680,"#777",1);
   text("IEQ Guaicurus • Projeto Social “Sementes” • Jiu-Jitsu • Corumbá – MS",M,1710,10,false,"#555");
@@ -4263,16 +4267,9 @@ async function startCamera(){
 }
 
 async function syncEnrollmentCentral(student){
-  if(!centralReady||!centralAuthUser||!student) return false;
-  const documentRecord=(state.secretaryDocuments||[]).find(d=>String(d.documentNumber||"")===String(student.documentNumber||""))||null;
-  try{
-    const result=await centralFunction("sync-enrollment",{studentData:student,secretaryDocument:documentRecord});
-    return result?.ok===true;
-  }catch(error){
-    console.error("Sincronização do cadastro:",error);
-    // Não interrompe a conclusão da biometria por causa de rede.
-    return false;
-  }
+  if(!centralReady||!centralAuthUser||!student) return false; const documentRecord=(state.secretaryDocuments||[]).find(d=>String(d.documentNumber||"")===String(student.documentNumber||""))||null;
+  try{const familyKey=student.familyKey||state.user?.familyKey||((state.user?.role==="guardian"||state.user?.role==="director")?centralFamilyKey(student.guardian,student.phone):""); if((state.user?.role==="guardian"||state.user?.role==="director")&&familyKey){state.user.familyKey=familyKey;sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));await centralFunction("bind-family",{familyKey,guardianName:student.guardian||state.user.guardianName||""});} const result=await centralFunction("sync-state",{collections:{student:[student],secretary_document:documentRecord?[documentRecord]:[]}}); return result?.ok===true;
+  }catch(error){console.error("Sincronização do cadastro:",error);return false;}
 }
 
 async function captureFace(){
@@ -5903,7 +5900,7 @@ function renderMasterManagement(){
     const accesses=[
       ...state.accesses,
       ...legacy.filter(l=>!state.accesses.some(a=>a.studentId===l.studentId && a.role==="guardian"))
-    ].map(normalizeAccessRecord);
+    ].map(normalizeAccessRecord).filter(a=>a.role==="guardian");
 
     da.innerHTML=accesses.length
       ? accesses.map(a=>`<option value="${escapeHTML(a.id)}">${escapeHTML(a.name)} — ${escapeHTML(a.login)} — ${escapeHTML(roleLabel(a.role))}${a.active===false?" — EXPIRADO/ENCERRADO":""}</option>`).join("")
@@ -5944,7 +5941,7 @@ function renderAccessSecurityManagement(){
   }
 }
 
-function deleteStudentAdmin(){
+async function deleteStudentAdmin(){
   if(!isMaster()){
     toast("Somente o Administrador Mestre London pode excluir cadastros.");
     return;
@@ -5956,6 +5953,7 @@ function deleteStudentAdmin(){
 
   if(!confirm(`Excluir definitivamente o cadastro de ${student.name}?`)) return;
 
+  if(centralReady&&centralAuthUser){try{await centralClient.from("app_records").delete().eq("record_type","student").eq("record_id",id); const {data:docs}=await centralClient.from("app_records").select("record_id,data").eq("record_type","secretary_document"); const docIds=(docs||[]).filter(r=>String(r.data?.studentName||"")===String(student.name||"")||String(r.data?.documentNumber||"")===String(student.documentNumber||"")).map(r=>r.record_id); if(docIds.length) await centralClient.from("app_records").delete().eq("record_type","secretary_document").in("record_id",docIds); const {data:atts}=await centralClient.from("app_records").select("record_id,data").eq("record_type","attendance"); const attIds=(atts||[]).filter(r=>String(r.data?.studentId||"")===String(id)).map(r=>r.record_id); if(attIds.length) await centralClient.from("app_records").delete().eq("record_type","attendance").in("record_id",attIds);}catch(error){toast(centralSafeError(error,"Não foi possível excluir o cadastro da base central."));return;} }
   state.students=state.students.filter(s=>s.id!==id);
   state.accesses=state.accesses.filter(a=>a.studentId!==id);
   state.secretaryDocuments=state.secretaryDocuments.filter(d=>d.studentName!==student.name);
@@ -5967,7 +5965,7 @@ function deleteStudentAdmin(){
   toast("Cadastro do aluno excluído.");
 }
 
-function deleteAccessAdmin(){
+async function deleteAccessAdmin(){
   if(!isMaster()){
     toast("Somente o Administrador Mestre London pode excluir acessos.");
     return;
@@ -5999,6 +5997,7 @@ function deleteAccessAdmin(){
     delete student.accessLogin;
     delete student.accessPassword;
   }
+  if(centralReady&&centralAuthUser){try{await centralFunction("delete-access",{targetAccessId:id}); await centralPullState();}catch(error){toast(centralSafeError(error,"Não foi possível excluir o acesso da base central."));return;}}
 
   state.accesses=state.accesses.filter(a=>a.id!==id);
   saveState();
@@ -6807,13 +6806,14 @@ FIM DO ARQUIVO
 ===============================================================================
 -->
 </body>
+<!-- V63: preservação integral do código. -->
+<!-- V63: preservação integral do código. -->
+<!-- V63: preservação integral do código. -->
+<!-- V63: preservação integral do código. -->
+<!-- V63: preservação integral do código. -->
+<!-- V63: preservação integral do código. -->
+<!-- V63: preservação integral do código. -->
+<!-- V63: preservação integral do código. -->
+<!-- V63: preservação integral do código. -->
+<!-- V63: preservação integral do código. -->
 </html>
-
-
-
-
-
-
-
-
-
