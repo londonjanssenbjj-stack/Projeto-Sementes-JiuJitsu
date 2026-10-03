@@ -772,12 +772,15 @@
             <label for="password">Senha</label>
             <div class="input-wrap">
               <i data-lucide="lock-keyhole"></i>
-              <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha">
+              <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha" style="text-transform:none!important;">
               <button class="icon-btn password-toggle" id="togglePassword" type="button"
                       aria-label="Mostrar senha" title="Mostrar senha">
                 <i data-lucide="eye"></i>
               </button>
             </div>
+            <label style="display:flex;align-items:center;gap:7px;margin-top:7px;font-size:12px;cursor:pointer;">
+              <input id="showLoginPassword" type="checkbox" style="width:auto;accent-color:var(--gold2);"> Mostrar senha
+            </label>
           </div>
 
           <button class="btn btn-gold btn-full" type="submit">
@@ -6436,17 +6439,30 @@ function initEvents(){
     e.preventDefault();
     const login=$("login").value;
     const password=$("password").value;
-    if(initCentralClient()) {
-      const result=await centralLogin(login,password);
-      if(!result.ok){toast(lastLoginMessage||"Login ou senha inválidos.");return;}
-    } else {
-      const ok=loginDemo(login,password);
-      if(!ok){toast(lastLoginMessage||"Login ou senha inválidos.");return;}
+    if(!login.trim() || !password){toast("Digite o login e a senha.");return;}
+    try{
+      if(initCentralClient()) {
+        const result=await centralLogin(login,password);
+        if(!result.ok){toast(lastLoginMessage||"Login ou senha inválidos.");return;}
+      } else {
+        const ok=loginDemo(login,password);
+        if(!ok){toast(lastLoginMessage||"Login ou senha inválidos.");return;}
+      }
+      playBackgroundMusic();
+      showApp();
+      setTimeout(()=>playBackgroundMusic(),0);
+      toast("Bem-vindo ao Projeto Sementes.");
+    }catch(error){
+      console.error("Erro no login:",error);
+      const msg=centralSafeError(error,"Não foi possível concluir o login. Verifique o login e a senha.");
+      toast(msg);
+      const card=document.querySelector("#loginForm")?.closest(".login-card");
+      if(card){
+        let box=document.getElementById("loginErrorMessage");
+        if(!box){box=document.createElement("div");box.id="loginErrorMessage";box.className="error-notice";box.style.marginTop="12px";card.appendChild(box);}
+        box.textContent=msg;
+      }
     }
-    playBackgroundMusic();
-    showApp();
-    setTimeout(()=>playBackgroundMusic(),0);
-    toast("Bem-vindo ao Projeto Sementes.");
   });
 
   $("login").addEventListener("input",()=>{
@@ -6462,6 +6478,12 @@ function initEvents(){
     $("togglePassword").setAttribute("aria-label",visible?"Mostrar senha":"Ocultar senha");
     $("togglePassword").title=visible?"Mostrar senha":"Ocultar senha";
     if(window.lucide?.createIcons) window.lucide?.createIcons?.();
+  });
+
+  $("showLoginPassword")?.addEventListener("change",()=>{
+    const input=$("password");
+    if(!input) return;
+    input.type=$("showLoginPassword").checked?"text":"password";
   });
 
   $("forgotBtn").addEventListener("click",()=>{
