@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- V59 — logo oficial inserida na página inicial conforme referência visual -->
+  <!-- V49 — logo oficial inserida na página inicial conforme referência visual -->
   <!-- V38 — fluxo matrícula + biometria + Alunos + família + atualização automática -->
   <!-- V33 — credenciais do Mestre atualizadas e geração de acesso 100% automática -->
   <!-- V32 — acesso inicial único, expiração de 3 dias, redefinição e controle de acessos -->
@@ -510,11 +510,8 @@
       position:absolute;right:8px;top:50%;transform:translateY(-50%);
       width:38px;height:38px;border-radius:10px;border:1px solid #3a3a3a;
       background:#191919;color:#f4d76e;display:grid;place-items:center;
-      z-index:20;pointer-events:auto;cursor:pointer;
     }
-    #password{padding-right:58px !important;}
-    #togglePassword{font-size:20px;line-height:1;}
-    .password-toggle .eye-svg{width:21px;height:21px;display:block;pointer-events:none;}
+    .password-toggle svg{width:18px;height:18px}
 
     /* GAME PREMIUM */
     .game-hero{overflow:hidden;padding:0}
@@ -632,12 +629,9 @@
 
     /* V48 — todos os preenchimentos textuais em MAIÚSCULAS */
     input[type="text"], input[type="tel"], input[type="search"], input[type="email"],
-    /* V4: senha sem transformação visual */
-    input[type="password"]{ text-transform:none !important; -webkit-text-security:disc; }
-    #login{ text-transform:none !important; }
-    textarea, select{ text-transform:uppercase; }
+    input[type="password"], textarea, select{ text-transform:uppercase; }
     #login,#password,#ownPasswordNew,#ownPasswordConfirm,
-    #newGuardianPassword,#newGuardianPasswordConfirm{ text-transform:none !important; }
+    #newGuardianPassword,#newGuardianPasswordConfirm{ text-transform:uppercase !important; }
     input[type="date"], input[type="datetime-local"], input[type="month"],
     input[type="number"], input[type="time"], input[type="checkbox"],
     input[type="radio"], input[type="range"], input[type="file"], input[type="color"]{ text-transform:none; }
@@ -766,7 +760,7 @@
             <label for="login">Login</label>
             <div class="input-wrap">
               <i data-lucide="user-round"></i>
-              <input id="login" class="input" autocomplete="username" autocapitalize="none" style="text-transform:none!important;" autocorrect="off" spellcheck="false" required
+              <input id="login" class="input" autocomplete="username" autocapitalize="characters" autocorrect="off" spellcheck="false" required
                      placeholder="Digite seu login">
             </div>
           </div>
@@ -775,9 +769,11 @@
             <label for="password">Senha</label>
             <div class="input-wrap">
               <i data-lucide="lock-keyhole"></i>
-              <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha" style="text-transform:none!important;">
+              <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="characters" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha">
               <button class="icon-btn password-toggle" id="togglePassword" type="button"
-                      aria-label="Mostrar senha" title="Mostrar senha"><svg class="eye-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.7" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+                      aria-label="Mostrar senha" title="Mostrar senha">
+                <i data-lucide="eye"></i>
+              </button>
             </div>
           </div>
 
@@ -1391,7 +1387,7 @@
             </div>
 
             <div class="camera-box" style="margin-top:12px">
-              <video id="cameraVideo" autoplay playsinline muted></video>
+              <video id="cameraVideo" playsinline muted></video>
               <div class="face-guide"></div>
             </div>
 
@@ -1469,7 +1465,7 @@
               </p>
               <button class="btn btn-gold" type="button" id="openClassCamera">Abrir câmera da turma</button>
               <div class="camera-box hidden" id="classCameraBox" style="margin-top:12px">
-                <video id="classVideo" autoplay playsinline muted></video>
+                <video id="classVideo" playsinline muted></video>
               </div>
               <button class="btn hidden" type="button" id="captureClassPhoto" style="margin-top:8px">Capturar foto</button>
             </div>
@@ -1787,11 +1783,11 @@
               </div>
               <div class="field">
                 <label>Nova senha</label>
-                <input id="ownPasswordNew" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" style="text-transform:none!important;" autocapitalize="none" autocorrect="off" spellcheck="false">
+                <input id="ownPasswordNew" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false" autocapitalize="none" autocorrect="off" spellcheck="false">
               </div>
               <div class="field">
                 <label>Confirmar nova senha</label>
-                <input id="ownPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" style="text-transform:none!important;" autocapitalize="none" autocorrect="off" spellcheck="false">
+                <input id="ownPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false" autocapitalize="none" autocorrect="off" spellcheck="false">
               </div>
               <div class="field full">
                 <button class="btn btn-gold" type="submit">🔐 Redefinir minha senha</button>
@@ -1998,7 +1994,7 @@
 
 <div id="toast"></div>
 
-<audio id="homeMusic" loop preload="none" playsinline autoplay="false" style="display:none">
+<audio id="homeMusic" loop preload="auto" playsinline style="display:none">
   <source src="Quando%20Ele%20Vem.mp3.mp3.aac" type="audio/aac">
   <source src="quando-ele-vem.mp3" type="audio/mpeg">
 </audio>
@@ -2008,11 +2004,6 @@
 
 <script>
 /* ============================================================
-   PROJETO SEMENTES — V64 — AUTENTICAÇÃO/SENHA/SINCRONIZAÇÃO CORRIGIDAS
-   - Senhas preservam maiúsculas/minúsculas
-   - Finalização reautentica após troca de senha/e-mail antes de sincronizar
-   - Campos de senha não recebem transformação visual para maiúsculas
-   ============================================================
    PROJETO SEMENTES — V63 — CORREÇÕES SOLICITADAS
    ============================================================
    Este arquivo é uma implementação front-end em HTML/CSS/JS.
@@ -2350,10 +2341,10 @@ function toggleResponsiblePassword(id,button){const input=$(id);if(!input)return
     </div>
     <form id="responsibleFinalizationForm">
       <div class="field"><label>NOVA SENHA</label>
-        <div style="display:flex;gap:8px"><input id="responsibleFinalPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" style="text-transform:none!important;"><button class="btn" type="button" style="min-width:52px" onclick="toggleResponsiblePassword('responsibleFinalPassword',this)">👁</button></div>
+        <div style="display:flex;gap:8px"><input id="responsibleFinalPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"><button class="btn" type="button" style="min-width:52px" onclick="toggleResponsiblePassword('responsibleFinalPassword',this)">👁</button></div>
       </div>
       <div class="field"><label>CONFIRMAR NOVA SENHA</label>
-        <div style="display:flex;gap:8px"><input id="responsibleFinalPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" style="text-transform:none!important;"><button class="btn" type="button" style="min-width:52px" onclick="toggleResponsiblePassword('responsibleFinalPasswordConfirm',this)">👁</button></div>
+        <div style="display:flex;gap:8px"><input id="responsibleFinalPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"><button class="btn" type="button" style="min-width:52px" onclick="toggleResponsiblePassword('responsibleFinalPasswordConfirm',this)">👁</button></div>
       </div>
       <button class="btn btn-gold btn-full" type="submit">🔐 REDEFINIR SENHA E CONCLUIR ACESSO</button>
     </form>
@@ -2366,8 +2357,8 @@ function toggleResponsiblePassword(id,button){const input=$(id);if(!input)return
 
     form.addEventListener("submit",async e=>{
       e.preventDefault();
-      const password=$("responsibleFinalPassword").value;
-      const confirmPassword=$("responsibleFinalPasswordConfirm").value;
+      const password=$("responsibleFinalPassword").value.toLocaleUpperCase("pt-BR");
+      const confirmPassword=$("responsibleFinalPasswordConfirm").value.toLocaleUpperCase("pt-BR");
       $("responsibleFinalPassword").value=password;
       $("responsibleFinalPasswordConfirm").value=confirmPassword;
       if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");return;}
@@ -2388,7 +2379,7 @@ function toggleResponsiblePassword(id,button){const input=$(id);if(!input)return
           secretaryDocument:(state.secretaryDocuments||[]).find(d=>d.documentNumber===student.documentNumber)||null
         });
 
-        const finalLogin=String(result.login||generatedLogin);
+        const finalLogin=String(result.login||generatedLogin).toLocaleUpperCase("pt-BR");
         student.accessLogin=finalLogin;
         state.user.login=finalLogin;
         state.user.email=finalLogin;
@@ -2397,17 +2388,6 @@ function toggleResponsiblePassword(id,button){const input=$(id);if(!input)return
         state.user.familyKey=result.familyKey||state.user.familyKey||student.familyKey||"";
         sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
 
-        // Reautentica no Supabase com a nova identidade/senha antes de sincronizar.
-        // A finalização altera email e senha do usuário Auth; o token antigo não deve ser reutilizado.
-        // V4: preservar o aluno em memória porque centralLogin() faz um pull da base;
-        // sem isso, o pull poderia substituir state.students pelo conteúdo anterior e apagar o cadastro recém-feito antes do sync.
-        const pendingStudent=JSON.parse(JSON.stringify(student));
-        pendingStudent.familyKey=state.user.familyKey||pendingStudent.familyKey||"";
-        const reauth=await centralLogin(finalLogin,password);
-        if(!reauth.ok) throw new Error(lastLoginMessage||"A nova sessão não pôde ser criada após a redefinição.");
-        const existingStudentIndex=(state.students||[]).findIndex(s=>String(s.id)===String(pendingStudent.id));
-        if(existingStudentIndex>=0) state.students[existingStudentIndex]=pendingStudent;
-        else state.students=[...(state.students||[]),pendingStudent];
         await centralSyncStateNow();
         await centralPullState();
         refreshAllStudentDerivedViews();
@@ -2497,7 +2477,6 @@ async function centralLogin(login,password){
   lastLoginMessage="";
 
   const cleanLogin=String(login||"").trim().toLocaleUpperCase("pt-BR");
-  // A senha é SEMPRE preservada exatamente como o usuário digitou.
   const rawPassword=String(password||"");
 
   if(normalizeLogin(cleanLogin)==="projeto sementes"){
@@ -2506,8 +2485,66 @@ async function centralLogin(login,password){
   }
 
   try{
-    // O manage-access é a autoridade para resolver o login e devolver o
-    // e-mail interno correto. Só depois fazemos o signInWithPassword.
+    // V63: autenticação primária diretamente no Supabase Auth.
+    // O login não depende da disponibilidade da Edge Function.
+    const directEmail=await browserInternalEmail(cleanLogin);
+    const signed=await centralClient.auth.signInWithPassword({
+      email:directEmail,
+      password:rawPassword
+    });
+
+    if(!signed.error && signed.data?.user){
+      centralAuthUser=signed.data.user;
+
+      let access=null;
+      try{
+        access=await centralLoadAccessRecord();
+      }catch(accessError){
+        console.warn("Falha ao ler app_accesses diretamente; tentando get-state.",accessError);
+      }
+
+      // Fallback para o estado central quando o RLS não permitir a leitura
+      // direta da linha de acesso.
+      if(!access){
+        try{
+          const resolved=await centralFunction("get-state",{});
+          access=(Array.isArray(resolved.accesses)?resolved.accesses:[]).find(a=>
+            String(a.auth_user_id||"")===String(centralAuthUser.id) ||
+            normalizeLogin(a.login)===normalizeLogin(cleanLogin)
+          ) || null;
+        }catch(stateError){
+          console.warn("Fallback get-state indisponível após login direto.",stateError);
+        }
+      }
+
+      if(!access){
+        throw new Error("Usuário autenticado, mas o perfil de acesso não foi localizado na base.");
+      }
+
+      state.user={
+        id:access.id,
+        authUserId:centralAuthUser.id,
+        name:access.display_name||access.login||cleanLogin,
+        email:access.login||cleanLogin,
+        login:access.login||cleanLogin,
+        role:access.role||centralAuthUser.user_metadata?.role||centralAuthUser.app_metadata?.role||"guardian",
+        studentId:null,
+        guardianName:access.display_name||"",
+        familyKey:access.family_key||"",
+        temporaryPassword:Boolean(access.temporary_password),
+        passwordExpiresAt:access.temporary_expires_at||null
+      };
+
+      sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+      clearFailedLogins();
+      await centralPullState();
+      centralSubscribeRealtime();
+      updateAccessSecurityNotice();
+      return {ok:true};
+    }
+
+    // Fallback apenas para contas que ainda precisem ser provisionadas
+    // através do manage-access.
     const localAccess=(state.accesses||[]).find(a=>
       normalizeLogin(a?.login)===normalizeLogin(cleanLogin)&&
       String(a?.password||a?.accessPassword||"")===rawPassword&&
@@ -2526,39 +2563,23 @@ async function centralLogin(login,password){
       }:null
     });
 
-    if(!resolved?.internalEmail) throw new Error("A base central não devolveu o endereço de autenticação do acesso.");
-
-    const signed=await centralClient.auth.signInWithPassword({
+    const signedFallback=await centralClient.auth.signInWithPassword({
       email:resolved.internalEmail,
       password:rawPassword
     });
-    if(signed.error||!signed.data?.user) throw signed.error||new Error("Login ou senha inválidos.");
+    if(signedFallback.error) throw signedFallback.error;
 
-    centralAuthUser=signed.data.user;
-
-    let access=null;
-    try{ access=await centralLoadAccessRecord(); }
-    catch(accessError){ console.warn("Falha ao ler app_accesses diretamente; tentando get-state.",accessError); }
-
-    if(!access){
-      try{
-        const current=await centralFunction("get-state",{});
-        access=(Array.isArray(current.accesses)?current.accesses:[]).find(a=>
-          String(a.auth_user_id||"")===String(centralAuthUser.id) ||
-          normalizeLogin(a.login)===normalizeLogin(cleanLogin)
-        )||null;
-      }catch(stateError){ console.warn("Fallback get-state indisponível após login.",stateError); }
-    }
-
-    if(!access) throw new Error("Usuário autenticado, mas o perfil de acesso não foi localizado na base.");
+    centralAuthUser=signedFallback.data.user;
+    const access=await centralLoadAccessRecord();
+    if(!access) throw new Error("Perfil de acesso não localizado na base central.");
 
     state.user={
       id:access.id,
       authUserId:centralAuthUser.id,
-      name:access.display_name||access.login||cleanLogin,
-      email:access.login||cleanLogin,
-      login:access.login||cleanLogin,
-      role:access.role||centralAuthUser.user_metadata?.role||centralAuthUser.app_metadata?.role||"guardian",
+      name:access.display_name||access.login,
+      email:access.login,
+      login:access.login,
+      role:access.role,
       studentId:null,
       guardianName:access.display_name||"",
       familyKey:access.family_key||resolved.familyKey||"",
@@ -2572,6 +2593,7 @@ async function centralLogin(login,password){
     centralSubscribeRealtime();
     updateAccessSecurityNotice();
     return {ok:true};
+
   }catch(error){
     const msg=centralSafeError(error,"Login não autorizado. Verifique o acesso e tente novamente.");
     console.error("Falha no login central:",error);
@@ -3866,15 +3888,19 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   const section=(title,y)=>{box(M,y,CW,29,light,"#aeb7bf");text(title,M+9,y+20,13,true,navy,CW-18);return y+40;};
   const field=(x,y,label,value,width)=>{const labelW=ctx.measureText(label+":").width;text(label+":",x,y,11,true,gray);text(value||"",x+labelW+8,y,11,false,"#111",width-labelW-8);rule(x,y+10,x+width,y+10,"#777",.8);};
 
-  // V4: documento PDF sem logo. A logo permanece apenas na interface do aplicativo.
-  text("PROJETO SOCIAL \"SEMENTES\"",M,72,22,true,"#111",CW-320);
-  text("JIU-JITSU",M,101,18,true,"#111",110);
-  text("IGREJA DO EVANGELHO QUADRANGULAR – GUAICURUS",M,128,16,true,"#111",620);
-  text(`DOCUMENTO Nº ${codigoMatricula}`,925,72,14,true,"#111",260);
-  rule(M,150,R,150,"#555",1.4);
-  text("TERMO ÚNICO DE INSCRIÇÃO, AUTORIZAÇÃO E RESPONSABILIDADE",M,183,20,true,"#111",CW);
+  // Cabeçalho — reproduzindo o padrão visual do documento enviado: logo centralizada,
+  // identificação institucional centralizada e número do documento no canto superior direito.
+  const logoEl=await new Promise(resolve=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>resolve(null);im.src="projeto-sementes-logo-home.png";});
+  if(logoEl?.naturalWidth){try{ctx.drawImage(logoEl,W/2-58,18,116,116);}catch(_){}}
+  text("PROJETO SOCIAL \"SEMENTES\"",W/2-180,154,22,true,"#111",360);
+  text("JIU-JITSU",W/2-55,181,18,true,"#111",110);
+  text("IGREJA DO EVANGELHO",W/2-115,207,16,true,"#111",230);
+  text("QUADRANGULAR – GUAICURUS",W/2-155,229,16,true,"#111",310);
+  text(`DOCUMENTO Nº ${codigoMatricula}`,925,45,14,true,"#111",260);
+  rule(M,250,R,250,"#555",1.4);
+  text("TERMO ÚNICO DE INSCRIÇÃO, AUTORIZAÇÃO E RESPONSABILIDADE",M,283,20,true,"#111",CW);
 
-  let y=210;
+  let y=310;
   y=section("1. IDENTIFICAÇÃO DO(A) ALUNO(A) – MENOR",y);
   field(M+8,y,"Nome completo",esc(e.student?.name),570);
   field(650,y,"Data de nascimento",fmtDate(e.student?.birth),260); y+=42;
@@ -4658,14 +4684,14 @@ async function resetGuardianPassword(id){
     <p class="small muted">Defina uma nova senha. A senha provisória deixa de expirar assim que a redefinição for salva.</p>
     <form id="guardianPasswordForm">
       <div class="field"><label>Login do responsável</label><input class="input" value="${escapeHTML(access?.login||s.accessLogin||s.guardian||s.name||"")}" disabled></div>
-      <div class="field"><label>Nova senha</label><input id="newGuardianPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" style="text-transform:none!important;"></div>
-      <div class="field"><label>Confirmar nova senha</label><input id="newGuardianPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" style="text-transform:none!important;"></div>
+      <div class="field"><label>Nova senha</label><input id="newGuardianPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
+      <div class="field"><label>Confirmar nova senha</label><input id="newGuardianPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
       <button class="btn btn-gold" type="submit">Salvar nova senha</button>
     </form>`);
   setTimeout(()=>$("guardianPasswordForm")?.addEventListener("submit",async e=>{
     e.preventDefault();
-    const password=$("newGuardianPassword").value;
-    const confirm=$("newGuardianPasswordConfirm").value;
+    const password=$("newGuardianPassword").value.toLocaleUpperCase("pt-BR");
+    const confirm=$("newGuardianPasswordConfirm").value.toLocaleUpperCase("pt-BR");
     $("newGuardianPassword").value=password;
     $("newGuardianPasswordConfirm").value=confirm;
     if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");return;}
@@ -4979,8 +5005,8 @@ function playClickSound(){ ensureAudioReady().then(()=>playTone(220,.06,"triangl
 
 let musicReady=false;
 function playBackgroundMusic(){
-  // O louvor só pode tocar depois de uma sessão autenticada.
-  if(!state.user?.role) return Promise.resolve(false);
+  // NUNCA tocar o louvor na tela de login ou antes da autenticação.
+  if(!state.user || !state.user.role) return Promise.resolve(false);
   const audio=$("homeMusic");
   if(!audio) return Promise.resolve(false);
   try{
@@ -5042,7 +5068,7 @@ document.addEventListener("visibilitychange",()=>{
 // pagehide cobre o fechamento/navegação para fora da página, inclusive no iOS/Safari.
 window.addEventListener("pagehide",()=>{ stopBackgroundMusic(); });
 
-// Se o navegador bloqueou o autoplay, a primeira interação do usuário libera o áudio
+// Se o navegador bloqueou o, a primeira interação do usuário libera o áudio
 // sem mostrar um botão de música na interface.
 document.addEventListener("pointerdown",()=>{
   if(state.user){
@@ -6386,8 +6412,8 @@ function initEvents(){
   document.addEventListener("input",e=>{
     const el=e.target;
     if(!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) return;
-    if(el instanceof HTMLInputElement && (String(el.type).toLowerCase()==="password" || el.id==="login")) return;
     const excluded=["date","datetime-local","month","time","number","checkbox","radio","range","file","color"];
+    if(el instanceof HTMLInputElement && (String(el.type).toLowerCase()==="password" || el.id==="login")) return;
     if(el instanceof HTMLInputElement && excluded.includes(el.type)) return;
     const start=el.selectionStart, end=el.selectionEnd;
     el.value=el.value.toLocaleUpperCase("pt-BR");
@@ -6398,14 +6424,31 @@ function initEvents(){
     e.preventDefault();
     const login=$("login").value;
     const password=$("password").value;
-    if(!login.trim() || !password){toast("Digite o login e a senha.");return;}
+    const errorBox=$("loginErrorMessage");
+    if(errorBox){errorBox.style.display="none";errorBox.textContent="";}
+    if(!login.trim() || !password){
+      const msg="Digite o login e a senha.";
+      toast(msg);
+      if(errorBox){errorBox.textContent=msg;errorBox.style.display="block";}
+      return;
+    }
     try{
       if(initCentralClient()) {
         const result=await centralLogin(login,password);
-        if(!result.ok){toast(lastLoginMessage||"Login ou senha inválidos.");return;}
+        if(!result.ok){
+          const msg=lastLoginMessage||"Login ou senha inválidos.";
+          toast(msg);
+          if(errorBox){errorBox.textContent=msg;errorBox.style.display="block";}
+          return;
+        }
       } else {
         const ok=loginDemo(login,password);
-        if(!ok){toast(lastLoginMessage||"Login ou senha inválidos.");return;}
+        if(!ok){
+          const msg=lastLoginMessage||"Login ou senha inválidos.";
+          toast(msg);
+          if(errorBox){errorBox.textContent=msg;errorBox.style.display="block";}
+          return;
+        }
       }
       showApp();
       toast("Bem-vindo ao Projeto Sementes.");
@@ -6413,35 +6456,23 @@ function initEvents(){
       console.error("Erro no login:",error);
       const msg=centralSafeError(error,"Não foi possível concluir o login. Verifique o login e a senha.");
       toast(msg);
-      const card=document.querySelector("#loginForm")?.closest(".login-card");
-      if(card){
-        let box=document.getElementById("loginErrorMessage");
-        if(!box){box=document.createElement("div");box.id="loginErrorMessage";box.className="error-notice";box.style.marginTop="12px";card.appendChild(box);}
-        box.style.display="block";
-        box.textContent=msg;
-      }
+      if(errorBox){errorBox.textContent=msg;errorBox.style.display="block";}
     }
   });
 
   $("login").addEventListener("input",()=>{
-    const box=document.getElementById("loginErrorMessage"); if(box){box.style.display="none";box.textContent="";}
     const isMaster=normalizeLogin($("login").value)===normalizeLogin(APP_CONFIG.masterEmail);
     $("forgotBtn").classList.toggle("hidden",!isMaster);
   });
 
-  $("togglePassword").addEventListener("click",(event)=>{
-    event.preventDefault();
-    event.stopPropagation();
+  $("togglePassword").addEventListener("click",()=>{
     const input=$("password");
-    if(!input) return;
     const visible=input.type==="text";
     input.type=visible?"password":"text";
-    $("togglePassword").innerHTML=visible
-      ? '<svg class="eye-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.7" fill="none" stroke="currentColor" stroke-width="2"/></svg>'
-      : '<svg class="eye-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10.6 6.2A10.7 10.7 0 0 1 12 6c6.5 0 10 6 10 6a18 18 0 0 1-3.1 3.7M6.1 6.1C3.5 7.9 2 12 2 12s3.5 6 10 6c1.5 0 2.8-.3 4-.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    $("togglePassword").innerHTML=`<i data-lucide="${visible?"eye":"eye-off"}"></i>`;
     $("togglePassword").setAttribute("aria-label",visible?"Mostrar senha":"Ocultar senha");
     $("togglePassword").title=visible?"Mostrar senha":"Ocultar senha";
-    input.focus();
+    if(window.lucide?.createIcons) window.lucide?.createIcons?.();
   });
 
   $("forgotBtn").addEventListener("click",()=>{
