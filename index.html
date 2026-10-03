@@ -655,7 +655,7 @@
     .audit-item{padding:13px;border:1px solid #3a3a3a;border-radius:12px;background:#151515;}
     .audit-item strong{display:block;margin-bottom:4px;}
 
-    /* V63 — LOGO COMPLETA NAS TELAS DE ACESSO E INÍCIO
+    /* V62 — LOGO COMPLETA NAS TELAS DE ACESSO E INÍCIO
        Usa a mesma logo oficial fornecida, sem corte. */
     .logo-box{
       overflow:visible!important;
@@ -1861,7 +1861,7 @@
             </div>
             <div id="impactSocialDashboard" class="stats"></div>
             <div class="card" style="background:#151515;margin-top:12px">
-              <div class="card-header"><div><h3 class="section-title" style="font-size:20px">🗺️ MAPA SOCIAL — Indicadores de Impacto Territorial</h3><span class="small muted">Concentração por bairro informado no cadastro</span></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><a class="btn" href="https://mapasocial.corumba.ms.gov.br/" target="_blank" rel="noopener">MAPA SOCIAL OFICIAL</a><i class="icon-gold" data-lucide="map"></i></div></div>
+              <div class="card-header"><div><h3 class="section-title" style="font-size:20px">MAPA TERRITORIAL</h3><span class="small muted">Concentração por bairro informado no cadastro</span></div><i class="icon-gold" data-lucide="map"></i></div>
               <div id="territorialMap" class="territorial-map">
                 <div class="territorial-map-headline">
                   <div>
@@ -2003,7 +2003,7 @@
 
 <script>
 /* ============================================================
-   PROJETO SEMENTES — V63 — FLUXO RESPONSÁVEL E SINCRONIZAÇÃO CENTRAL
+   PROJETO SEMENTES — V62 — FLUXO RESPONSÁVEL E SINCRONIZAÇÃO CENTRAL
    ============================================================
    Este arquivo é uma implementação front-end em HTML/CSS/JS.
    Para produção com dados de menores, use autenticação, banco,
@@ -2484,23 +2484,41 @@ async function centralLogin(login,password){
   }
 
   try{
-    // Autenticação primária diretamente no Supabase Auth.
-    const directEmail=await browserInternalEmail(cleanLogin);
-    const signed=await centralClient.auth.signInWithPassword({
-      email:directEmail,
-      password:rawPassword
+    const localAccess=(state.accesses||[]).find(a=>
+      normalizeLogin(a?.login)===normalizeLogin(cleanLogin)&&
+      String(a?.password||a?.accessPassword||"")===rawPassword&&
+      a.active!==false
+    );
+
+    // resolve-login é a etapa que já funcionava para provisionar/identificar
+    // Mestre, Pastor, Diretoria e Responsáveis.
+    const resolved=await centralFunction("resolve-login",{
+      login:cleanLogin,
+      password:rawPassword,
+      legacyAccess:localAccess?{
+        name:localAccess.name||localAccess.guardianName||cleanLogin,
+        login:localAccess.login,
+        role:localAccess.role,
+        studentId:localAccess.studentId||null,
+        familyKey:localAccess.familyKey||""
+      }:null
     });
 
-    if(signed.error || !signed.data?.user){
-      throw signed.error || new Error("Login ou senha inválidos.");
+    if(!resolved?.internalEmail){
+      throw new Error("A base central não devolveu o endereço de autenticação do acesso.");
+    }
+
+    const signed=await centralClient.auth.signInWithPassword({
+      email:resolved.internalEmail,
+      password:rawPassword
+    });
+    if(signed.error||!signed.data?.user){
+      throw signed.error||new Error("Login ou senha inválidos.");
     }
 
     centralAuthUser=signed.data.user;
 
-    // Recupera o cadastro de acesso sem exigir que a Edge Function
-    // esteja disponível para a autenticação do usuário.
     let access=null;
-
     try{
       access=await centralLoadAccessRecord();
     }catch(error){
@@ -2508,43 +2526,15 @@ async function centralLogin(login,password){
     }
 
     if(!access){
-      try{
-        const resolved=await centralFunction("get-state",{});
-        access=(Array.isArray(resolved.accesses)?resolved.accesses:[]).find(a=>
-          String(a.auth_user_id||"")===String(centralAuthUser.id) ||
-          normalizeLogin(a.login)===normalizeLogin(cleanLogin)
-        )||null;
-      }catch(error){
-        console.warn("Leitura de perfil via Edge Function indisponível.",error);
-      }
-    }
-
-    // Fallback de perfil usando os metadados gravados no Auth.
-    // Isso permite que Mestre/Diretoria/Responsável entrem mesmo se a
-    // consulta do perfil estiver temporariamente indisponível.
-    if(!access){
-      const metadataRole=centralAuthUser.app_metadata?.role || centralAuthUser.user_metadata?.role || "";
-      const metadataLogin=centralAuthUser.user_metadata?.login || cleanLogin;
-
-      if(["master","pastor","director","guardian"].includes(metadataRole)){
-        access={
-          id:`auth-${centralAuthUser.id}`,
-          auth_user_id:centralAuthUser.id,
-          login:String(metadataLogin).toLocaleUpperCase("pt-BR"),
-          display_name:centralAuthUser.user_metadata?.name || String(metadataLogin),
-          role:metadataRole,
-          family_key:centralAuthUser.user_metadata?.familyKey || "",
-          active:true,
-          temporary_password:Boolean(centralAuthUser.user_metadata?.temporaryPassword),
-          temporary_expires_at:centralAuthUser.user_metadata?.passwordExpiresAt || null
-        };
-      }
+      const current=await centralFunction("get-state",{});
+      access=(Array.isArray(current.accesses)?current.accesses:[]).find(a=>
+        String(a.auth_user_id||"")===String(centralAuthUser.id) ||
+        normalizeLogin(a.login)===normalizeLogin(cleanLogin)
+      )||null;
     }
 
     if(!access){
-      try{await centralClient.auth.signOut();}catch(_){}
-      centralAuthUser=null;
-      throw new Error("Usuário autenticado, mas o perfil de acesso não foi localizado.");
+      throw new Error("Usuário autenticado, mas o perfil de acesso não foi localizado na base.");
     }
 
     state.user={
@@ -2556,7 +2546,7 @@ async function centralLogin(login,password){
       role:access.role||"guardian",
       studentId:null,
       guardianName:access.display_name||"",
-      familyKey:access.family_key||"",
+      familyKey:access.family_key||resolved.familyKey||"",
       temporaryPassword:Boolean(access.temporary_password),
       passwordExpiresAt:access.temporary_expires_at||null
     };
@@ -2564,8 +2554,6 @@ async function centralLogin(login,password){
     sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
     clearFailedLogins();
 
-    // A entrada não fica bloqueada se a atualização dos dados centrais
-    // estiver temporariamente indisponível. Ela será tentada novamente.
     showApp();
 
     try{
@@ -2573,8 +2561,8 @@ async function centralLogin(login,password){
       centralSubscribeRealtime();
       updateAccessSecurityNotice();
     }catch(syncError){
-      console.warn("Login realizado; atualização central pendente.",syncError);
-      setTimeout(()=>centralPullState().catch(()=>{}),1500);
+      console.warn("Login realizado; sincronização central pendente.",syncError);
+      setTimeout(()=>centralPullState().catch(()=>{}),1200);
       updateAccessSecurityNotice();
     }
 
@@ -2586,9 +2574,21 @@ async function centralLogin(login,password){
     lastLoginMessage=msg.toLowerCase().includes("expir")
       ? "Acesso expirado. Procure o Administrador."
       : msg;
+    try{await centralClient.auth.signOut();}catch(_){}
+    centralAuthUser=null;
     return {ok:false,error};
   }
 }
+
+
+
+
+
+
+
+
+
+
 function centralSubscribeRealtime(){
   if(!centralReady||!centralAuthUser) return;
   try{
@@ -4516,18 +4516,13 @@ function getLastRegisteredGuardian(){
 function visibleStudentsForCurrentUser(){
   const list=[...state.students];
   if(["master","pastor","director"].includes(state.user?.role)) return list;
-  const familyKey=String(state.user?.familyKey||"").trim();
-  if(familyKey){
-    const family=list.filter(s=>studentFamilyKey(s)===familyKey);
-    if(family.length) return family;
-  }
   const guardianName=normalizePersonName(state.user?.guardianName||"");
-  const linkedId=state.user?.studentId||getLastRegisteredStudentId();
+  const linkedId=state.user?.studentId || getLastRegisteredStudentId();
   if(guardianName){
     const family=list.filter(s=>normalizePersonName(s.guardian)===guardianName);
     if(family.length) return family;
   }
-  return linkedId?list.filter(s=>s.id===linkedId):[];
+  return linkedId ? list.filter(s=>s.id===linkedId) : [];
 }
 
 /* -----------------------------
@@ -5175,11 +5170,6 @@ function initTerritorialLeaflet(){
   setTimeout(()=>territorialLeafletMap.invalidateSize(),80);
   return territorialLeafletMap;
 }
-function territorialDistanceKm(a,b){
-  if(!a||!b)return null;const R=6371,r=x=>x*Math.PI/180,dLat=r(b.lat-a.lat),dLon=r(b.lon-a.lon);
-  const q=Math.sin(dLat/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLon/2)**2;
-  return R*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q));
-}
 async function refreshTerritorialLeaflet(neighborhoods,total){
   const map=initTerritorialLeaflet();
   if(!map||!territorialLayerGroup) return;
@@ -5187,17 +5177,15 @@ async function refreshTerritorialLeaflet(neighborhoods,total){
 
   const entries=Object.entries(neighborhoods)
     .filter(([bairro])=>bairro!=="NÃO INFORMADO")
-    .sort((a,b)=>Number(b[1]?.students??b[1])-Number(a[1]?.students??a[1]));
+    .sort((a,b)=>b[1]-a[1]);
   const unmapped=[];
   const denominator=Math.max(0,total);
 
-  let projectGeo=null;
-  for(const q of ["IEQ - Guaicurus, Corumbá, MS","IEQ Guaicurus, Corumbá, MS","Igreja do Evangelho Quadrangular, Corumbá, MS"]){try{projectGeo=await geocodeCorumbaPlace(q);if(projectGeo)break;}catch(_){}}
-  for(const [bairro,raw] of entries){
+  for(const [bairro,count] of entries){
     try{
-      const count=Number(raw?.students??raw||0),familyCount=Number(raw?.families?.size??0),geo=await geocodeCorumbaPlace(bairro);
+      const geo=await geocodeCorumbaPlace(bairro);
       if(!geo){unmapped.push(bairro);continue;}
-      const pct=denominator?((count/denominator)*100):0,distance=territorialDistanceKm(projectGeo,geo);
+      const pct=denominator?((count/denominator)*100):0;
       const marker=L.circleMarker([geo.lat,geo.lon],{
         radius:territoryRadius(count),
         color:"#4b3a12",
@@ -5208,12 +5196,10 @@ async function refreshTerritorialLeaflet(neighborhoods,total){
 
       marker.bindTooltip(`<span style="font-weight:800;color:#111">${escapeHTML(bairro)}</span>`,{direction:"top",opacity:.94});
       marker.bindPopup(`
-        <div style="min-width:210px;font-family:Arial,sans-serif">
+        <div style="min-width:175px;font-family:Arial,sans-serif">
           <strong>${escapeHTML(bairro)}</strong><br>
-          <b>${count}</b> ${count===1?"ALUNO":"ALUNOS"}<br>
-          <b>${familyCount}</b> ${familyCount===1?"FAMÍLIA":"FAMÍLIAS"}<br>
-          <span>${pct.toFixed(1)}% DO ALCANCE DOS ALUNOS</span><br>
-          <span>${distance==null?"DISTÂNCIA NÃO DISPONÍVEL":distance.toFixed(1)+" KM ATÉ A IEQ GUAICURUS"}</span>
+          <b>${count}</b> ${count===1?"CRIANÇA":"CRIANÇAS"} CADASTRADAS<br>
+          <span>${pct.toFixed(1)}% DOS CADASTROS COM BAIRRO INFORMADO</span>
         </div>
       `);
     }catch(error){
@@ -5255,39 +5241,61 @@ async function refreshTerritorialLeaflet(neighborhoods,total){
 }
 
 function renderImpactAndMap(){
-  const impact=$("impactSocialDashboard"),map=$("territorialMap");
-  if(!impact&&!map)return;
-  const total=state.students.length, people=new Set(), families=new Set(), stats={};
+  const impact=$("impactSocialDashboard"), map=$("territorialMap");
+  if(!impact&&!map) return;
+
+  const total=state.students.length;
+  const complete=state.students.filter(s=>s.status==="complete").length;
+  const withNeighborhood=state.students.filter(s=>String(s.neighborhood||s.bairro||"").trim()).length;
+  const neighborhoods={};
+
   state.students.forEach(s=>{
-    if(s.id)people.add("A:"+s.id);
-    const guardian=String(s.guardian||"").trim().toLocaleUpperCase("pt-BR"),family=String(studentFamilyKey(s)||guardian).trim();
-    if(family)families.add(family);
-    if(guardian)people.add("R:"+guardian+"|"+family);
-    const bairro=normalizeNeighborhoodName(s.neighborhood||s.bairro||"")||"NÃO INFORMADO";
-    if(!stats[bairro])stats[bairro]={students:0,families:new Set()};
-    stats[bairro].students++;if(family)stats[bairro].families.add(family);
+    const b=String(s.neighborhood||s.bairro||"").trim()||"NÃO INFORMADO";
+    const normalized=normalizeNeighborhoodName(b);
+    if(normalized) neighborhoods[normalized]=(neighborhoods[normalized]||0)+1;
   });
-  const entries=Object.entries(stats).filter(([b])=>b!=="NÃO INFORMADO").sort((a,b)=>b[1].students-a[1].students);
-  const studentsWithNeighborhood=entries.reduce((n,[,v])=>n+v.students,0),bairroCount=entries.length,peopleCount=people.size,familyCount=families.size,top=entries[0];
-  const notInformed=stats["NÃO INFORMADO"]?.students||0;
-  if(impact)impact.innerHTML=`
-    <div class="card stat"><span>TOTAL DE BAIRROS ALCANÇADOS</span><strong>${bairroCount}</strong><small>BAIRROS / LOCALIDADES COM CADASTRO</small></div>
-    <div class="card stat"><span>TOTAL DE PESSOAS ALCANÇADAS</span><strong>${peopleCount}</strong><small>ALUNOS + RESPONSÁVEIS ÚNICOS</small></div>
-    <div class="card stat"><span>TOTAL DE ALUNOS</span><strong>${total}</strong><small>PARTICIPANTES CADASTRADOS</small></div>
-    <div class="card stat"><span>TOTAL DE FAMÍLIAS ALCANÇADAS</span><strong>${familyCount}</strong><small>FAMÍLIAS IDENTIFICADAS</small></div>
-    <div class="card stat"><span>COMUNIDADES / ÁREAS ALCANÇADAS</span><strong>${bairroCount}</strong><small>POR BAIRRO INFORMADO</small></div>
-    <div class="card stat"><span>MAIOR CONCENTRAÇÃO</span><strong>${escapeHTML(top?.[0]||"NÃO INFORMADO")}</strong><small>${top?.[1]?.students||0} ALUNOS</small></div>
-    <div class="card stat"><span>ABRANGÊNCIA DOS BAIRROS</span><strong>${total?((studentsWithNeighborhood/total)*100).toFixed(1):"0.0"}%</strong><small>ALUNOS COM BAIRRO INFORMADO</small></div>
-    <div class="card stat"><span>SEM BAIRRO INFORMADO</span><strong>${notInformed}</strong><small>A PREENCHER NO CADASTRO</small></div>`;
+
+  const covered=Object.keys(neighborhoods).filter(x=>x!=="NÃO INFORMADO").length;
+  const denominator=withNeighborhood;
+
+  if(impact){
+    impact.innerHTML=`
+      <div class="card stat"><span>ALUNOS CADASTRADOS</span><strong>${total}</strong></div>
+      <div class="card stat"><span>CADASTROS COMPLETOS</span><strong>${complete}</strong></div>
+      <div class="card stat"><span>BAIRROS ALCANÇADOS</span><strong>${covered}</strong></div>
+      <div class="card stat"><span>CADASTROS COM BAIRRO</span><strong>${withNeighborhood}</strong></div>
+    `;
+  }
+
   const summary=$("territorialCoverageSummary");
-  if(summary)summary.textContent=`${bairroCount} BAIRROS • ${familyCount} FAMÍLIAS • ${studentsWithNeighborhood} ALUNOS`;
+  if(summary) summary.textContent=`${covered} BAIRROS • ${withNeighborhood} CRIANÇAS`;
+
   const ranking=$("territorialRanking");
-  if(ranking)ranking.innerHTML=entries.length?entries.map(([b,v])=>{
-    const students=v.students,fams=v.families.size,pct=studentsWithNeighborhood?(students/studentsWithNeighborhood)*100:0;
-    const famPct=familyCount?(fams/familyCount)*100:0,fill=territoryColor(pct);
-    return `<div class="territory-zone"><strong>${escapeHTML(b)}</strong><span>${students} ${students===1?"ALUNO":"ALUNOS"} • ${fams} ${fams===1?"FAMÍLIA":"FAMÍLIAS"}</span><div class="territory-bar"><i style="width:${Math.min(100,pct).toFixed(1)}%;background:${fill}"></i></div><div class="territory-meta"><span>ABRANGÊNCIA ${pct.toFixed(1)}%</span><b>FAMÍLIAS ${famPct.toFixed(1)}%</b></div></div>`;
-  }).join(""):`<div class="notice">AINDA NÃO HÁ PARTICIPANTES COM BAIRRO INFORMADO.</div>`;
-  if(window.L){clearTimeout(window.__territorialMapTimer);window.__territorialMapTimer=setTimeout(()=>refreshTerritorialLeaflet(stats,studentsWithNeighborhood).catch(e=>console.warn("Mapa territorial:",e)),0);}
+  if(ranking){
+    const entries=Object.entries(neighborhoods)
+      .filter(([b])=>b!=="NÃO INFORMADO")
+      .sort((a,b)=>b[1]-a[1]);
+
+    ranking.innerHTML=entries.length
+      ? entries.map(([b,n])=>{
+          const pct=denominator?((n/denominator)*100):0;
+          const fill=territoryColor(pct);
+          return `<div class="territory-zone">
+            <strong>${escapeHTML(b)}</strong>
+            <span>${n} ${n===1?"CRIANÇA":"CRIANÇAS"}</span>
+            <div class="territory-bar"><i style="width:${Math.min(100,pct).toFixed(1)}%;background:${fill}"></i></div>
+            <div class="territory-meta"><span>PROPORÇÃO DO ALCANCE</span><b>${pct.toFixed(1)}%</b></div>
+          </div>`;
+        }).join("")
+      : `<div class="notice">AINDA NÃO HÁ CRIANÇAS COM BAIRRO INFORMADO.</div>`;
+  }
+
+  if(window.L){
+    clearTimeout(window.__territorialMapTimer);
+    window.__territorialMapTimer=setTimeout(()=>{
+      refreshTerritorialLeaflet(neighborhoods,denominator).catch(error=>console.warn("Mapa territorial:",error));
+    },0);
+  }
 }
 function archivePastScheduleEvents(){
   const now=Date.now();
@@ -5893,7 +5901,7 @@ function renderMasterManagement(){
       active:true
     }));
     const accesses=[
-      ...state.accesses.filter(a=>a.role==="guardian"),
+      ...state.accesses,
       ...legacy.filter(l=>!state.accesses.some(a=>a.studentId===l.studentId && a.role==="guardian"))
     ].map(normalizeAccessRecord);
 
@@ -5936,48 +5944,68 @@ function renderAccessSecurityManagement(){
   }
 }
 
-async function deleteStudentAdmin(){
-  if(!isMaster()){toast("Somente o Administrador Mestre London pode excluir cadastros.");return;}
-  const id=$("deleteStudentSelect")?.value, student=state.students.find(s=>s.id===id);
-  if(!student)return;
-  if(!confirm(`Excluir definitivamente o cadastro de ${student.name}?`))return;
-  try{
-    if(centralReady&&centralAuthUser){
-      const a=await centralClient.from("app_records").delete().eq("record_type","student").eq("record_id",id);
-      if(a.error)throw a.error;
-      for(const item of state.attendance.filter(x=>x.studentId===id)){
-        const r=await centralClient.from("app_records").delete().eq("record_type","attendance").eq("record_id",item.id);
-        if(r.error)console.warn("Frequência não removida:",r.error);
-      }
-      for(const doc of state.secretaryDocuments.filter(x=>x.studentName===student.name)){
-        const r=await centralClient.from("app_records").delete().eq("record_type","secretary_document").eq("record_id",doc.id);
-        if(r.error)console.warn("Documento não removido:",r.error);
-      }
-    }
-    state.students=state.students.filter(s=>s.id!==id);
-    state.attendance=state.attendance.filter(a=>a.studentId!==id);
-    state.secretaryDocuments=state.secretaryDocuments.filter(d=>d.studentName!==student.name);
-    state.accesses=state.accesses.filter(a=>a.studentId!==id);
-    saveState();await centralPullState().catch(()=>{});
-    renderAll();renderMasterManagement();renderAccessSecurityManagement();
-    toast("✅ CADASTRO DO ALUNO EXCLUÍDO.");
-  }catch(error){toast(centralSafeError(error,"Não foi possível excluir o aluno da base central."));}
+function deleteStudentAdmin(){
+  if(!isMaster()){
+    toast("Somente o Administrador Mestre London pode excluir cadastros.");
+    return;
+  }
+
+  const id=$("deleteStudentSelect")?.value;
+  const student=state.students.find(s=>s.id===id);
+  if(!student) return;
+
+  if(!confirm(`Excluir definitivamente o cadastro de ${student.name}?`)) return;
+
+  state.students=state.students.filter(s=>s.id!==id);
+  state.accesses=state.accesses.filter(a=>a.studentId!==id);
+  state.secretaryDocuments=state.secretaryDocuments.filter(d=>d.studentName!==student.name);
+
+  saveState();
+  renderAll();
+  renderMasterManagement();
+  renderAccessSecurityManagement();
+  toast("Cadastro do aluno excluído.");
 }
 
-async function deleteAccessAdmin(){
-  if(!isMaster()){toast("Somente o Administrador Mestre London pode excluir acessos.");return;}
-  const id=$("deleteAccessSelect")?.value, access=state.accesses.find(a=>a.id===id);
-  if(!access){toast("Selecione um acesso de responsável.");return;}
-  if(access.role!=="guardian"){toast("Os acessos do Mestre, Pastor e Diretoria são protegidos.");return;}
-  if(!confirm(`Excluir definitivamente o acesso de ${access.name||access.login}?`))return;
-  try{
-    if(centralReady&&centralAuthUser) await centralFunction("delete-access",{targetAccessId:id});
-    state.accesses=state.accesses.filter(a=>a.id!==id);
-    state.students.forEach(s=>{if(normalizeLogin(s.accessLogin)===normalizeLogin(access.login)){delete s.accessLogin;delete s.accessPassword;}});
-    saveState();await centralPullState().catch(()=>{});
-    renderMasterManagement();renderStudents();renderAccessSecurityManagement();
-    toast("✅ ACESSO DO RESPONSÁVEL EXCLUÍDO.");
-  }catch(error){toast(centralSafeError(error,"Não foi possível excluir o acesso na base central."));}
+function deleteAccessAdmin(){
+  if(!isMaster()){
+    toast("Somente o Administrador Mestre London pode excluir acessos.");
+    return;
+  }
+
+  const id=$("deleteAccessSelect")?.value;
+  let access=state.accesses.find(a=>a.id===id);
+
+  if(!access){
+    const legacyId=String(id||"").replace(/^legacy-/i,"");
+    const legacy=state.students.find(s=>s.id===legacyId);
+    if(!legacy) return;
+
+    if(!confirm(`Excluir o acesso de ${legacy.guardian||legacy.name}?`)) return;
+    delete legacy.accessLogin;
+    delete legacy.accessPassword;
+    saveState();
+    renderMasterManagement();
+    renderStudents();
+    renderAccessSecurityManagement();
+    toast("Acesso excluído.");
+    return;
+  }
+
+  const student=state.students.find(s=>s.id===access.studentId);
+  if(!confirm(`Excluir o acesso de ${access.name}?`)) return;
+
+  if(student){
+    delete student.accessLogin;
+    delete student.accessPassword;
+  }
+
+  state.accesses=state.accesses.filter(a=>a.id!==id);
+  saveState();
+  renderMasterManagement();
+  renderStudents();
+  renderAccessSecurityManagement();
+  toast("Acesso excluído.");
 }
 
 
@@ -6780,24 +6808,6 @@ FIM DO ARQUIVO
 -->
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
