@@ -729,6 +729,30 @@
       }
     }
 
+
+    /* DASHBOARD DE GERENCIAMENTO — Projeto Sementes */
+    .dashboard-hero{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;margin-bottom:16px;padding:18px 20px;border:1px solid #604c18;border-radius:18px;background:linear-gradient(135deg,#151515,#0d0d0d);box-shadow:0 10px 30px rgba(0,0,0,.22)}
+    .dashboard-kicker{font-size:11px;font-weight:900;letter-spacing:1.3px;color:var(--gold2);margin-bottom:6px}
+    .dashboard-live{white-space:nowrap;border:1px solid #5d4b19;border-radius:999px;padding:8px 11px;color:#cfcfcf;font-size:10px;font-weight:900;letter-spacing:.5px}
+    .dashboard-live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#5ee28c;box-shadow:0 0 9px rgba(94,226,140,.6);margin-right:5px}
+    .dashboard-filter-row{display:grid;grid-template-columns:160px 150px 1fr;gap:10px;margin-bottom:14px}
+    .dashboard-filter{border:1px solid #393939;border-radius:12px;background:#141414;padding:10px 12px;min-width:0}
+    .dashboard-filter span{display:block;font-size:9px;color:#8d8d8d;font-weight:800;letter-spacing:.6px}.dashboard-filter strong{display:block;color:#eee;font-size:12px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .dashboard-kpi-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px}
+    .dashboard-kpi{position:relative;overflow:hidden;min-height:104px;padding:15px;border:1px solid #554516;border-radius:14px;background:linear-gradient(145deg,#191919,#101010)}
+    .dashboard-kpi:after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--gold2);opacity:.8}.dashboard-kpi span{display:block;color:#9b9b9b;font-size:9px;font-weight:900;letter-spacing:.5px}.dashboard-kpi strong{display:block;color:#f1d77b;font-size:30px;line-height:1.05;margin-top:10px}.dashboard-kpi small{display:block;color:#aaa;font-size:10px;margin-top:5px}
+    .dashboard-grid{display:grid;gap:14px;margin-bottom:14px}.dashboard-grid-top{grid-template-columns:1.25fr .9fr 1.05fr}.dashboard-grid-middle{grid-template-columns:1.7fr .8fr}.dashboard-grid-bottom{grid-template-columns:1.65fr .85fr}.dashboard-widget{min-width:0}
+    .dashboard-status-list{display:grid;gap:9px}.dashboard-status-row{display:grid;grid-template-columns:125px 1fr 52px;gap:9px;align-items:center}.dashboard-status-row span{font-size:11px;color:#d5d5d5}.dashboard-progress{height:9px;border-radius:99px;background:#292929;overflow:hidden;border:1px solid #383838}.dashboard-progress i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#9d7616,#f1d77b)}.dashboard-status-row b{text-align:right;color:#f1d77b;font-size:11px}
+    .dashboard-donut-wrap{display:flex;justify-content:center;align-items:center;min-height:160px}.dashboard-donut{width:148px;height:148px;border-radius:50%;display:grid;place-items:center;position:relative}.dashboard-donut:after{content:"";width:91px;height:91px;border-radius:50%;background:#141414;border:1px solid #343434;position:absolute}.dashboard-donut-center{position:absolute;z-index:2;text-align:center}.dashboard-donut-center strong{display:block;color:#f1d77b;font-size:24px}.dashboard-donut-center span{display:block;color:#999;font-size:9px;font-weight:800}.dashboard-legend{display:grid;gap:6px;margin-top:2px}.dashboard-legend-item{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:10px;color:#cfcfcf}.dashboard-legend-item .legend-left{display:flex;align-items:center;gap:6px}.dashboard-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--legend-color)}.dashboard-legend-item b{color:#f1d77b}
+    .dashboard-mini-bars{display:grid;gap:13px;padding-top:6px}.dashboard-mini-row{display:grid;grid-template-columns:105px 1fr 42px;gap:8px;align-items:center}.dashboard-mini-row span{font-size:10px;color:#ccc}.dashboard-mini-track{height:14px;background:#292929;border-radius:99px;overflow:hidden}.dashboard-mini-track i{display:block;height:100%;border-radius:99px;background:#b98b20}.dashboard-mini-row b{font-size:10px;text-align:right;color:#f1d77b}
+    .dashboard-column-chart{height:235px;display:flex;align-items:flex-end;gap:10px;padding:20px 8px 4px;border-bottom:1px solid #3b3b3b;overflow-x:auto}.dashboard-column{height:100%;flex:1;min-width:48px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px}.dashboard-column-value{font-size:9px;color:#aaa}.dashboard-column-bar-wrap{height:175px;width:100%;display:flex;align-items:flex-end;justify-content:center}.dashboard-column-bar{width:min(34px,65%);min-height:3px;border-radius:7px 7px 2px 2px;background:linear-gradient(180deg,#f1d77b,#8d6814)}.dashboard-column-label{font-size:9px;color:#8f8f8f;white-space:nowrap}
+    .dashboard-territory-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.dashboard-territory-pill{border:1px solid #594719;border-radius:999px;padding:7px 10px;font-size:10px;color:#d8d8d8;background:#151515}.dashboard-territory-pill b{color:#f1d77b}
+    .dashboard-territory-bars{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px}.dashboard-territory-row{display:grid;grid-template-columns:130px 1fr 34px;gap:8px;align-items:center}.dashboard-territory-row span{font-size:10px;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dashboard-territory-track{height:8px;border-radius:99px;background:#292929;overflow:hidden}.dashboard-territory-track i{display:block;height:100%;border-radius:99px;background:#b98b20}.dashboard-territory-row b{font-size:10px;color:#f1d77b;text-align:right}
+    .dashboard-next-events{display:grid;gap:8px}.dashboard-event{padding:10px;border-left:3px solid #b98b20;border-radius:8px;background:#171717}.dashboard-event strong{display:block;color:#eee;font-size:11px}.dashboard-event span{display:block;color:#999;font-size:9px;margin-top:4px}.dashboard-event b{display:block;color:#f1d77b;font-size:9px;margin-top:4px}
+    .dashboard-territory-table{overflow:auto}.dashboard-territory-table table{width:100%;border-collapse:collapse;min-width:680px}.dashboard-territory-table th,.dashboard-territory-table td{padding:9px 8px;border-bottom:1px solid #292929;text-align:left;font-size:10px}.dashboard-territory-table th{color:#f1d77b;font-weight:900;letter-spacing:.4px}.dashboard-territory-table td{color:#ddd}.dashboard-territory-table td strong{color:#f1d77b}
+    @media(max-width:1000px){.dashboard-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.dashboard-grid-top,.dashboard-grid-middle,.dashboard-grid-bottom{grid-template-columns:1fr}.dashboard-filter-row{grid-template-columns:1fr 1fr}.dashboard-filter:last-child{grid-column:1/-1}.dashboard-territory-bars{grid-template-columns:1fr}}
+    @media(max-width:620px){.dashboard-hero{align-items:flex-start;flex-direction:column}.dashboard-live{align-self:flex-start}.dashboard-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-status-row{grid-template-columns:100px 1fr 42px}.dashboard-territory-row{grid-template-columns:105px 1fr 30px}}
+
 </style>
   <link rel="icon" type="image/png" href="favicon-64.png">
 </head>
@@ -828,6 +852,7 @@
           <button data-page="studentsPage">Alunos</button>
           <button data-page="tatamePage">Tatame</button>
           <button data-page="frequencyPage">Frequência</button>
+          <button data-page="dashboardPage">📊 Dashboard</button>
           <button data-page="faithPage">Fé</button>
           <button data-page="gamePage">Game Gospel</button>
           <button data-page="schedulePage">Cronograma</button>
@@ -1605,6 +1630,101 @@
             <button class="btn btn-gold" id="baptismBtn">🌊 QUERO SER BATIZADO</button>
           </article>
         </div>
+      </section>
+
+      <!-- =====================================================
+           DASHBOARD DE GERENCIAMENTO DO PROJETO
+           ===================================================== -->
+      <section id="dashboardPage" class="page">
+        <div class="dashboard-hero">
+          <div>
+            <div class="dashboard-kicker">PROJETO SEMENTES • IEQ GUAICURUS</div>
+            <h1 class="page-title" style="margin-bottom:6px">Dashboard de Gerenciamento do Projeto</h1>
+            <p class="page-sub" style="margin-bottom:0">Painel de controle para acompanhar evolução, atividades, frequência, situação e impacto territorial em Corumbá-MS.</p>
+          </div>
+          <div class="dashboard-live"><span class="dashboard-live-dot"></span> ATUALIZAÇÃO AUTOMÁTICA</div>
+        </div>
+
+        <div class="dashboard-filter-row">
+          <div class="dashboard-filter"><span>PERÍODO</span><strong id="dashboardPeriodLabel">Atual</strong></div>
+          <div class="dashboard-filter"><span>BAIRROS</span><strong>23</strong></div>
+          <div class="dashboard-filter"><span>SEDE</span><strong>Guaicurus • Rua Edu Rocha, 218</strong></div>
+        </div>
+
+        <div id="projectDashboardKpis" class="dashboard-kpi-grid"></div>
+
+        <div class="dashboard-grid dashboard-grid-top">
+          <article class="card dashboard-widget dashboard-status-widget">
+            <div class="card-header">
+              <div><h2 class="section-title">STATUS GERAL DO PROJETO</h2><span class="small muted">Visão consolidada dos registros atuais</span></div>
+              <i class="icon-gold" data-lucide="gauge"></i>
+            </div>
+            <div id="dashboardStatusRows" class="dashboard-status-list"></div>
+          </article>
+
+          <article class="card dashboard-widget">
+            <div class="card-header">
+              <div><h2 class="section-title">ITENS EM RISCO</h2><span class="small muted">Pontos que merecem atenção</span></div>
+              <i class="icon-gold" data-lucide="triangle-alert"></i>
+            </div>
+            <div id="dashboardRiskChart" class="dashboard-donut-wrap"></div>
+            <div id="dashboardRiskLegend" class="dashboard-legend"></div>
+          </article>
+
+          <article class="card dashboard-widget">
+            <div class="card-header">
+              <div><h2 class="section-title">SITUAÇÃO DAS ATIVIDADES</h2><span class="small muted">Cronograma ativo e arquivado</span></div>
+              <i class="icon-gold" data-lucide="list-checks"></i>
+            </div>
+            <div id="dashboardActivityStatus" class="dashboard-mini-bars"></div>
+          </article>
+        </div>
+
+        <div class="dashboard-grid dashboard-grid-middle">
+          <article class="card dashboard-widget dashboard-wide-widget">
+            <div class="card-header">
+              <div><h2 class="section-title">EVOLUÇÃO DO PROJETO</h2><span class="small muted">Presenças registradas por mês</span></div>
+              <i class="icon-gold" data-lucide="chart-no-axes-combined"></i>
+            </div>
+            <div id="dashboardAttendanceChart" class="dashboard-column-chart"></div>
+          </article>
+
+          <article class="card dashboard-widget">
+            <div class="card-header">
+              <div><h2 class="section-title">ATIVIDADES POR TIPO</h2><span class="small muted">Distribuição do cronograma</span></div>
+              <i class="icon-gold" data-lucide="chart-pie"></i>
+            </div>
+            <div id="dashboardActivityTypeChart" class="dashboard-donut-wrap dashboard-donut-small"></div>
+            <div id="dashboardActivityTypeLegend" class="dashboard-legend"></div>
+          </article>
+        </div>
+
+        <div class="dashboard-grid dashboard-grid-bottom">
+          <article class="card dashboard-widget dashboard-wide-widget">
+            <div class="card-header">
+              <div><h2 class="section-title">IMPACTO TERRITORIAL</h2><span class="small muted">23 bairros • concentração dos alunos com bairro informado</span></div>
+              <i class="icon-gold" data-lucide="map"></i>
+            </div>
+            <div class="dashboard-territory-summary" id="dashboardTerritorySummary"></div>
+            <div id="dashboardTerritoryBars" class="dashboard-territory-bars"></div>
+          </article>
+
+          <article class="card dashboard-widget">
+            <div class="card-header">
+              <div><h2 class="section-title">PRÓXIMAS ATIVIDADES</h2><span class="small muted">Cronograma do Projeto Sementes</span></div>
+              <i class="icon-gold" data-lucide="calendar-clock"></i>
+            </div>
+            <div id="dashboardNextEvents" class="dashboard-next-events"></div>
+          </article>
+        </div>
+
+        <article class="card wide dashboard-widget" style="margin-top:14px">
+          <div class="card-header">
+            <div><h2 class="section-title">RESUMO DOS 23 TERRITÓRIOS</h2><span class="small muted">Ranking atualizado a partir dos bairros informados nos cadastros</span></div>
+            <i class="icon-gold" data-lucide="map-pin"></i>
+          </div>
+          <div id="dashboardTerritoryTable" class="dashboard-territory-table"></div>
+        </article>
       </section>
 
       <!-- =====================================================
@@ -3512,6 +3632,7 @@ function openPage(pageId){
     renderSchedule();
     renderChampionships();
   }
+  if(pageId==="dashboardPage") renderProjectDashboard();
   if(pageId==="schedulePage") renderSchedule();
   if(pageId==="championsPage") renderChampionships();
 
@@ -5309,6 +5430,118 @@ function renderImpactAndMap(){
     },0);
   }
 }
+
+function renderProjectDashboard(){
+  const root=$("dashboardPage");
+  if(!root) return;
+
+  const students=Array.isArray(state.students)?state.students:[];
+  const attendance=Array.isArray(state.attendance)?state.attendance:[];
+  const activeSchedule=Array.isArray(state.schedule)?state.schedule:[];
+  const archive=Array.isArray(state.scheduleArchive)?state.scheduleArchive:[];
+  const allEvents=[...archive,...activeSchedule];
+  const total=students.length;
+  const complete=students.filter(s=>s.status==="complete").length;
+  const pending=students.filter(s=>s.status!=="complete").length;
+  const withNeighborhood=students.filter(s=>String(s.neighborhood||s.bairro||"").trim()).length;
+  const coveredSet=new Set();
+  const byNeighborhood={};
+  students.forEach(s=>{
+    const raw=String(s.neighborhood||s.bairro||"").trim();
+    const b=normalizeNeighborhoodName(raw);
+    if(b){coveredSet.add(b);byNeighborhood[b]=(byNeighborhood[b]||0)+1;}
+  });
+  const covered=[...coveredSet].filter(b=>b!=="NÃO INFORMADO");
+  const freqPct=total?Math.min(100,Math.round(attendance.filter(a=>String(a.date||"").slice(0,7)===todayISO().slice(0,7)).length/(Math.max(1,total)*8)*100)):0;
+  const completePct=total?Math.round(complete/total*100):0;
+  const territorialPct=Math.round(covered.length/23*100);
+
+  const kpi=$("projectDashboardKpis");
+  if(kpi){
+    kpi.innerHTML=`
+      <div class="dashboard-kpi"><span>TOTAL DE ALUNOS</span><strong>${total}</strong><small>cadastros no projeto</small></div>
+      <div class="dashboard-kpi"><span>CADASTROS COMPLETOS</span><strong>${completePct}%</strong><small>${complete} de ${total}</small></div>
+      <div class="dashboard-kpi"><span>BAIRROS ALCANÇADOS</span><strong>${covered.length}</strong><small>de 23 territórios</small></div>
+      <div class="dashboard-kpi"><span>FREQUÊNCIA ATUAL</span><strong>${freqPct}%</strong><small>estimativa sobre presenças do mês</small></div>
+      <div class="dashboard-kpi"><span>ATIVIDADES</span><strong>${allEvents.length}</strong><small>${archive.length} concluídas/arquivadas</small></div>
+      <div class="dashboard-kpi"><span>COBERTURA TERRITORIAL</span><strong>${territorialPct}%</strong><small>${covered.length}/23 bairros</small></div>`;
+  }
+
+  const status=$("dashboardStatusRows");
+  if(status){
+    const rows=[
+      ["Cadastros completos",completePct],
+      ["Cobertura territorial",territorialPct],
+      ["Frequência atual",freqPct],
+      ["Atividades concluídas",allEvents.length?Math.round(archive.length/allEvents.length*100):0]
+    ];
+    status.innerHTML=rows.map(([label,pct])=>`<div class="dashboard-status-row"><span>${label}</span><div class="dashboard-progress"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div><b>${pct}%</b></div>`).join("");
+  }
+
+  const riskItems=[
+    ["Cadastros pendentes",pending],
+    ["Sem bairro informado",Math.max(0,total-withNeighborhood)],
+    ["Baixa frequência",students.filter(s=>{const n=attendance.filter(a=>a.studentId===s.id && String(a.date||"").slice(0,7)===todayISO().slice(0,7)).length;return n<=1;}).length]
+  ];
+  const riskTotal=riskItems.reduce((a,x)=>a+x[1],0);
+  const riskChart=$("dashboardRiskChart"), riskLegend=$("dashboardRiskLegend");
+  if(riskChart){
+    const vals=riskItems.map(x=>x[1]);
+    const colors=["#d97706","#b98b20","#8f6d22"];
+    let cursor=0;const stops=[];
+    vals.forEach((v,i)=>{const start=riskTotal?cursor/riskTotal*360:0;cursor+=v;const end=riskTotal?cursor/riskTotal*360:0;stops.push(`${colors[i]} ${start}deg ${end}deg`);});
+    riskChart.innerHTML=`<div class="dashboard-donut" style="background:conic-gradient(${stops.length?stops.join(','):'#333 0 360deg'})"><div class="dashboard-donut-center"><strong>${riskTotal}</strong><span>ITENS</span></div></div>`;
+  }
+  if(riskLegend){
+    const colors=["#d97706","#b98b20","#8f6d22"];
+    riskLegend.innerHTML=riskItems.map((x,i)=>`<div class="dashboard-legend-item"><span class="legend-left"><i class="dashboard-legend-dot" style="--legend-color:${colors[i]}"></i>${x[0]}</span><b>${x[1]}</b></div>`).join("");
+  }
+
+  const statusBox=$("dashboardActivityStatus");
+  if(statusBox){
+    const today=todayISO();
+    const concluded=archive.length;
+    const ongoing=activeSchedule.filter(e=>String(e.dateTime||"").slice(0,10)===today).length;
+    const pendingEvents=Math.max(0,activeSchedule.length-ongoing);
+    const delayed=activeSchedule.filter(e=>String(e.dateTime||"")<today).length;
+    const vals=[["Concluídas",concluded],["Em andamento",ongoing],["Previstas",pendingEvents],["Atenção",delayed]];
+    const max=Math.max(1,...vals.map(x=>x[1]));
+    statusBox.innerHTML=vals.map(([label,n])=>`<div class="dashboard-mini-row"><span>${label}</span><div class="dashboard-mini-track"><i style="width:${n/max*100}%"></i></div><b>${n}</b></div>`).join("");
+  }
+
+  const chart=$("dashboardAttendanceChart");
+  if(chart){
+    const now=new Date();const months=[];
+    for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;months.push({key,label:d.toLocaleDateString('pt-BR',{month:'short'}).replace('.',''),count:attendance.filter(a=>String(a.date||"").slice(0,7)===key).length});}
+    const max=Math.max(1,...months.map(m=>m.count));
+    chart.innerHTML=months.map(m=>`<div class="dashboard-column"><div class="dashboard-column-value">${m.count}</div><div class="dashboard-column-bar-wrap"><div class="dashboard-column-bar" style="height:${Math.max(3,m.count/max*100)}%"></div></div><div class="dashboard-column-label">${m.label}</div></div>`).join("");
+  }
+
+  const typeCounts={"JIU-JITSU":0,"PALESTRA":0,"AÇÃO SOCIAL":0,"GRADUAÇÃO":0,"OUTROS":0};
+  allEvents.forEach(e=>{const t=String(e.event||"").toUpperCase();if(t.includes("PALESTRA"))typeCounts["PALESTRA"]++;else if(t.includes("AÇÃO SOCIAL")||t.includes("SOCIAL"))typeCounts["AÇÃO SOCIAL"]++;else if(t.includes("JIU"))typeCounts["JIU-JITSU"]++;else if(t.includes("GRADUAÇÃO"))typeCounts["GRADUAÇÃO"]++;else typeCounts["OUTROS"]++;});
+  const typeTotal=Object.values(typeCounts).reduce((a,b)=>a+b,0);
+  const typeColors=["#d9a441","#c68b2c","#a9781f","#80621d","#555555"];
+  const typeChart=$("dashboardActivityTypeChart"),typeLegend=$("dashboardActivityTypeLegend");
+  if(typeChart){let cursor=0;const stops=[];Object.values(typeCounts).forEach((v,i)=>{const st=typeTotal?cursor/typeTotal*360:0;cursor+=v;const en=typeTotal?cursor/typeTotal*360:0;stops.push(`${typeColors[i]} ${st}deg ${en}deg`);});typeChart.innerHTML=`<div class="dashboard-donut" style="background:conic-gradient(${stops.length?stops.join(','):'#333 0 360deg'})"><div class="dashboard-donut-center"><strong>${typeTotal}</strong><span>ATIVIDADES</span></div></div>`;}
+  if(typeLegend){typeLegend.innerHTML=Object.entries(typeCounts).filter(x=>x[1]>0).map(([label,n],i)=>`<div class="dashboard-legend-item"><span class="legend-left"><i class="dashboard-legend-dot" style="--legend-color:${typeColors[i]}"></i>${label}</span><b>${n}</b></div>`).join("")||'<span class="small muted">Nenhuma atividade cadastrada.</span>';}
+
+  const terrSummary=$("dashboardTerritorySummary");
+  if(terrSummary) terrSummary.innerHTML=`<span class="dashboard-territory-pill"><b>${covered.length}</b> bairros com registro</span><span class="dashboard-territory-pill"><b>${withNeighborhood}</b> alunos com bairro informado</span><span class="dashboard-territory-pill"><b>${23-covered.length}</b> bairros ainda sem registro</span>`;
+  const terrBars=$("dashboardTerritoryBars");
+  const terrEntries=Object.entries(byNeighborhood).filter(([b])=>b!=="NÃO INFORMADO").sort((a,b)=>b[1]-a[1]).slice(0,10);
+  if(terrBars){const max=Math.max(1,...terrEntries.map(x=>x[1]));terrBars.innerHTML=terrEntries.length?terrEntries.map(([b,n])=>`<div class="dashboard-territory-row"><span title="${escapeHTML(b)}">${escapeHTML(b)}</span><div class="dashboard-territory-track"><i style="width:${n/max*100}%"></i></div><b>${n}</b></div>`).join(""):'<div class="notice">Ainda não há bairros informados nos cadastros.</div>';}
+
+  const next=$("dashboardNextEvents");
+  if(next){const now=Date.now();const upcoming=activeSchedule.filter(e=>new Date(e.dateTime).getTime()>=now).sort((a,b)=>new Date(a.dateTime)-new Date(b.dateTime)).slice(0,5);next.innerHTML=upcoming.length?upcoming.map(e=>`<div class="dashboard-event"><strong>${escapeHTML(e.event||"ATIVIDADE")}${e.subject?" — "+escapeHTML(e.subject):""}</strong><span>${escapeHTML(formatDateTimeBR(e.dateTime||""))}</span><b>${escapeHTML(e.responsible||"RESPONSÁVEL NÃO INFORMADO")}</b></div>`).join(""):'<div class="notice">Nenhuma atividade futura cadastrada.</div>';}
+
+  const table=$("dashboardTerritoryTable");
+  if(table){
+    const all23=[...new Set(["Cervejaria","Borrowsk","Generoso","Arthur Marinho","Aeroporto","Popular Velha","Previsul","Padre Ernesto Sassida","Cristo Redentor","Jardim dos Estados","Nova Corumbá","Pantanal","Beira Rio","Universitário","Dom Bosco","Centro","Nossa Senhora de Fátima","Centro América","Maria Leite","Industrial","Popular Nova","Guarani","Guatós",...Object.keys(byNeighborhood)])];
+    const rows=all23.map(b=>({b,n:byNeighborhood[normalizeNeighborhoodName(b)]||0})).sort((a,b)=>b.n-a.n||a.b.localeCompare(b.b,'pt-BR'));
+    table.innerHTML=`<table><thead><tr><th>Bairro</th><th>Alunos</th><th>% dos registros territoriais</th><th>Situação</th></tr></thead><tbody>${rows.map(r=>{const pct=withNeighborhood?Math.round(r.n/withNeighborhood*100):0;const sit=r.n>=5?'🟢 ATUAÇÃO':'🟡 SEM REGISTRO SUFICIENTE';return `<tr><td>${escapeHTML(r.b)}</td><td><strong>${r.n}</strong></td><td>${pct}%</td><td>${sit}</td></tr>`;}).join('')}</tbody></table>`;
+  }
+}
+
 function archivePastScheduleEvents(){
   const now=Date.now();
   const active=[];
@@ -6591,6 +6824,7 @@ function renderAll(){
   renderDirectors();
   renderFaithDashboard();
   renderImpactAndMap();
+  renderProjectDashboard();
   renderSchedule();
   renderChampionships();
   updateKPIs();
