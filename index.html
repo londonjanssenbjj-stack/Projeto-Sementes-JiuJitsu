@@ -793,7 +793,7 @@
             <label for="password">Senha</label>
             <div class="input-wrap">
               <i data-lucide="lock-keyhole"></i>
-              <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="characters" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha">
+              <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha">
               <button class="icon-btn password-toggle" id="togglePassword" type="button"
                       aria-label="Mostrar senha" title="Mostrar senha">
                 <i data-lucide="eye"></i>
@@ -3326,7 +3326,10 @@ function loginDemo(login,password){
     ? APP_CONFIG.masterAliases
     : [APP_CONFIG.demoMasterLogin];
   const isMasterLogin=masterAliases.some(alias=>normalizeLogin(alias)===normalized);
-  if(isMasterLogin && rawPassword===String(APP_CONFIG.demoMasterPassword??"")){
+  const configuredMasterPassword=String(APP_CONFIG.demoMasterPassword??"");
+  const masterPasswordMatches = rawPassword===configuredMasterPassword ||
+    (configuredMasterPassword && rawPassword.toLocaleLowerCase("pt-BR")===configuredMasterPassword.toLocaleLowerCase("pt-BR"));
+  if(isMasterLogin && masterPasswordMatches){
     state.user={
       id:"master-account",
       name:APP_CONFIG.masterName,
@@ -6681,7 +6684,7 @@ function initEvents(){
     try{el.setSelectionRange(start,end);}catch(_){}
   });
 
-  $("loginForm").addEventListener("submit",async e=>{
+  $("loginForm")?.addEventListener("submit",async e=>{
     e.preventDefault();
     const login=$("login").value;
     const password=$("password").value;
@@ -6710,12 +6713,10 @@ function initEvents(){
       }
 
       if(!authenticated){
-        if(!ok){
-          const msg=lastLoginMessage||"Login ou senha inválidos.";
-          toast(msg);
-          if(errorBox){errorBox.textContent=msg;errorBox.style.display="block";}
-          return;
-        }
+        const msg=lastLoginMessage||"Login ou senha inválidos.";
+        toast(msg);
+        if(errorBox){errorBox.textContent=msg;errorBox.style.display="block";}
+        return;
       }
       showApp();
       toast("Bem-vindo ao Projeto Sementes.");
@@ -6727,12 +6728,12 @@ function initEvents(){
     }
   });
 
-  $("login").addEventListener("input",()=>{
+  $("login")?.addEventListener("input",()=>{
     const isMaster=normalizeLogin($("login").value)===normalizeLogin(APP_CONFIG.masterEmail);
     $("forgotBtn").classList.toggle("hidden",!isMaster);
   });
 
-  $("togglePassword").addEventListener("click",()=>{
+  $("togglePassword")?.addEventListener("click",()=>{
     const input=$("password");
     const visible=input.type==="text";
     input.type=visible?"password":"text";
@@ -6742,7 +6743,7 @@ function initEvents(){
     if(window.lucide?.createIcons) window.lucide?.createIcons?.();
   });
 
-  $("forgotBtn").addEventListener("click",()=>{
+  $("forgotBtn")?.addEventListener("click",()=>{
     const isMaster=normalizeLogin($("login").value)===normalizeLogin(APP_CONFIG.masterEmail);
     if(!isMaster){
       $("forgotBtn").classList.add("hidden");
@@ -6985,25 +6986,42 @@ function restoreProjectLogos(){
   if(homeLogo) homeLogo.src = "projeto-sementes-logo-home.png";
 }
 
+window.addEventListener("error",e=>{
+  console.error("Erro global do Projeto Sementes:",e.error||e.message);
+});
+window.addEventListener("unhandledrejection",e=>{
+  console.error("Erro assíncrono do Projeto Sementes:",e.reason);
+});
+
+function safeInit(nome,fn){
+  try{return fn();}
+  catch(error){console.error("Falha em "+nome,error);return null;}
+}
+
 document.addEventListener("DOMContentLoaded",async()=>{
-  restoreProjectLogos();
-  registerPWA();
-  ensureMasterCredentialVersion();
-  performFreshStartCutover();
-  loadState();
-  seedState();
-  migrateLegacyAccesses();
-  restoreGame();
-  initCentralClient();
+  // V66: o LOGIN é inicializado primeiro. Nenhum módulo secundário pode impedir o acesso.
+  safeInit("restoreProjectLogos",restoreProjectLogos);
+  safeInit("initEvents",initEvents);
+  safeInit("initTabs",initTabs);
 
-  initEvents();
-  initTabs();
-  initEnrollment();
-  setupSignature();
+  // Os demais módulos são opcionais: se algum falhar, o login continua funcionando.
+  safeInit("registerPWA",registerPWA);
+  safeInit("ensureMasterCredentialVersion",ensureMasterCredentialVersion);
+  safeInit("performFreshStartCutover",performFreshStartCutover);
+  safeInit("loadState",loadState);
+  safeInit("seedState",seedState);
+  safeInit("migrateLegacyAccesses",migrateLegacyAccesses);
+  safeInit("restoreGame",restoreGame);
+  safeInit("initCentralClient",initCentralClient);
+  safeInit("initEnrollment",initEnrollment);
+  safeInit("setupSignature",setupSignature);
+  safeInit("lucide",()=>window.lucide?.createIcons?.());
 
-  if(window.lucide?.createIcons) window.lucide?.createIcons?.();
-
-  await restoreSession();
+  try{await restoreSession();}
+  catch(error){
+    console.error("Falha ao restaurar sessão; mantendo tela de login.",error);
+    safeInit("showLogin",showLogin);
+  }
 });
 </script>
 
