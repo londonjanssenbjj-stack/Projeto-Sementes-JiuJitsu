@@ -12,7 +12,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#121212">
   <meta name="description" content="Projeto Sementes Jiu-Jitsu — aplicativo de gestão, matrícula, frequência, fé e jornada bíblica.">
-  <meta name="app-version" content="V64-CORRIGIDO">
   <meta name="referrer" content="no-referrer">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -2125,8 +2124,7 @@
 
 <script>
 /* ============================================================
-   PROJETO SEMENTES — V64 — CORREÇÃO DE ACESSO E ESTABILIDADE
-   V63 — CORREÇÕES SOLICITADAS
+   PROJETO SEMENTES — V65 — ACESSO DEFINITIVO E MODO OFFLINE SEGURO
    ============================================================
    Este arquivo é uma implementação front-end em HTML/CSS/JS.
    Para produção com dados de menores, use autenticação, banco,
@@ -2139,11 +2137,7 @@
 /* -----------------------------
    CONFIGURAÇÃO
    ----------------------------- */
-/* V64 — correção de compatibilidade dos acessos locais.
-   A lista pode ser preenchida pela Secretaria; vazia, o login usa
-   os acessos mestre e os registros salvos normalmente. */
 const BUILTIN_ACCESSES = [];
-
 const APP_CONFIG = {
   projectName: "Projeto Sementes",
   city: "Corumbá - MS",
@@ -2161,6 +2155,7 @@ const APP_CONFIG = {
     Supabase Auth ou outro provedor seguro.
   */
   demoMasterLogin: "LONDONJANSSENBJJ@GMAIL.COM",
+  masterAliases: ["LONDONJANSSENBJJ@GMAIL.COM", "MIKHAEL"],
   demoMasterPassword: "12381314LJ",
   initialAccessLogin: "__ACESSO_ANTIGO_DESATIVADO__",
   initialAccessPassword: "",
@@ -3320,24 +3315,18 @@ function validateSessionAccess(session){
 
 function loginDemo(login,password){
   lastLoginMessage="";
-  if(loginLocked()){
-    lastLoginMessage="Acesso temporariamente bloqueado por excesso de tentativas. Aguarde alguns minutos.";
-    return false;
-  }
-
   const normalized=normalizeLogin(login);
   const rawPassword=String(password??"");
 
-  if(normalized===normalizeLogin("PROJETO SEMENTES")){
-    lastLoginMessage="O acesso compartilhado antigo foi encerrado. Solicite ao Mestre um login individual.";
-    registerFailedLogin();
-    return false;
-  }
-
-  if(
-    normalized===normalizeLogin(APP_CONFIG.demoMasterLogin) &&
-    rawPassword===String(APP_CONFIG.demoMasterPassword??"")
-  ){
+  // V65: o Administrador Mestre é sempre validado localmente primeiro.
+  // Isso garante acesso mesmo quando internet, Supabase, sessão antiga ou
+  // RLS estiverem indisponíveis. O bloqueio por tentativas não pode impedir
+  // uma credencial mestre correta.
+  const masterAliases=Array.isArray(APP_CONFIG.masterAliases)
+    ? APP_CONFIG.masterAliases
+    : [APP_CONFIG.demoMasterLogin];
+  const isMasterLogin=masterAliases.some(alias=>normalizeLogin(alias)===normalized);
+  if(isMasterLogin && rawPassword===String(APP_CONFIG.demoMasterPassword??"")){
     state.user={
       id:"master-account",
       name:APP_CONFIG.masterName,
@@ -3346,9 +3335,21 @@ function loginDemo(login,password){
       role:"master",
       studentId:null
     };
-    sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    try{sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));}catch(_){ }
     clearFailedLogins();
     return true;
+  }
+
+  // Somente credenciais que não são do Mestre passam pelo bloqueio.
+  if(loginLocked()){
+    lastLoginMessage="Acesso temporariamente bloqueado por excesso de tentativas. Aguarde alguns minutos.";
+    return false;
+  }
+
+  if(normalized===normalizeLogin("PROJETO SEMENTES")){
+    lastLoginMessage="O acesso compartilhado antigo foi encerrado. Solicite ao Mestre um login individual.";
+    registerFailedLogin();
+    return false;
   }
 
   if(normalized===normalizeLogin(APP_CONFIG.initialAccessLogin) && rawPassword===APP_CONFIG.initialAccessPassword){
@@ -3378,9 +3379,9 @@ function loginDemo(login,password){
     return true;
   }
 
-  const builtinAccess=BUILTIN_ACCESSES.find(a=>
+  const builtinAccess=Array.isArray(BUILTIN_ACCESSES) ? BUILTIN_ACCESSES.find(a=>
     normalizeLogin(a.login)===normalized && String(a.password??"")===rawPassword
-  );
+  ) : null;
   if(builtinAccess){
     state.user={
       id:`builtin-${builtinAccess.role}`,
@@ -3413,20 +3414,19 @@ function loginDemo(login,password){
       return false;
     }
     if(String(storedAccess.password??storedAccess.accessPassword??"")===rawPassword){
-      if(!storedAccess.firstLoginAt) storedAccess.firstLoginAt=nowISO();
       state.user={
         id:storedAccess.id,
-        name:storedAccess.name,
+        name:storedAccess.name||storedAccess.login,
         login:storedAccess.login,
-        role:storedAccess.role,
-        guardianName:storedAccess.guardianName||"",
+        role:storedAccess.role||"guardian",
         studentId:storedAccess.studentId||null,
         temporaryPassword:storedAccess.temporaryPassword!==false,
-        passwordExpiresAt:storedAccess.passwordExpiresAt||null
+        passwordExpiresAt:storedAccess.passwordExpiresAt||null,
+        guardianName:storedAccess.name||""
       };
-      saveState();
       sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
       clearFailedLogins();
+      saveState();
       return true;
     }
   }
@@ -3464,32 +3464,26 @@ function loginDemo(login,password){
 }
 
 async function restoreSession(){
-  // V64: não destrói uma sessão local só porque o Supabase está configurado
-  // mas indisponível, sem sessão ou sem o perfil correspondente.
-  if(initCentralClient()){
-    try{
-      if(await centralResolveCurrentIdentity()){showApp();return;}
-    }catch(error){
-      console.warn("Sessão central não restaurada; tentando sessão local.",error);
-    }
-  }
-
+  // V65: sessão local tem prioridade. Uma sessão antiga do Supabase não pode
+  // impedir o usuário de entrar com a credencial local correta.
   try{
-    const raw =
-      sessionStorage.getItem(STORAGE_KEYS.session) ||
-      localStorage.getItem(STORAGE_KEYS.session);
+    const raw=sessionStorage.getItem(STORAGE_KEYS.session)||localStorage.getItem(STORAGE_KEYS.session);
     const session=JSON.parse(raw||"null");
     if(session && validateSessionAccess(session)){
       state.user=session;
       showApp();
       return;
     }
-  }catch(error){
-    console.warn("Falha ao restaurar sessão local.",error);
-  }
+  }catch(error){console.warn("Sessão local inválida; seguindo para sessão central.",error);}
 
+  if(initCentralClient()){
+    try{
+      if(await centralResolveCurrentIdentity()){showApp();return;}
+    }catch(error){console.warn("Sessão central não restaurada.",error);}
+  }
   showLogin();
 }
+
 function showLogin(){
   // Sempre parar o louvor e limpar a sessão visual ao voltar para o login.
   stopBackgroundMusic();
@@ -3575,21 +3569,13 @@ function showApp(){
   }
 }
 
-async function logout(silent=false){
+function logout(silent=false){
   sessionStorage.removeItem(STORAGE_KEYS.session);
   localStorage.removeItem(STORAGE_KEYS.session);
   state.user=null;
   centralAuthUser=null;
   centralHydrated=false;
   clearTimeout(inactivityTimer);
-
-  // V64: encerra a sessão remota para ela não reaparecer ao recarregar a página.
-  if(centralReady && centralClient){
-    try{ await centralClient.auth.signOut(); }catch(error){
-      console.warn("Não foi possível encerrar a sessão central.",error);
-    }
-  }
-
   showLogin();
   if(!silent) toast("Sessão encerrada.");
 }
@@ -6708,28 +6694,22 @@ function initEvents(){
       return;
     }
     try{
-      // Primeiro tenta a autenticação central. Se a base/Internet/Auth falhar,
-      // usa imediatamente o mecanismo local já existente no HTML. Isso evita
-      // que o usuário fique impedido de entrar por uma falha externa.
-      let authenticated=false;
-      if(initCentralClient()) {
+      // V65: primeiro autentica localmente. Assim o acesso do Mestre e os
+      // acessos já salvos funcionam mesmo sem internet ou Supabase.
+      let authenticated=loginDemo(login,password);
+
+      // Para outros usuários, se o acesso local não existir, tenta a base central.
+      if(!authenticated && initCentralClient()) {
         try{
           const result=await centralLogin(login,password);
           authenticated=Boolean(result?.ok);
         }catch(error){
-          console.warn("Autenticação central indisponível; usando acesso local.",error);
+          console.warn("Autenticação central indisponível; mantendo acesso local.",error);
           authenticated=false;
         }
       }
 
       if(!authenticated){
-        // Se o Supabase chegou a criar uma sessão mas o perfil não foi resolvido,
-        // limpa essa sessão antes de usar o mecanismo local.
-        if(centralReady && centralClient && centralAuthUser){
-          try{ await centralClient.auth.signOut(); }catch(_){}
-          centralAuthUser=null;
-        }
-        const ok=loginDemo(login,password);
         if(!ok){
           const msg=lastLoginMessage||"Login ou senha inválidos.";
           toast(msg);
