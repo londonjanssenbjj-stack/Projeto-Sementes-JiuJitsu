@@ -2590,7 +2590,10 @@ async function centralPullState(){
       state.engagement=get("engagement");
     }
 
-    state.accesses=freshV72?[]:(Array.isArray(result.accesses)?result.accesses:[]).map(centralMapAccess);
+    // V73: depois da limpeza inicial, acessos novos precisam continuar
+  // visíveis no app. A própria base central já foi zerada, portanto não
+  // devemos apagar o resultado retornado pelo get-state.
+  state.accesses=(Array.isArray(result.accesses)?result.accesses:[]).map(centralMapAccess);
 
     if(state.user?.role==="guardian" && state.user.familyKey){
       state.students=state.students.filter(s=>studentFamilyKey(s)===state.user.familyKey);
@@ -2982,8 +2985,10 @@ const FRESH_START_CENTRAL_VERSION = "V72-CENTRAL-ZERADA-EXCETO-CRONOGRAMA-ATIVID
 function performFreshStartCutover(){
   try{
     const markerKey = "sementes_fresh_start_version";
-    // V72: sempre garante que os dados antigos de cadastro não reapareçam
-    // neste arquivo. Cronograma e atividades/engajamento são preservados.
+    // V73: a limpeza inicial acontece UMA ÚNICA VEZ.
+    // Depois disso, novos logins/acessos gerados não podem ser apagados
+    // a cada abertura do aplicativo. Cronograma e Atividades permanecem.
+    if(localStorage.getItem(markerKey)===FRESH_START_VERSION) return;
     const localKeys = [
       STORAGE_KEYS.students, STORAGE_KEYS.attendance, STORAGE_KEYS.enrollment,
       STORAGE_KEYS.secretaryDocuments, STORAGE_KEYS.documentSequence,
@@ -2994,10 +2999,9 @@ function performFreshStartCutover(){
       STORAGE_KEYS.universalAccessStartedAt
     ].filter(Boolean);
     localKeys.forEach(k=>{try{localStorage.removeItem(k);}catch(_){} });
-    // Mantém somente: schedule, scheduleArchive e engagement.
     localStorage.setItem(markerKey,FRESH_START_VERSION);
   }catch(error){
-    console.warn("V72: não foi possível limpar toda a base local.",error);
+    console.warn("V73: não foi possível concluir a limpeza inicial local.",error);
   }
 }
 
@@ -7242,7 +7246,25 @@ async function generateAccess(){
         <p class="small muted" style="margin-top:12px">Entregue os dados à pessoa. Ela deverá fazer a matrícula e redefinir a senha dentro dos 3 dias.</p>
         <div class="notice" style="margin-top:10px">🔐 Este acesso foi salvo na base central e também protegido com uma cópia local de contingência. Use exatamente o LOGIN e a SENHA exibidos acima.</div>`);
       toast("Novo login e senha gerados na base central.");return;
-    }catch(error){toast(centralSafeError(error,"Não foi possível gerar o acesso na base central."));return;}
+    }catch(error){
+      console.error("Falha ao gerar acesso central:",error);
+      // V73: se a Edge Function estiver indisponível, gera imediatamente
+      // uma credencial local para o Mestre não ficar sem retorno.
+      const prefix="SEMENTES";
+      const seq=nextAccessNumber(prefix);
+      const login=`${prefix}-${String(seq).padStart(4,"0")}`;
+      const password=randomPassword(10);
+      const createdAt=nowISO();
+      const access={id:`access-${Date.now()}`,name:`Acesso ${login}`,login,password,accessPassword:password,role:"guardian",studentId:null,active:true,temporaryPassword:true,createdAt,passwordExpiresAt:new Date(Date.now()+accessExpiryMs()).toISOString(),createdBy:state.user?.name||APP_CONFIG.masterName,central:false};
+      state.accesses=Array.isArray(state.accesses)?state.accesses:[];
+      state.accesses.push(access);
+      saveState();
+      renderMasterManagement();
+      renderAccessSecurityManagement();
+      modal("Novo acesso gerado",`<div class="success-notice"><strong>✓ Login e senha gerados.</strong><br>A conexão com a base central falhou, então este é um acesso local de contingência.</div><div class="card" style="background:#151515;margin-top:12px"><p class="body-text" style="margin:0 0 10px"><strong>LOGIN:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900">${escapeHTML(login)}</span></p><p class="body-text" style="margin:0"><strong>SENHA:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900;letter-spacing:1px">${escapeHTML(password)}</span></p></div><p class="small muted" style="margin-top:12px">Guarde estes dados. O acesso central deverá ser sincronizado quando a conexão com o banco estiver disponível.</p>`);
+      toast("Login e senha gerados em modo de contingência.");
+      return;
+    }
   }
   const prefix="SEMENTES";const seq=nextAccessNumber(prefix);const login=`${prefix}-${String(seq).padStart(4,"0")}`;const password=randomPassword(10);const createdAt=nowISO();
   const access={id:`access-${Date.now()}`,name:`Acesso ${login}`,login,password,accessPassword:password,role:"guardian",studentId:null,active:true,temporaryPassword:true,createdAt,passwordExpiresAt:new Date(Date.now()+accessExpiryMs()).toISOString(),createdBy:state.user?.name||APP_CONFIG.masterName};
