@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- V67 — assinatura corrigida para mouse, touch e caneta; canvas redimensionado ao abrir Matrícula -->
+  <!-- V67 — assinatura corrigida para mouse, touch e caneta; canvas redimensionado ao abrir Matrícula
+V68 — Login e Senha preservam maiúsculas e minúsculas -->
   <!-- V49 — logo oficial inserida na página inicial conforme referência visual -->
   <!-- V38 — fluxo matrícula + biometria + Alunos + família + atualização automática -->
   <!-- V33 — credenciais do Mestre atualizadas e geração de acesso 100% automática -->
@@ -637,10 +638,16 @@
     #secretaryDocumentsList > .card{width:100%;min-height:150px;padding:20px;}
     #secretaryDocumentsList .action-row{flex-wrap:wrap;}
 
-    /* V48 — todos os preenchimentos textuais em MAIÚSCULAS */
+    /* V68 — acesso permite letras maiúsculas E minúsculas.
+       O que for digitado no Login e na Senha é preservado exatamente como foi escrito. */
     input[type="text"], input[type="tel"], input[type="search"], input[type="email"],
     input[type="password"], textarea, select{ text-transform:uppercase; }
-    #login,#password,#ownPasswordNew,#ownPasswordConfirm,
+    #login, #password,
+    #loginForm #login, #loginForm #password{
+      text-transform:none !important;
+      -webkit-text-transform:none !important;
+    }
+    #ownPasswordNew,#ownPasswordConfirm,
     #newGuardianPassword,#newGuardianPasswordConfirm{ text-transform:uppercase !important; }
     input[type="date"], input[type="datetime-local"], input[type="month"],
     input[type="number"], input[type="time"], input[type="checkbox"],
@@ -794,7 +801,7 @@
             <label for="login">Login</label>
             <div class="input-wrap">
               <i data-lucide="user-round"></i>
-              <input id="login" class="input" autocomplete="username" autocapitalize="characters" autocorrect="off" spellcheck="false" required
+              <input id="login" class="input" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required
                      placeholder="Digite seu login">
             </div>
           </div>
@@ -803,7 +810,7 @@
             <label for="password">Senha</label>
             <div class="input-wrap">
               <i data-lucide="lock-keyhole"></i>
-              <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha">
+              <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha">
               <button class="icon-btn password-toggle" id="togglePassword" type="button"
                       aria-label="Mostrar senha" title="Mostrar senha">
                 <i data-lucide="eye"></i>
@@ -2608,8 +2615,8 @@ async function centralLogin(login,password){
   if(!initCentralClient()) return {ok:false,skipped:true};
   lastLoginMessage="";
 
-  const cleanLogin=String(login||"").trim().toLocaleUpperCase("pt-BR");
-  const rawPassword=String(password||"");
+  const cleanLogin=String(login??"").trim();
+  const rawPassword=String(password??"");
 
   if(normalizeLogin(cleanLogin)==="projeto sementes"){
     lastLoginMessage="O acesso compartilhado antigo foi encerrado. Solicite um login individual.";
@@ -6781,6 +6788,16 @@ function generateReport(){
    EVENTOS
    ----------------------------- */
 function initEvents(){
+
+  // V68: Login e Senha são campos de acesso e nunca devem ser transformados
+  // para MAIÚSCULAS pelo tratamento genérico dos demais formulários.
+  [$("login"), $("password")].forEach(el=>{
+    if(!el) return;
+    el.style.textTransform="none";
+    el.setAttribute("autocapitalize","none");
+    el.setAttribute("autocorrect","off");
+    el.setAttribute("spellcheck","false");
+  });
 
   document.addEventListener("input",e=>{
     const el=e.target;
