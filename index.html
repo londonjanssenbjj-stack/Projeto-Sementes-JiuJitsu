@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- V71 — Pós-biometria sincroniza e atualiza todas as abas; logo oficial somente no PDF
+  <!-- V72 — NOVA BASE: zera cadastros e preserva somente Cronograma/Atividades; restaura geração de login do responsável
+V71 — Pós-biometria sincroniza e atualiza todas as abas; logo oficial somente no PDF
 V68 — Login e Senha preservam maiúsculas e minúsculas -->
   <!-- V49 — logo oficial inserida na página inicial conforme referência visual -->
   <!-- V38 — fluxo matrícula + biometria + Alunos + família + atualização automática -->
@@ -2574,21 +2575,22 @@ async function centralPullState(){
     const get=type=>records.filter(r=>r.record_type===type).map(r=>r.data).filter(Boolean);
 
     centralApplyingRemote=true;
-    state.students=get("student");
-    state.attendance=get("attendance");
-    state.secretaryDocuments=get("secretary_document");
+    const freshV72=localStorage.getItem("sementes_fresh_start_central_version")===FRESH_START_CENTRAL_VERSION;
+    state.students=freshV72?[]:get("student");
+    state.attendance=freshV72?[]:get("attendance");
+    state.secretaryDocuments=freshV72?[]:get("secretary_document");
 
     if(centralRoleIsStaff()){
       state.schedule=get("schedule");
       state.scheduleArchive=get("schedule_archive");
-      state.championships=get("championship");
+      state.championships=freshV72?[]:get("championship");
       state.engagement=get("engagement");
-      state.passwordResets=get("password_reset");
+      state.passwordResets=freshV72?[]:get("password_reset");
     }else{
       state.engagement=get("engagement");
     }
 
-    state.accesses=(Array.isArray(result.accesses)?result.accesses:[]).map(centralMapAccess);
+    state.accesses=freshV72?[]:(Array.isArray(result.accesses)?result.accesses:[]).map(centralMapAccess);
 
     if(state.user?.role==="guardian" && state.user.familyKey){
       state.students=state.students.filter(s=>studentFamilyKey(s)===state.user.familyKey);
@@ -2774,6 +2776,7 @@ async function centralResolveCurrentIdentity(){
   sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
   await centralMigrateLocalState();
   await centralPullState();
+  await performFreshStartCentral();
   centralSubscribeRealtime();
   updateAccessSecurityNotice();
   return true;
@@ -2866,6 +2869,7 @@ async function centralLogin(login,password){
       sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
       clearFailedLogins();
       await centralPullState();
+      await performFreshStartCentral();
       centralSubscribeRealtime();
       updateAccessSecurityNotice();
       return {ok:true};
@@ -2921,6 +2925,7 @@ async function centralLogin(login,password){
     sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
     clearFailedLogins();
     await centralPullState();
+    await performFreshStartCentral();
     centralSubscribeRealtime();
     updateAccessSecurityNotice();
     return {ok:true};
@@ -2971,29 +2976,81 @@ const STORAGE_KEYS = {
   lastRegisteredStudent: "sementes_last_registered_student_v36",
   lastRegisteredGuardian: "sementes_last_registered_guardian_v37"
 };
-const FRESH_START_VERSION = "V43-COMECO-NOVO";
+const FRESH_START_VERSION = "V72-NOVA-BASE-EXCETO-CRONOGRAMA-ATIVIDADES";
+const FRESH_START_CENTRAL_VERSION = "V72-CENTRAL-ZERADA-EXCETO-CRONOGRAMA-ATIVIDADES";
 
 function performFreshStartCutover(){
   try{
     const markerKey = "sementes_fresh_start_version";
-    if(localStorage.getItem(markerKey) === FRESH_START_VERSION) return;
-
+    // V72: sempre garante que os dados antigos de cadastro não reapareçam
+    // neste arquivo. Cronograma e atividades/engajamento são preservados.
     const localKeys = [
       STORAGE_KEYS.students, STORAGE_KEYS.attendance, STORAGE_KEYS.enrollment,
       STORAGE_KEYS.secretaryDocuments, STORAGE_KEYS.documentSequence,
-      STORAGE_KEYS.accesses, STORAGE_KEYS.passwordResets, STORAGE_KEYS.engagement,
-      STORAGE_KEYS.schedule, STORAGE_KEYS.scheduleArchive, STORAGE_KEYS.championships,
-      STORAGE_KEYS.game, STORAGE_KEYS.lastRegisteredStudent,
-      STORAGE_KEYS.lastRegisteredGuardian, STORAGE_KEYS.masterPasswordOverride,
-      STORAGE_KEYS.masterCredentialVersion, STORAGE_KEYS.universalAccessStartedAt
+      STORAGE_KEYS.accesses, STORAGE_KEYS.passwordResets,
+      STORAGE_KEYS.championships, STORAGE_KEYS.game, STORAGE_KEYS.tasks,
+      STORAGE_KEYS.lastRegisteredStudent, STORAGE_KEYS.lastRegisteredGuardian,
+      STORAGE_KEYS.masterPasswordOverride, STORAGE_KEYS.masterCredentialVersion,
+      STORAGE_KEYS.universalAccessStartedAt
     ].filter(Boolean);
-
-    localKeys.forEach(k=>{try{localStorage.removeItem(k);}catch(_){}});
-    sessionStorage.removeItem(STORAGE_KEYS.session);
-    sessionStorage.removeItem("sementes_security");
+    localKeys.forEach(k=>{try{localStorage.removeItem(k);}catch(_){} });
+    // Mantém somente: schedule, scheduleArchive e engagement.
     localStorage.setItem(markerKey,FRESH_START_VERSION);
   }catch(error){
-    console.warn("Corte de base limpa V43 não pôde limpar algum item local.",error);
+    console.warn("V72: não foi possível limpar toda a base local.",error);
+  }
+}
+
+async function performFreshStartCentral(){
+  if(!centralReady || !centralAuthUser || state.user?.role!=="master") return;
+  try{
+    const markerKey="sementes_fresh_start_central_version";
+    if(localStorage.getItem(markerKey)===FRESH_START_CENTRAL_VERSION) return;
+
+    // Guarda somente o que o usuário pediu para permanecer.
+    const keepSchedule=Array.isArray(state.schedule)?JSON.parse(JSON.stringify(state.schedule)):[];
+    const keepArchive=Array.isArray(state.scheduleArchive)?JSON.parse(JSON.stringify(state.scheduleArchive)):[];
+    const keepEngagement=Array.isArray(state.engagement)?JSON.parse(JSON.stringify(state.engagement)):[];
+
+    await centralFunction("reset-project",{});
+
+    // Recoloca exclusivamente Cronograma/Atividades na base central.
+    const collections={
+      student:[],
+      attendance:[],
+      secretary_document:[],
+      engagement:keepEngagement,
+      schedule:keepSchedule,
+      schedule_archive:keepArchive,
+      championship:[],
+      password_reset:[]
+    };
+    await centralFunction("sync-state",{collections});
+
+    state.students=[];
+    state.attendance=[];
+    state.enrollment=null;
+    state.secretaryDocuments=[];
+    state.documentSequence=0;
+    state.accesses=[];
+    state.passwordResets=[];
+    state.championships=[];
+    state.game={oil:5,coins:0,streak:0,xp:0,unlockedEra:1,currentEra:0,currentNode:0,cards:["Adão"],lastDay:""};
+    state.schedule=keepSchedule;
+    state.scheduleArchive=keepArchive;
+    state.engagement=keepEngagement;
+
+    [STORAGE_KEYS.students,STORAGE_KEYS.attendance,STORAGE_KEYS.enrollment,
+     STORAGE_KEYS.secretaryDocuments,STORAGE_KEYS.documentSequence,STORAGE_KEYS.accesses,
+     STORAGE_KEYS.passwordResets,STORAGE_KEYS.championships,STORAGE_KEYS.game,
+     STORAGE_KEYS.lastRegisteredStudent,STORAGE_KEYS.lastRegisteredGuardian].filter(Boolean)
+      .forEach(k=>{try{localStorage.removeItem(k);}catch(_){}});
+    localStorage.setItem(markerKey,FRESH_START_CENTRAL_VERSION);
+    saveState();
+    toast("Nova base criada: cadastros zerados; Cronograma e Atividades preservados.");
+  }catch(error){
+    console.error("V72: falha ao zerar base central",error);
+    toast(centralSafeError(error,"Não foi possível concluir a limpeza da base central."));
   }
 }
 
@@ -3046,7 +3103,7 @@ const administrator = {
 
 const cells = [
   {name:"✨ Célula Preciosas", leader:"Rosalina", phone:"67998547152"},
-  {name:"✨ Célula Filhas", leader:"Fabiola", phone:"67996602974"},
+  {name:"✨ Célula Filhas", leader:"Rodner", phone:"67996997474"},
   {name:"✨ Célula Guerreiras", leader:"Adriana", phone:"67992489750"},
   {name:"✨ Célula Princesas", leader:"Lisbela", phone:"67996527268"},
   {name:"✨ Célula Bem-aventuradas", leader:"Edluce", phone:"67999180140"},
@@ -6922,7 +6979,11 @@ function renderMasterManagement(){
   const directorCard=$("directorAccessCard");
   const quickResetCard=$("quickResetCard");
 
-  if(generateBtn) generateBtn.style.display=isMaster()?"":"none";
+  if(generateBtn){
+    generateBtn.style.display="";
+    generateBtn.disabled=!isMaster();
+    generateBtn.title=isMaster()?"Gerar novo login e senha do responsável":"Somente o Administrador Mestre pode gerar acessos";
+  }
   if(directorCard) directorCard.style.display=isMaster()?"":"none";
   if(quickResetCard) quickResetCard.style.display=isMaster()?"":"none";
   if(card) card.style.display=isMaster()?"block":"none";
