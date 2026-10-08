@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <!-- V67 — assinatura corrigida para mouse, touch e caneta; canvas redimensionado ao abrir Matrícula -->
   <!-- V49 — logo oficial inserida na página inicial conforme referência visual -->
   <!-- V38 — fluxo matrícula + biometria + Alunos + família + atualização automática -->
   <!-- V33 — credenciais do Mestre atualizadas e geração de acesso 100% automática -->
@@ -434,8 +435,17 @@
 
     /* SIGNATURE */
     .signature-pad{
-      width:100%;height:190px;background:#fff;border-radius:14px;border:3px dashed #aaa;
+      display:block;
+      width:100%;
+      height:190px;
+      background:#fff;
+      border-radius:14px;
+      border:3px dashed #aaa;
       touch-action:none;
+      cursor:crosshair;
+      user-select:none;
+      -webkit-user-select:none;
+      -webkit-touch-callout:none;
     }
     .signature-tools{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 
@@ -3631,6 +3641,15 @@ function openPage(pageId){
   const page = $(pageId);
   if(page) page.classList.add("active");
 
+  // A página Matrícula estava inicialmente oculta (display:none), fazendo o
+  // canvas receber largura 0 durante a inicialização. Redimensionamos depois
+  // que a página fica visível para garantir assinatura com mouse, touch ou caneta.
+  if(pageId==="enrollmentPage"){
+    requestAnimationFrame(()=>{
+      resizeSignatureCanvas(true);
+    });
+  }
+
   document.querySelectorAll("#mainNav button").forEach(btn=>{
     btn.classList.toggle("active",btn.dataset.page===pageId);
   });
@@ -3744,58 +3763,148 @@ function whatsappBirthday(encodedName){
    ----------------------------- */
 let signatureCtx = null;
 let drawing = false;
+let signaturePointerId = null;
+let signatureBound = false;
+let signatureCssWidth = 0;
+let signatureCssHeight = 0;
+
+function configureSignatureContext(){
+  if(!signatureCtx) return;
+  signatureCtx.lineWidth = 2.2;
+  signatureCtx.lineCap = "round";
+  signatureCtx.lineJoin = "round";
+  signatureCtx.strokeStyle = "#111";
+  signatureCtx.fillStyle = "#111";
+}
+
+function resizeSignatureCanvas(preserve=true){
+  const canvas = $("signaturePad");
+  if(!canvas) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const cssWidth = Math.max(1, Math.round(rect.width));
+  const cssHeight = Math.max(1, Math.round(rect.height));
+
+  // A matrícula fica escondida inicialmente. Nesse caso o canvas pode ter largura
+  // zero quando o aplicativo é carregado. Só dimensionamos quando ele estiver visível.
+  if(cssWidth <= 1 || cssHeight <= 1) return;
+
+  const ratio = Math.max(1, window.devicePixelRatio || 1);
+
+  if(
+    signatureCtx &&
+    signatureCssWidth === cssWidth &&
+    signatureCssHeight === cssHeight &&
+    canvas.width === Math.round(cssWidth * ratio) &&
+    canvas.height === Math.round(cssHeight * ratio)
+  ){
+    return;
+  }
+
+  let oldImage = null;
+  let oldWidth = 0;
+  let oldHeight = 0;
+
+  if(preserve && canvas.width > 1 && canvas.height > 1){
+    try{
+      const temp = document.createElement("canvas");
+      temp.width = canvas.width;
+      temp.height = canvas.height;
+      const tctx = temp.getContext("2d");
+      tctx.drawImage(canvas,0,0);
+      oldImage = temp;
+      oldWidth = canvas.width;
+      oldHeight = canvas.height;
+    }catch(_){}
+  }
+
+  canvas.width = Math.round(cssWidth * ratio);
+  canvas.height = Math.round(cssHeight * ratio);
+  canvas.style.width = cssWidth + "px";
+  canvas.style.height = cssHeight + "px";
+
+  signatureCtx = canvas.getContext("2d");
+  signatureCtx.setTransform(ratio,0,0,ratio,0,0);
+  configureSignatureContext();
+
+  // Mantém a assinatura se o tamanho do canvas mudar.
+  if(oldImage){
+    try{
+      signatureCtx.drawImage(
+        oldImage,
+        0,0,oldWidth,oldHeight,
+        0,0,cssWidth,cssHeight
+      );
+      configureSignatureContext();
+    }catch(_){}
+  }
+
+  signatureCssWidth = cssWidth;
+  signatureCssHeight = cssHeight;
+}
+
+function signaturePoint(e){
+  const canvas = $("signaturePad");
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top
+  };
+}
 
 function setupSignature(){
   const canvas = $("signaturePad");
   if(!canvas) return;
 
-  const resize = ()=>{
-    const ratio = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * ratio;
-    canvas.height = rect.height * ratio;
-    signatureCtx = canvas.getContext("2d");
-    signatureCtx.scale(ratio,ratio);
-    signatureCtx.lineWidth = 2.2;
-    signatureCtx.lineCap = "round";
-    signatureCtx.strokeStyle = "#111";
-  };
+  // O canvas pode estar oculto no carregamento. O dimensionamento será repetido
+  // quando a página Matrícula for aberta.
+  resizeSignatureCanvas(false);
 
-  resize();
-  window.addEventListener("resize",resize);
+  if(signatureBound) return;
+  signatureBound = true;
 
-  const point = e=>{
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return {x:clientX-rect.left,y:clientY-rect.top};
-  };
+  const start = e=>{
+    if(e.pointerType === "mouse" && e.button !== 0) return;
+    if(!signatureCtx) resizeSignatureCanvas(false);
+    if(!signatureCtx) return;
 
-  const start=e=>{
     e.preventDefault();
-    drawing=true;
-    const p=point(e);
+    drawing = true;
+    signaturePointerId = e.pointerId;
+
+    try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
+
+    const p = signaturePoint(e);
     signatureCtx.beginPath();
     signatureCtx.moveTo(p.x,p.y);
   };
 
-  const move=e=>{
-    if(!drawing) return;
+  const move = e=>{
+    if(!drawing || e.pointerId !== signaturePointerId) return;
     e.preventDefault();
-    const p=point(e);
+
+    const p = signaturePoint(e);
     signatureCtx.lineTo(p.x,p.y);
     signatureCtx.stroke();
   };
 
-  const end=()=>drawing=false;
+  const end = e=>{
+    if(e.pointerId !== signaturePointerId) return;
+    drawing = false;
+    signaturePointerId = null;
+    try{ canvas.releasePointerCapture(e.pointerId); }catch(_){}
+  };
 
-  canvas.addEventListener("mousedown",start);
-  canvas.addEventListener("mousemove",move);
-  window.addEventListener("mouseup",end);
+  canvas.addEventListener("pointerdown",start,{passive:false});
+  canvas.addEventListener("pointermove",move,{passive:false});
+  canvas.addEventListener("pointerup",end,{passive:false});
+  canvas.addEventListener("pointercancel",end,{passive:false});
+  canvas.addEventListener("lostpointercapture",()=>{
+    drawing = false;
+    signaturePointerId = null;
+  });
 
-  canvas.addEventListener("touchstart",start,{passive:false});
-  canvas.addEventListener("touchmove",move,{passive:false});
-  canvas.addEventListener("touchend",end);
+  window.addEventListener("resize",()=>resizeSignatureCanvas(true));
 }
 
 function clearSignature(){
