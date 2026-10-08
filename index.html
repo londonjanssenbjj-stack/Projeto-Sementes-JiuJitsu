@@ -648,7 +648,9 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
       -webkit-text-transform:none !important;
     }
     #ownPasswordNew,#ownPasswordConfirm,
-    #newGuardianPassword,#newGuardianPasswordConfirm{ text-transform:uppercase !important; }
+    #newGuardianPassword,#newGuardianPasswordConfirm,
+    #responsibleFinalPassword,#responsibleFinalPasswordConfirm,
+    #guardianResetNew,#guardianResetConfirm{ text-transform:none !important; }
     input[type="date"], input[type="datetime-local"], input[type="month"],
     input[type="number"], input[type="time"], input[type="checkbox"],
     input[type="radio"], input[type="range"], input[type="file"], input[type="color"]{ text-transform:none; }
@@ -1461,6 +1463,47 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
             <i class="icon-gold" data-lucide="users-round"></i>
           </div>
           <button id="addAnotherChildBtn" class="btn btn-gold" type="button">➕ CADASTRAR OUTRO FILHO</button>
+        </div>
+
+        <div id="guardianPasswordPanel" class="card gold-border" style="margin-bottom:14px;display:none;border:2px solid var(--gold);box-shadow:0 0 24px rgba(212,175,55,.16)">
+          <div class="card-header">
+            <div>
+              <h2 class="section-title">🔐 REDEFINIR SENHA DO RESPONSÁVEL</h2>
+              <span class="small" style="color:#f4d76e;font-weight:800">ATENÇÃO: a senha provisória antiga dura somente 3 dias.</span>
+            </div>
+            <i class="icon-gold" data-lucide="key-round"></i>
+          </div>
+          <div class="notice" style="margin-bottom:12px;border-color:rgba(244,215,110,.65);background:rgba(212,175,55,.09);color:#f4d76e">
+            <strong>⚠️ REDEFINIÇÃO OBRIGATÓRIA DO ACESSO</strong><br>
+            O login abaixo é o acesso gerado automaticamente para o responsável. Crie uma nova senha definitiva.
+            Depois de salva, a senha não fica mais sujeita ao prazo de 3 dias.
+          </div>
+          <form id="guardianPasswordPanelForm">
+            <div class="form-grid">
+              <div class="field">
+                <label>Aluno / vínculo da família</label>
+                <select id="guardianResetStudent" class="select"></select>
+              </div>
+              <div class="field">
+                <label>NOVO LOGIN GERADO</label>
+                <input id="guardianResetLogin" class="input" disabled value="Aguardando cadastro">
+              </div>
+              <div class="field">
+                <label>NOVA SENHA</label>
+                <input id="guardianResetNew" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Digite a nova senha">
+              </div>
+              <div class="field">
+                <label>CONFIRMAR NOVA SENHA</label>
+                <input id="guardianResetConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Digite novamente a nova senha">
+              </div>
+            </div>
+            <div class="action-row" style="margin-top:6px">
+              <button id="guardianResetSubmit" class="btn btn-gold" type="submit" style="min-height:48px;font-size:14px;font-weight:900">
+                🔐 REDEFINIR SENHA
+              </button>
+            </div>
+            <div id="guardianResetStatus" class="success-notice hidden" style="margin-top:12px;text-align:center;font-size:14px;font-weight:900"></div>
+          </form>
         </div>
 
         <div class="card" style="margin-bottom:14px">
@@ -2507,10 +2550,8 @@ function toggleResponsiblePassword(id,button){const input=$(id);if(!input)return
 
     form.addEventListener("submit",async e=>{
       e.preventDefault();
-      const password=$("responsibleFinalPassword").value.toLocaleUpperCase("pt-BR");
-      const confirmPassword=$("responsibleFinalPasswordConfirm").value.toLocaleUpperCase("pt-BR");
-      $("responsibleFinalPassword").value=password;
-      $("responsibleFinalPasswordConfirm").value=confirmPassword;
+      const password=String($("responsibleFinalPassword").value||"");
+      const confirmPassword=String($("responsibleFinalPasswordConfirm").value||"");
       if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");return;}
       if(password!==confirmPassword){toast("As senhas não conferem.");return;}
 
@@ -4341,8 +4382,10 @@ function initEnrollment(){
 
     const signature=$("signaturePad").toDataURL("image/png");
 
+    const enrollmentReturnPage=state.enrollment?.returnToPage || "enrollmentPage";
     state.enrollment={
       id:"enrollment-"+Date.now(),
+      returnToPage:enrollmentReturnPage,
       date:todayISO(),
       city:APP_CONFIG.city,
       student:{
@@ -4640,7 +4683,11 @@ async function captureFace(){
     student.familyKey=state.user.familyKey||centralFamilyKey(student.guardian,student.phone);
     state.user.familyKey=student.familyKey;
     state.user.guardianName=student.guardian||state.user.guardianName||"";
+    // Todos os filhos da mesma família exibem o mesmo login definitivo do responsável.
+    student.accessLogin=state.user.login || student.accessLogin || responsibleGeneratedLogin(student.guardian,student.documentNumber);
     sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    (state.students||[]).filter(s=>s.familyKey===student.familyKey || normalizePersonName(s.guardian)===normalizePersonName(student.guardian))
+      .forEach(s=>{ if(!s.accessLogin) s.accessLogin=student.accessLogin; });
   }else{
     student.familyKey=student.familyKey||"";
   }
@@ -4688,6 +4735,32 @@ async function captureFace(){
   toast("✅ BIOMETRIA CADASTRADA COM SUCESSO.");
   setTimeout(resetEnrollmentFormAfterCompletion,1500);
 }
+function prepareEnrollmentFormForNewChild(){
+  const form=$("enrollmentForm");
+  if(form) form.reset();
+  const finalizeButton=document.querySelector('#enrollmentForm button[type="submit"]');
+  if(finalizeButton){
+    finalizeButton.disabled=false;
+    finalizeButton.style.display="";
+    finalizeButton.textContent="💾 Finalizar Documento";
+  }
+  clearSignature();
+  const preview=$("facePreview");
+  if(preview){preview.src="";preview.classList.add("hidden");}
+  const video=$("cameraVideo");
+  if(video){try{video.pause();}catch(_){} video.srcObject=null;}
+  if(faceStream){try{faceStream.getTracks().forEach(t=>t.stop());}catch(_){} faceStream=null;}
+  $("step1Dot")?.classList.add("active");
+  $("step2Dot")?.classList.remove("active");
+  const bio=$("biometricSection");
+  if(bio){bio.classList.add("hidden");bio.style.display="none";bio.setAttribute("aria-hidden","true");}
+  const status=$("biometricStatus");
+  if(status){status.classList.add("hidden");status.innerHTML="🔊 <strong>Biometria realizada com sucesso.</strong>";}
+  const success=$("enrollmentSuccess");
+  if(success){success.classList.add("hidden");success.style.display="none";success.innerHTML="";}
+  $("enrollmentDate").textContent=`${APP_CONFIG.city}, ${formatDate(todayISO())}`;
+}
+
 function resetEnrollmentFormAfterCompletion(){
   const form=$("enrollmentForm");
   if(form) form.reset();
@@ -4737,23 +4810,31 @@ function resetEnrollmentFormAfterCompletion(){
   }
 
   // Mantém o vínculo da família/responsável, mas elimina o rascunho do cadastro anterior.
+  const returnToPage=state.enrollment?.returnToPage || "enrollmentPage";
   state.enrollment=null;
   saveState();
   refreshAllStudentDerivedViews();
+  renderStudents();
 
-  // Volta ao início visual da Matrícula, deixando o primeiro campo pronto para o próximo cadastro.
-  const enrollmentPage=$("enrollmentPage");
-  if(enrollmentPage){
-    enrollmentPage.classList.add("active");
-    enrollmentPage.style.display="block";
+  if(returnToPage==="studentsPage"){
+    // Cadastro iniciado em Alunos (ex.: segundo filho): volta para Alunos
+    // somente depois que o novo cadastro e a biometria já foram gravados.
+    openPage("studentsPage");
+    renderStudents();
+    setTimeout(()=>{
+      $("studentsPage")?.scrollIntoView({behavior:"smooth",block:"start"});
+    },180);
+    toast("✅ Segundo filho cadastrado com sucesso. A aba Alunos foi atualizada.");
+    return;
   }
+
+  // Fluxo normal iniciado em Matrícula: volta ao início do PASSO 1.
+  openPage("enrollmentPage");
   setTimeout(()=>{
     const firstField=$("studentName");
     if(firstField){
       firstField.focus({preventScroll:true});
       firstField.scrollIntoView({behavior:"smooth",block:"start"});
-    }else if(enrollmentPage){
-      enrollmentPage.scrollIntoView({behavior:"smooth",block:"start"});
     }
   },180);
 
@@ -4855,16 +4936,148 @@ function renderFamilyChildrenCard(){
   if(btn && !btn.dataset.bound){
     btn.dataset.bound="1";
     btn.addEventListener("click",()=>{
+      // O próximo cadastro começou pela aba Alunos: depois da biometria,
+      // o fluxo deverá voltar automaticamente para Alunos.
+      state.enrollment={...(state.enrollment||{}),returnToPage:"studentsPage"};
+      saveState();
+      prepareEnrollmentFormForNewChild();
       openPage("enrollmentPage");
       setTimeout(()=>{
-        resetEnrollmentFormAfterCompletion();
-      },80);
+        $("studentName")?.focus({preventScroll:true});
+      },120);
     });
+  }
+}
+
+function renderGuardianPasswordPanel(){
+  const panel=$("guardianPasswordPanel");
+  const select=$("guardianResetStudent");
+  const login=$("guardianResetLogin");
+  if(!panel||!select||!login) return;
+
+  const role=state.user?.role;
+  const allowedRole=["master","guardian","director"].includes(role);
+  if(!allowedRole){
+    panel.style.display="none";
+    return;
+  }
+
+  const family=visibleStudentsForCurrentUser();
+  const students=(role==="master"||role==="director") ? (state.students||[]) : family;
+  if(!students.length){
+    panel.style.display="none";
+    return;
+  }
+  panel.style.display="block";
+
+  const current=select.value;
+  select.innerHTML=students.map(s=>`<option value="${escapeHTML(s.id)}">${escapeHTML(s.name)} — ${escapeHTML(s.guardian||"Responsável não informado")}</option>`).join("");
+  if(students.some(s=>s.id===current)) select.value=current;
+
+  const updateLogin=()=>{
+    const s=state.students.find(x=>x.id===select.value) || students[0];
+    if(!s) return;
+    let access=findAccessForStudent(s);
+    let generated=s.accessLogin||access?.login||((role==="guardian"&&state.user?.login)?state.user.login:responsibleGeneratedLogin(s.guardian,s.documentNumber));
+    if(role==="guardian" && state.user?.login) generated=state.user.login;
+    login.value=generated||"AINDA NÃO GERADO";
+  };
+  updateLogin();
+
+  if(!select.dataset.bound){
+    select.dataset.bound="1";
+    select.addEventListener("change",updateLogin);
+  }
+  const form=$("guardianPasswordPanelForm");
+  if(form && !form.dataset.bound){
+    form.dataset.bound="1";
+    form.addEventListener("submit",submitVisibleGuardianPasswordReset);
+  }
+}
+
+async function submitVisibleGuardianPasswordReset(event){
+  event.preventDefault();
+  const select=$("guardianResetStudent");
+  const newField=$("guardianResetNew");
+  const confirmField=$("guardianResetConfirm");
+  const status=$("guardianResetStatus");
+  const submit=$("guardianResetSubmit");
+  let s=state.students.find(x=>x.id===select?.value);
+  if(!s){toast("Selecione um aluno/família.");return;}
+
+  const allowed=state.user?.role==="master" ||
+    (["guardian","director"].includes(state.user?.role) && studentFamilyKey(s)===state.user?.familyKey);
+  if(!allowed){toast("Você não tem permissão para redefinir esta senha.");return;}
+
+  const password=String(newField?.value||"");
+  const confirm=String(confirmField?.value||"");
+  if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");newField?.focus();return;}
+  if(password!==confirm){toast("As senhas não conferem.");confirmField?.focus();return;}
+
+  let access=findAccessForStudent(s);
+  if(!access && state.user?.role==="guardian") access=state.accesses.find(a=>a.id===state.user.id);
+  if(!access && state.user?.role==="director") access=state.accesses.find(a=>a.login===s.accessLogin || a.familyKey===s.familyKey);
+  const targetAccessId=state.user?.role==="guardian" ? state.user.id : access?.id;
+  const loginValue=(state.user?.role==="guardian" ? state.user.login : (access?.login||s.accessLogin||responsibleGeneratedLogin(s.guardian,s.documentNumber))) || "";
+  if(!targetAccessId && centralReady&&centralAuthUser){toast("Acesso do responsável não localizado na base central.");return;}
+
+  if(submit) submit.disabled=true;
+  if(status){status.classList.remove("hidden");status.className="small muted";status.textContent="Salvando nova senha...";}
+  try{
+    if(centralReady&&centralAuthUser&&targetAccessId){
+      await centralFunction("reset-password",{targetAccessId,newPassword:password});
+      await centralPullState();
+      // A sincronização pode substituir os objetos locais; recarrega o aluno
+      // e o acesso antes de espelhar a alteração no estado local.
+      s=state.students.find(x=>x.id===select?.value) || s;
+      access=findAccessForStudent(s) || access;
+    }
+
+    if(access){
+      access.password=password;
+      access.accessPassword=password;
+      access.active=true;
+      access.temporaryPassword=false;
+      access.passwordExpiresAt="";
+      access.passwordResetAt=nowISO();
+      access.login=loginValue;
+    }
+    (state.students||[]).filter(x=>studentFamilyKey(x)===studentFamilyKey(s) || normalizePersonName(x.guardian)===normalizePersonName(s.guardian))
+      .forEach(x=>x.accessLogin=loginValue);
+    s.accessLogin=loginValue;
+
+    if(state.user?.role==="guardian"){
+      state.user.login=loginValue;
+      state.user.email=loginValue;
+      state.user.temporaryPassword=false;
+      state.user.passwordExpiresAt=null;
+      sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    }
+
+    state.passwordResets.unshift(passwordResetLogEntry(s.guardian||s.name,loginValue,"guardian"));
+    saveState();
+    refreshAllStudentDerivedViews();
+    renderStudents();
+    updateAccessSecurityNotice();
+
+    if(status){
+      status.className="success-notice";
+      status.innerHTML="✅ SENHA REDEFINIDA COM SUCESSO.<br><span class='small'>O acesso agora não expira mais.</span>";
+    }
+    newField.value="";
+    confirmField.value="";
+    toast("✅ Senha redefinida com sucesso.");
+  }catch(error){
+    if(status){status.className="notice";status.textContent="Não foi possível redefinir a senha. Tente novamente."}
+    toast(centralSafeError(error,"Não foi possível redefinir a senha."));
+  }finally{
+    if(submit) submit.disabled=false;
   }
 }
 
 function renderStudents(){
   renderFamilyChildrenCard();
+  renderGuardianPasswordPanel();
   const search=($("studentSearch")?.value||"").toLowerCase().trim();
   const filter=$("studentFilter")?.value||"all";
 
@@ -4964,6 +5177,7 @@ function openStudent(id){
           <li>Número do documento: <strong>${escapeHTML(s.documentNumber||"AINDA NÃO GERADO")}</strong></li>
           <li>Data do cadastro: <strong>${escapeHTML(formatDate(s.enrollmentDate||s.startDate||todayISO()))}</strong></li>
           <li>Escola: <strong>${escapeHTML(s.school||"Não informado")}</strong></li>
+          <li>Bairro: <strong>${escapeHTML(s.neighborhood||"Não informado")}</strong></li>
           <li>Endereço: <strong>${escapeHTML(s.address||"Não informado")}</strong></li>
           <li>Responsável: <strong>${escapeHTML(s.guardian||"Não informado")}</strong></li>
           <li>Parentesco: <strong>${escapeHTML(s.guardianRelation||"Não informado")}</strong></li>
@@ -5019,10 +5233,8 @@ async function resetGuardianPassword(id){
     </form>`);
   setTimeout(()=>$("guardianPasswordForm")?.addEventListener("submit",async e=>{
     e.preventDefault();
-    const password=$("newGuardianPassword").value.toLocaleUpperCase("pt-BR");
-    const confirm=$("newGuardianPasswordConfirm").value.toLocaleUpperCase("pt-BR");
-    $("newGuardianPassword").value=password;
-    $("newGuardianPasswordConfirm").value=confirm;
+    const password=String($("newGuardianPassword").value||"");
+    const confirm=String($("newGuardianPasswordConfirm").value||"");
     if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");return;}
     if(password!==confirm){toast("As senhas não conferem.");return;}
     if(centralReady&&centralAuthUser){
