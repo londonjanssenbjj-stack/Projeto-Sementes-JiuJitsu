@@ -841,6 +841,16 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
     @media(max-width:620px){.territory-kpi-grid{grid-template-columns:1fr 1fr}.territory-map-list{grid-template-columns:1fr}.exec-card-grid{grid-template-columns:1fr 1fr}.exec-event-cards{grid-template-columns:1fr}.exec-summary{grid-template-columns:1fr}.exec-mini-grid{grid-template-columns:1fr 1fr}.exec-bar-row{grid-template-columns:105px 1fr 32px}.territory-map-canvas-dashboard{height:285px}}
 
 
+
+    .faith-unified-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+    .faith-unified-block{border:1px solid #4b3e1a;border-radius:13px;background:#151515;padding:12px;min-width:0}
+    .faith-unified-title{font-size:12px;font-weight:900;color:var(--gold2);letter-spacing:.5px;margin-bottom:4px}
+    .faith-unified-block .exec-chart{min-height:160px}
+    .territory-svg-map{position:relative;width:100%;height:330px;border:1px solid #4a3d19;border-radius:13px;overflow:hidden;background:radial-gradient(circle at 52% 48%,#25210f 0%,#141414 42%,#0e0e0e 100%)}
+    .territory-svg-map svg{display:block;width:100%;height:100%}
+    .territory-map-note{font-size:9px;color:#8f8f8f;text-align:center;padding:4px 8px}
+    @media(max-width:900px){.faith-unified-grid{grid-template-columns:1fr}.territory-map-wrap{grid-template-columns:1fr}}
+
 </style>
   <link rel="icon" type="image/png" href="favicon-64.png">
 </head>
@@ -1860,40 +1870,9 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
             </div>
           </article>
         </section>
-
         <div class="exec-grid exec-section">
-          <article class="card exec-module">
-            <div class="card-header">
-              <div><h2 class="section-title">ALUNOS POR BAIRRO</h2><span class="small muted">Somente bairros realmente informados nos cadastros</span></div>
-              <i class="icon-gold" data-lucide="chart-bar"></i>
-            </div>
-            <div id="dashboardStudentsByNeighborhood" class="exec-chart"></div>
-          </article>
-          <article class="card exec-module">
-            <div class="card-header">
-              <div><h2 class="section-title">COBERTURA TERRITORIAL</h2><span class="small muted">Bairros alcançados x territórios a expandir</span></div>
-              <i class="icon-gold" data-lucide="chart-pie"></i>
-            </div>
-            <div id="dashboardCoverageChart" class="exec-donut"></div>
-            <div id="dashboardCoverageLegend" class="dashboard-legend"></div>
-          </article>
-        </div>
-
-        <div class="exec-grid exec-section">
-          <article class="card exec-module">
-            <div class="card-header">
-              <div><h2 class="section-title">PRÓXIMAS ATIVIDADES</h2><span class="small muted">Eventos futuros apresentados em cards</span></div>
-              <i class="icon-gold" data-lucide="calendar-clock"></i>
-            </div>
-            <div id="dashboardNextEvents" class="exec-event-cards"></div>
-          </article>
-          <article class="card exec-module">
-            <div class="card-header">
-              <div><h2 class="section-title">POTENCIAL DE EXPANSÃO</h2><span class="small muted">Territórios sem registro na base atual</span></div>
-              <i class="icon-gold" data-lucide="expand"></i>
-            </div>
-            <div id="dashboardExpansionCard" class="exec-card-grid"></div>
-          </article>
+          <article class="card exec-module"><div class="card-header"><div><h2 class="section-title">COBERTURA TERRITORIAL</h2><span class="small muted">Bairros alcançados x territórios a expandir</span></div><i class="icon-gold" data-lucide="chart-pie"></i></div><div id="dashboardCoverageChart" class="exec-donut"></div><div id="dashboardCoverageLegend" class="dashboard-legend"></div></article>
+          <article class="card exec-module"><div class="card-header"><div><h2 class="section-title">POTENCIAL DE EXPANSÃO</h2><span class="small muted">Territórios sem registro na base atual</span></div><i class="icon-gold" data-lucide="expand"></i></div><div id="dashboardExpansionCard" class="exec-card-grid"></div></article>
         </div>
 
         <!-- PERFIL DOS ALUNOS -->
@@ -1902,7 +1881,6 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
           <div class="exec-grid three">
             <article class="card exec-module"><div class="card-header"><div><h3 class="section-title">FAIXA ETÁRIA</h3></div><i class="icon-gold" data-lucide="chart-bar"></i></div><div id="dashboardAgeChart" class="exec-chart"></div></article>
             <article class="card exec-module"><div class="card-header"><div><h3 class="section-title">SEXO</h3></div><i class="icon-gold" data-lucide="users"></i></div><div id="dashboardSexChart" class="exec-chart"></div></article>
-            <article class="card exec-module"><div class="card-header"><div><h3 class="section-title">GRADUAÇÃO / FAIXA</h3></div><i class="icon-gold" data-lucide="award"></i></div><div id="dashboardBeltChart" class="exec-chart"></div></article>
           </div>
         </section>
 
@@ -1929,23 +1907,21 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
 
         <!-- FÉ -->
         <section class="exec-section">
-          <div class="exec-section-title"><i class="icon-gold" data-lucide="church"></i><div><h2 class="section-title" style="margin:0">DASHBOARD GERENCIAL — FÉ</h2><span class="small muted">Entradas nas células, pedidos de oração e pedidos de batismo</span></div></div>
-          <div id="dashboardFaithKpis" class="exec-card-grid"></div>
-          <div class="exec-grid exec-section">
-            <article class="card exec-module"><div class="card-header"><div><h3 class="section-title">ENTRADAS POR MÊS</h3></div><i class="icon-gold" data-lucide="chart-no-axes-combined"></i></div><div id="dashboardFaithEntriesChart" class="exec-chart"></div></article>
-            <article class="card exec-module"><div class="card-header"><div><h3 class="section-title">PEDIDOS DE ORAÇÃO POR MÊS</h3></div><i class="icon-gold" data-lucide="hand-heart"></i></div><div id="dashboardFaithPrayerChart" class="exec-chart"></div></article>
-          </div>
-          <div class="exec-grid three">
-            <article class="card exec-module"><div class="card-header"><div><h3 class="section-title">PEDIDOS DE BATISMO POR MÊS</h3></div><i class="icon-gold" data-lucide="droplets"></i></div><div id="dashboardFaithBaptismChart" class="exec-chart"></div></article>
-            <article class="card exec-module"><div class="card-header"><div><h3 class="section-title">PARTICIPAÇÃO POR CÉLULA</h3></div><i class="icon-gold" data-lucide="users-round"></i></div><div id="dashboardFaithCellChart" class="exec-chart"></div></article>
-            <article class="card exec-module"><div class="card-header"><div><h3 class="section-title">RESUMO MENSAL</h3></div><i class="icon-gold" data-lucide="calendar"></i></div><div id="dashboardFaithSummary" class="exec-card-grid"></div></article>
-          </div>
-          <details class="exec-details"><summary>Ver tabela detalhada da Fé</summary><div id="dashboardFaithMetrics" class="table-wrap" style="margin-top:10px"></div></details>
+          <div class="exec-section-title"><i class="icon-gold" data-lucide="church"></i><div><h2 class="section-title" style="margin:0">DASHBOARD GERENCIAL — FÉ</h2><span class="small muted">Visão integrada das células, oração, batismo e movimento mensal</span></div></div>
+          <article class="card exec-module">
+            <div id="dashboardFaithKpis" class="exec-card-grid"></div>
+            <div class="faith-unified-grid">
+              <div class="faith-unified-block"><div class="faith-unified-title">PARTICIPAÇÃO POR CÉLULA</div><div id="dashboardFaithCellChart" class="exec-chart"></div></div>
+              <div class="faith-unified-block"><div class="faith-unified-title">PEDIDOS DE ORAÇÃO POR MÊS</div><div id="dashboardFaithPrayerChart" class="exec-chart"></div></div>
+              <div class="faith-unified-block"><div class="faith-unified-title">PEDIDOS DE BATISMO POR MÊS</div><div id="dashboardFaithBaptismChart" class="exec-chart"></div></div>
+              <div class="faith-unified-block"><div class="faith-unified-title">RESUMO MENSAL</div><div id="dashboardFaithSummary" class="exec-card-grid"></div></div>
+            </div>
+          </article>
         </section>
 
-        <!-- PALESTRAS & TREINAMENTOS -->
+        <!-- DASHBOARD GERENCIAL — ATIVIDADES -->
         <section class="exec-section">
-          <div class="exec-section-title"><i class="icon-gold" data-lucide="presentation"></i><div><h2 class="section-title" style="margin:0">PALESTRAS & TREINAMENTOS</h2><span class="small muted">Cronograma classificado automaticamente pelos registros reais</span></div></div>
+          <div class="exec-section-title"><i class="icon-gold" data-lucide="presentation"></i><div><h2 class="section-title" style="margin:0">DASHBOARD GERENCIAL — ATIVIDADES</h2><span class="small muted">Cronograma classificado automaticamente pelos registros reais</span></div></div>
           <div class="exec-grid three">
             <article class="card exec-module"><div class="card-header"><div><h3 class="section-title">ATIVIDADES POR TIPO</h3></div><i class="icon-gold" data-lucide="chart-bar"></i></div><div id="dashboardTrainingTypeChart" class="exec-chart"></div></article>
             <article class="card exec-module"><div class="card-header"><div><h3 class="section-title">ATIVIDADES POR SITUAÇÃO</h3></div><i class="icon-gold" data-lucide="chart-pie"></i></div><div id="dashboardTrainingStatusChart" class="exec-chart"></div></article>
@@ -6209,31 +6185,59 @@ function renderProjectDashboard(){
 
 let dashboardTerritorialMap=null;
 let dashboardTerritorialLayer=null;
-async function renderDashboardTerritoryMap(territoryNames,byNeighborhood){
+function renderDashboardTerritoryMap(territoryNames,byNeighborhood){
   const el=$("dashboardTerritorialMapCanvas");
-  if(!el||!window.L) return;
-  if(!dashboardTerritorialMap){
-    dashboardTerritorialMap=L.map(el,{zoomControl:true,scrollWheelZoom:true,attributionControl:true});
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(dashboardTerritorialMap);
-    dashboardTerritorialLayer=L.layerGroup().addTo(dashboardTerritorialMap);
-    dashboardTerritorialMap.setView([-19.008,-57.652],12);
-  }
-  setTimeout(()=>dashboardTerritorialMap.invalidateSize(),60);
-  dashboardTerritorialLayer.clearLayers();
-  const entries=territoryNames.map(name=>[name,byNeighborhood[normalizeNeighborhoodName(name)]||0]);
-  const reached=entries.filter(x=>x[1]>0);
-  const geocodeEntries=entries;
-  const colors={reached:"#5ee28c",expand:"#f1d77b",empty:"#666"};
-  const results=[];
-  for(const [name,count] of geocodeEntries){
-    try{const geo=await geocodeCorumbaPlace(name);if(!geo)continue;results.push([name,count,geo]);}catch(_){}}
-  results.forEach(([name,count,geo])=>{
-    const status=count>0?"reached":"empty";
-    const marker=L.circleMarker([geo.lat,geo.lon],{radius:count>0?Math.min(22,8+Math.sqrt(count)*4):6,color:"#3f3f3f",weight:1.2,fillColor:count>0?colors.reached:colors.empty,fillOpacity:count>0?.82:.45}).addTo(dashboardTerritorialLayer);
-    marker.bindTooltip(`<strong>${escapeHTML(name)}</strong><br>${count} ${count===1?"aluno":"alunos"}`,{direction:"top"});
+  if(!el) return;
+  const names=Array.isArray(territoryNames)?territoryNames:[];
+  const positions=[
+    [12,18],[28,13],[46,10],[65,13],[84,18],
+    [8,34],[24,30],[42,27],[61,28],[79,32],[91,35],
+    [12,51],[29,47],[47,45],[66,47],[84,52],
+    [8,69],[24,64],[43,63],[62,66],[80,70],[91,78],
+    [48,83]
+  ];
+  const width=1000,height=560;
+  const esc=window.escapeHTML||((v)=>String(v??""));
+  const max=Math.max(1,...names.map(n=>Number(byNeighborhood[normalizeNeighborhoodName(n)]||0)));
+  const nodes=names.map((name,i)=>{
+    const count=Number(byNeighborhood[normalizeNeighborhoodName(name)]||0);
+    const [x,y]=positions[i]||[50,50];
+    const reached=count>0;
+    const fill=reached?"#5ee28c":"#f1d77b";
+    const r=reached?Math.min(25,12+Math.sqrt(count)*7):9;
+    return {name,count,x,y,fill,r};
   });
-  if(results.length){const bounds=L.featureGroup(dashboardTerritorialLayer.getLayers()).getBounds();if(bounds.isValid())dashboardTerritorialMap.fitBounds(bounds.pad(.15));}
+  const nodeSvg=nodes.map(n=>{
+    const cx=n.x*10, cy=n.y*5.6;
+    const label=n.name.length>17?n.name.slice(0,16)+"…":n.name;
+    return `<g class="territory-node" tabindex="0" role="img" aria-label="${esc(n.name)}: ${n.count} aluno(s)" transform="translate(${cx},${cy})">
+      <circle r="${n.r}" fill="${n.fill}" fill-opacity=".88" stroke="#161616" stroke-width="4"></circle>
+      <circle r="${Math.max(3,n.r-5)}" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="1"></circle>
+      <text y="-18" text-anchor="middle" fill="#f3f3f3" font-size="14" font-weight="800" font-family="Arial,sans-serif">${esc(label)}</text>
+      <text y="5" text-anchor="middle" fill="#111" font-size="13" font-weight="900" font-family="Arial,sans-serif">${n.count}</text>
+    </g>`;
+  }).join("");
+  el.innerHTML=`<div class="territory-svg-map" title="Mapa territorial do Projeto Sementes — Corumbá-MS">
+    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" aria-label="Mapa territorial de Corumbá com 23 bairros">
+      <defs>
+        <linearGradient id="territoryLandGradient" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#29240f"/><stop offset="1" stop-color="#171717"/></linearGradient>
+        <filter id="territoryShadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#000" flood-opacity=".55"/></filter>
+      </defs>
+      <rect x="0" y="0" width="1000" height="560" fill="#0d0d0d"/>
+      <path d="M40 100 C170 35 270 70 380 42 C510 8 610 58 730 42 C840 28 925 72 970 128 L930 485 C820 525 720 493 600 520 C470 548 350 500 235 525 C140 545 75 500 35 445 Z" fill="url(#territoryLandGradient)" stroke="#5a4818" stroke-width="5" filter="url(#territoryShadow)"/>
+      <path d="M78 150 C230 210 270 300 220 465 M160 105 C300 185 410 235 470 500 M330 70 C420 170 610 180 700 485 M520 55 C590 170 790 210 900 420" fill="none" stroke="#6c5b25" stroke-opacity=".35" stroke-width="2"/>
+      <path d="M60 420 C260 360 390 410 510 330 C650 235 760 310 950 230" fill="none" stroke="#9b7b24" stroke-opacity=".28" stroke-width="3" stroke-dasharray="9 10"/>
+      <text x="500" y="535" text-anchor="middle" fill="#8e8e8e" font-size="12" font-family="Arial,sans-serif">CORUMBÁ-MS • 23 TERRITÓRIOS • DADOS REAIS DOS CADASTROS</text>
+      ${nodeSvg}
+    </svg>
+  </div>`;
+  // Mantém a lista lateral sincronizada com o mesmo conjunto normalizado.
+  const list=$("dashboardTerritoryList");
+  if(list){
+    list.innerHTML=nodes.map(n=>`<div class="territory-chip ${n.count>0?'reached':'expand'}"><i></i><span>${esc(n.name)}</span><b>${n.count}</b></div>`).join("");
+  }
 }
+
 
 function archivePastScheduleEvents(){
   const now=Date.now();
