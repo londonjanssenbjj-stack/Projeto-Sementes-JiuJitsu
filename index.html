@@ -2885,9 +2885,12 @@ async function centralLogin(login,password){
       legacyAccess:localAccess?{
         name:localAccess.name||localAccess.guardianName||cleanLogin,
         login:localAccess.login,
-        role:localAccess.role,
+        role:localAccess.role||"guardian",
         studentId:localAccess.studentId||null,
-        familyKey:localAccess.familyKey||""
+        familyKey:localAccess.familyKey||"",
+        active:localAccess.active!==false,
+        temporaryPassword:localAccess.temporaryPassword!==false,
+        passwordExpiresAt:localAccess.passwordExpiresAt||""
       }:null
     });
 
@@ -7140,6 +7143,33 @@ async function generateAccess(){
   if(centralReady&&centralAuthUser){
     try{
       const result=await centralFunction("generate-access",{});
+      // V69: mantém também um espelho local da credencial recém-gerada.
+      // Assim o acesso funciona imediatamente neste dispositivo e, quando
+      // a conta central já estiver provisionada, também funciona em outros.
+      const generatedLogin=String(result?.login||"").trim();
+      const generatedPassword=String(result?.password||"");
+      if(generatedLogin && generatedPassword){
+        const existing=(state.accesses||[]).find(a=>normalizeLogin(a?.login)===normalizeLogin(generatedLogin));
+        const localAccess=existing||{
+          id:result?.id||`access-${Date.now()}`,
+          name:result?.displayName||`Acesso ${generatedLogin}`,
+          login:generatedLogin,
+          role:"guardian",
+          studentId:null,
+          active:true,
+          createdAt:nowISO(),
+          createdBy:state.user?.name||APP_CONFIG.masterName
+        };
+        localAccess.login=generatedLogin;
+        localAccess.password=generatedPassword;
+        localAccess.accessPassword=generatedPassword;
+        localAccess.active=true;
+        localAccess.temporaryPassword=true;
+        localAccess.passwordExpiresAt=result?.passwordExpiresAt || new Date(Date.now()+accessExpiryMs()).toISOString();
+        localAccess.central=true;
+        if(!existing) state.accesses.push(localAccess);
+        saveState();
+      }
       await centralPullState();renderMasterManagement();renderAccessSecurityManagement();
       modal("Novo acesso gerado",`
         <div class="success-notice"><strong>✓ Login e senha gerados automaticamente na base central.</strong><br>A senha provisória é válida por 3 dias.</div>
@@ -7148,7 +7178,8 @@ async function generateAccess(){
           <p class="body-text" style="margin:0"><strong>SENHA:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900;letter-spacing:1px">${escapeHTML(result.password||"")}</span></p>
         </div>
         <div class="action-row" style="margin-top:12px"><button class="btn" type="button" onclick="copyText('${encodeURIComponent(result.login||"")}')">📋 Copiar login</button><button class="btn" type="button" onclick="copyText('${encodeURIComponent(result.password||"")}')">📋 Copiar senha</button></div>
-        <p class="small muted" style="margin-top:12px">Entregue os dados à pessoa. Ela deverá fazer a matrícula e redefinir a senha dentro dos 3 dias.</p>`);
+        <p class="small muted" style="margin-top:12px">Entregue os dados à pessoa. Ela deverá fazer a matrícula e redefinir a senha dentro dos 3 dias.</p>
+        <div class="notice" style="margin-top:10px">🔐 Este acesso foi salvo na base central e também protegido com uma cópia local de contingência. Use exatamente o LOGIN e a SENHA exibidos acima.</div>`);
       toast("Novo login e senha gerados na base central.");return;
     }catch(error){toast(centralSafeError(error,"Não foi possível gerar o acesso na base central."));return;}
   }
@@ -7504,7 +7535,8 @@ function initEvents(){
           const result=await centralLogin(login,password);
           authenticated=Boolean(result?.ok);
         }catch(error){
-          console.warn("Autenticação central indisponível; mantendo acesso local.",error);
+          console.error("Falha na autenticação central:",error);
+          lastLoginMessage=centralSafeError(error,"Não foi possível autenticar este responsável. Verifique o login e a senha.");
           authenticated=false;
         }
       }
