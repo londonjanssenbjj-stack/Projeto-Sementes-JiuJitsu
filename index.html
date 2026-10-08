@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- V67 — assinatura corrigida para mouse, touch e caneta; canvas redimensionado ao abrir Matrícula
+  <!-- V68 — fluxo pós-biometria, família/filhos, login do responsável e logo do documento corrigidos
 V68 — Login e Senha preservam maiúsculas e minúsculas -->
   <!-- V49 — logo oficial inserida na página inicial conforme referência visual -->
   <!-- V38 — fluxo matrícula + biometria + Alunos + família + atualização automática -->
@@ -1452,6 +1452,17 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
         <h1 class="page-title">Alunos Cadastrados</h1>
         <p class="page-sub">Pendências em vermelho primeiro; cadastros completos em verde por ordem alfabética.</p>
 
+        <div id="familyChildrenCard" class="card gold-border" style="margin-bottom:14px;display:none">
+          <div class="card-header">
+            <div>
+              <h2 class="section-title">MINHA FAMÍLIA</h2>
+              <span id="familyChildrenText" class="small muted">Filhos vinculados ao mesmo responsável.</span>
+            </div>
+            <i class="icon-gold" data-lucide="users-round"></i>
+          </div>
+          <button id="addAnotherChildBtn" class="btn btn-gold" type="button">➕ CADASTRAR OUTRO FILHO</button>
+        </div>
+
         <div class="card" style="margin-bottom:14px">
           <div class="form-grid">
             <div class="field">
@@ -2513,12 +2524,15 @@ function toggleResponsiblePassword(id,button){const input=$(id);if(!input)return
           targetAccessId:state.user.id,
           firstName:student.guardian||state.user.guardianName||"RESPONSAVEL",
           documentNumber:student.documentNumber||state.enrollment?.documentNumber||"",
+          desiredLogin:generatedLogin,
           newPassword:password,
           studentData:student,
           secretaryDocument:(state.secretaryDocuments||[]).find(d=>d.documentNumber===student.documentNumber)||null
         });
 
-        const finalLogin=String(result.login||generatedLogin).toLocaleUpperCase("pt-BR");
+        // O login definitivo do responsável segue SEMPRE o padrão: PRIMEIRO-NOME-DOCUMENTO.
+        // Exemplo: RICARDO-0001. O número é exatamente o documento gerado na matrícula.
+        const finalLogin=generatedLogin;
         student.accessLogin=finalLogin;
         state.user.login=finalLogin;
         state.user.email=finalLogin;
@@ -4148,8 +4162,19 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
 
   // Cabeçalho — reproduzindo o padrão visual do documento enviado: logo centralizada,
   // identificação institucional centralizada e número do documento no canto superior direito.
-  const logoEl=await new Promise(resolve=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>resolve(null);im.src="projeto-sementes-logo-home.png";});
-  if(logoEl?.naturalWidth){try{ctx.drawImage(logoEl,W/2-58,18,116,116);}catch(_){}}
+  const logoEl=await new Promise(resolve=>{
+    const im=new Image();
+    im.onload=()=>resolve(im);
+    im.onerror=()=>resolve(null);
+    im.src=projectLogoSource();
+  });
+  if(logoEl?.naturalWidth){
+    try{ctx.drawImage(logoEl,W/2-58,18,116,116);}catch(_){}
+  }else{
+    // Fallback interno: nunca deixa uma imagem quebrada no PDF.
+    ctx.strokeStyle=gold; ctx.lineWidth=5; ctx.beginPath(); ctx.arc(W/2,76,48,0,Math.PI*2); ctx.stroke();
+    text("S",W/2-15,92,42,true,gold,30);
+  }
   text("PROJETO SOCIAL \"SEMENTES\"",W/2-180,154,22,true,"#111",360);
   text("JIU-JITSU",W/2-55,181,18,true,"#111",110);
   text("IGREJA DO EVANGELHO",W/2-115,207,16,true,"#111",230);
@@ -4673,15 +4698,22 @@ function resetEnrollmentFormAfterCompletion(){
     finalizeButton.textContent="💾 Finalizar Documento";
   }
   clearSignature();
+
   const preview=$("facePreview");
   if(preview){ preview.src=""; preview.classList.add("hidden"); }
   const video=$("cameraVideo");
-  if(video) video.srcObject=null;
+  if(video){
+    try{ video.pause(); }catch(_){ }
+    video.srcObject=null;
+  }
+  if(faceStream){
+    try{ faceStream.getTracks().forEach(t=>t.stop()); }catch(_){ }
+    faceStream=null;
+  }
 
-  // Depois da biometria, todos os campos da matrícula ficam vazios para o próximo cadastro.
-  // Os avisos de sucesso permanecem por alguns instantes e depois a etapa 2 é fechada.
-  $("step1Dot").classList.add("active");
-  $("step2Dot").classList.remove("active");
+  // Reinicia o passo a passo no PASSO 1 para que o próximo filho possa ser cadastrado.
+  $("step1Dot")?.classList.add("active");
+  $("step2Dot")?.classList.remove("active");
   $("enrollmentDate").textContent=`${APP_CONFIG.city}, ${formatDate(todayISO())}`;
 
   const bio=$("biometricSection");
@@ -4699,19 +4731,33 @@ function resetEnrollmentFormAfterCompletion(){
 
   const success=$("enrollmentSuccess");
   if(success){
-    success.innerHTML=`<div style="font-size:20px;font-weight:900;color:#b5f3c7">✅ CADASTRO E BIOMETRIA REALIZADOS COM SUCESSO</div>
-      <div class="small" style="margin-top:7px">Os campos foram limpos e o sistema está pronto para um novo cadastro.</div>`;
+    success.classList.add("hidden");
+    success.style.display="none";
+    success.innerHTML="";
   }
-  // O processo foi concluído: remove o rascunho da matrícula e mantém apenas
-  // o registro definitivo do aluno e do documento na Secretaria.
+
+  // Mantém o vínculo da família/responsável, mas elimina o rascunho do cadastro anterior.
   state.enrollment=null;
   saveState();
+  refreshAllStudentDerivedViews();
 
-  const firstField=$("studentName");
-  if(firstField){
-    setTimeout(()=>{ firstField.focus(); firstField.scrollIntoView({behavior:"smooth",block:"center"}); },150);
+  // Volta ao início visual da Matrícula, deixando o primeiro campo pronto para o próximo cadastro.
+  const enrollmentPage=$("enrollmentPage");
+  if(enrollmentPage){
+    enrollmentPage.classList.add("active");
+    enrollmentPage.style.display="block";
   }
-  toast("Cadastro biométrico realizado com sucesso. Todos os campos foram limpos.");
+  setTimeout(()=>{
+    const firstField=$("studentName");
+    if(firstField){
+      firstField.focus({preventScroll:true});
+      firstField.scrollIntoView({behavior:"smooth",block:"start"});
+    }else if(enrollmentPage){
+      enrollmentPage.scrollIntoView({behavior:"smooth",block:"start"});
+    }
+  },180);
+
+  toast("✅ Cadastro concluído. A Matrícula foi reiniciada no PASSO 1 e está pronta para o próximo filho.");
 }
 
 async function openClassCamera(){
@@ -4793,7 +4839,32 @@ function sortedStudents(){
   });
 }
 
+function renderFamilyChildrenCard(){
+  const card=$("familyChildrenCard");
+  const btn=$("addAnotherChildBtn");
+  const textEl=$("familyChildrenText");
+  if(!card) return;
+  const role=state.user?.role;
+  const show=["guardian","director"].includes(role);
+  card.style.display=show?"block":"none";
+  if(!show) return;
+  const family=visibleStudentsForCurrentUser();
+  if(textEl) textEl.textContent=family.length
+    ? `${family.length} filho(s) vinculado(s) a este responsável. Todos aparecerão automaticamente nesta aba.`
+    : "Nenhum filho cadastrado ainda.";
+  if(btn && !btn.dataset.bound){
+    btn.dataset.bound="1";
+    btn.addEventListener("click",()=>{
+      openPage("enrollmentPage");
+      setTimeout(()=>{
+        resetEnrollmentFormAfterCompletion();
+      },80);
+    });
+  }
+}
+
 function renderStudents(){
+  renderFamilyChildrenCard();
   const search=($("studentSearch")?.value||"").toLowerCase().trim();
   const filter=$("studentFilter")?.value||"all";
 
@@ -7096,20 +7167,26 @@ document.addEventListener("visibilitychange",()=>{
 });
 
 
-function restoreProjectLogos(){
-  const src = (typeof APP_CONFIG !== "undefined" && APP_CONFIG.logo)
+function projectLogoSource(){
+  return (typeof APP_CONFIG !== "undefined" && APP_CONFIG.logo)
     ? APP_CONFIG.logo
-    : "app-icon-512.png";
-
-  ["loginLogo","brandLogo"].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.src = src;
-  });
-
-  /* V53: a logo da página inicial usa o arquivo PNG do projeto.
-     Isso evita o problema de renderização/corte da imagem incorporada no HTML. */
-  const homeLogo = document.getElementById("homeLogo");
-  if(homeLogo) homeLogo.src = "projeto-sementes-logo-home.png";
+    : "projeto-sementes-logo-home.png";
+}
+function applyLogoWithFallback(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const src=projectLogoSource();
+  el.src=src;
+  el.onerror=()=>{
+    el.onerror=null;
+    el.src="app-icon-512.png";
+    el.onerror=()=>{
+      el.style.display="none";
+    };
+  };
+}
+function restoreProjectLogos(){
+  ["loginLogo","brandLogo","homeLogo"].forEach(applyLogoWithFallback);
 }
 
 window.addEventListener("error",e=>{
