@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- V68 — fluxo pós-biometria, família/filhos, login do responsável e logo do documento corrigidos
+  <!-- V69 — Secretaria enxuta, Fé incorporada ao Dashboard e logo removida somente do PDF
 V68 — Login e Senha preservam maiúsculas e minúsculas -->
   <!-- V49 — logo oficial inserida na página inicial conforme referência visual -->
   <!-- V38 — fluxo matrícula + biometria + Alunos + família + atualização automática -->
@@ -1796,6 +1796,18 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
           </div>
           <div id="dashboardTerritoryTable" class="dashboard-territory-table"></div>
         </article>
+
+        <article class="card wide dashboard-widget" style="margin-top:14px">
+          <div class="card-header">
+            <div>
+              <h2 class="section-title">DASHBOARD GERENCIAL — FÉ</h2>
+              <span class="small muted">Entradas em cada célula, pedidos de oração e pedidos de batismo por mês</span>
+            </div>
+            <i class="icon-gold" data-lucide="church"></i>
+          </div>
+          <div id="dashboardFaithKpis" class="stats" style="margin-bottom:14px"></div>
+          <div id="dashboardFaithMetrics" class="table-wrap"></div>
+        </article>
       </section>
 
       <!-- =====================================================
@@ -1894,18 +1906,7 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
           Os documentos cadastrados ficam visíveis somente para a Diretoria e Administrador. A exclusão é permitida exclusivamente ao Administrador Mestre London.
           <span class="small muted">Neste arquivo HTML, o armazenamento é local ao dispositivo; para receber documentos de outros celulares/computadores é necessário conectar um backend seguro.</span>
         </div>
-
-        <article class="card wide gold-border" id="quickResetCard" style="margin-bottom:14px">
-          <div class="card-header">
-            <div><h2 class="section-title">⚠️ INÍCIO DE UMA NOVA FASE</h2><span class="small muted">Somente o Administrador Mestre London</span></div>
-            <i class="icon-gold" data-lucide="database-zap"></i>
-          </div>
-          <p class="body-text" style="margin-bottom:10px">Apaga da base central todos os cadastros, alunos, frequência, documentos, cronograma, campeonatos, engajamento e acessos dos responsáveis e da Diretoria. Mantém somente Mestre London e Pastor Joel.</p>
-          <button class="btn btn-gold btn-full" id="resetProjectQuickBtn" type="button">⚠️ ZERAR TODOS OS CADASTROS E COMEÇAR NOVO</button>
-          <p class="small muted" style="margin-top:8px">O acesso antigo <strong>PROJETO SEMENTES</strong> fica bloqueado. Depois da zeragem, gere novos acessos individuais.</p>
-        </article>
-
-        <article class="card wide" style="margin-bottom:14px">
+<article class="card wide" style="margin-bottom:14px">
           <div class="card-header">
             <div><h2 class="section-title">DOCUMENTOS DE MATRÍCULA</h2><span class="small muted">Cadastro, numeração e arquivo oficial</span></div>
             <i class="icon-gold" data-lucide="folder-lock"></i>
@@ -1984,11 +1985,6 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
                 <button class="btn btn-gold" type="submit">🔐 Redefinir minha senha</button>
               </div>
             </form>
-            <div class="card" style="background:#151515;margin-top:12px">
-              <div class="small muted" style="margin-bottom:4px"><strong id="activeAccessCount" style="color:var(--gold2)">0</strong> acesso(s) cadastrado(s)/ativo(s)</div>
-              <div class="small muted" style="margin-bottom:8px"><strong id="accessResetCount" style="color:var(--gold2)">0</strong> login(s) com senha redefinida</div>
-              <div id="accessResetList" class="list small"></div>
-            </div>
           </article>
 
           <article class="card wide" id="masterManagementCard">
@@ -2033,56 +2029,7 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
               <div class="audit-item"><strong>✅ Proteção de saída</strong><span class="small muted">Música, câmera e elementos temporários são encerrados ao trocar de fluxo ou sair quando suportado pelo navegador.</span></div>
             </div>
           </article>
-
-          <article class="card wide">
-            <div class="card-header">
-              <div><h2 class="section-title">DASHBOARD GERENCIAL JIU-JITSU</h2><span class="small muted">Indicadores</span></div>
-              <i class="icon-gold" data-lucide="chart-no-axes-combined"></i>
-            </div>
-            <div class="bars">
-              <div class="bar-row"><span>Alunos ativos</span><div class="bar"><i id="barStudents" style="width:0%"></i></div><b id="barStudentsText">0%</b></div>
-              <div class="bar-row"><span>Frequência</span><div class="bar"><i id="barFrequency" style="width:0%"></i></div><b id="barFrequencyText">0%</b></div>
-              <div class="bar-row"><span>Cadastros completos</span><div class="bar"><i id="barComplete" style="width:0%"></i></div><b id="barCompleteText">0%</b></div>
-            </div>
-          </article>
-
-          <article class="card wide">
-            <div class="card-header">
-              <div><h2 class="section-title">IMPACTO SOCIAL E TERRITORIAL</h2><span class="small muted">Atualizado automaticamente pelos alunos cadastrados</span></div>
-              <i class="icon-gold" data-lucide="map-pin"></i>
-            </div>
-            <div id="impactSocialDashboard" class="stats"></div>
-            <div class="card" style="background:#151515;margin-top:12px">
-              <div class="card-header"><div><h3 class="section-title" style="font-size:20px">MAPA TERRITORIAL</h3><span class="small muted">Concentração por bairro informado no cadastro</span></div><i class="icon-gold" data-lucide="map"></i></div>
-              <div id="territorialMap" class="territorial-map">
-                <div class="territorial-map-headline">
-                  <div>
-                    <strong>CONCENTRAÇÃO POR BAIRRO</strong>
-                    <span>CRIANÇAS CADASTRADAS POR BAIRRO INFORMADO</span>
-                  </div>
-                  <div id="territorialCoverageSummary" class="territorial-summary-pill">0 BAIRROS • 0 CRIANÇAS</div>
-                </div>
-                <div id="territorialMapCanvas" class="territorial-map-canvas" aria-label="Mapa territorial de Corumbá-MS"></div>
-                <div class="territorial-map-legend">
-                  <span><i class="legend-dot low"></i> MENOR PROPORÇÃO</span>
-                  <span><i class="legend-dot high"></i> MAIOR PROPORÇÃO</span>
-                  <span><i class="legend-dot church"></i> IEQ GUAICURUS</span>
-                </div>
-                <div id="territorialRanking" class="territorial-ranking"></div>
-                <div id="territorialUnmapped" class="territorial-unmapped"></div>
-              </div>
-            </div>
-          </article>
-
-          <article class="card wide">
-            <div class="card-header">
-              <div><h2 class="section-title">DASHBOARD GERENCIAL — FÉ</h2><span class="small muted">Cliques e decisões por mês</span></div>
-              <i class="icon-gold" data-lucide="chart-column"></i>
-            </div>
-            <div id="faithDashboard" class="table-wrap"></div>
-          </article>
-
-          <article class="card wide">
+<article class="card wide">
             <div class="card-header">
               <div><h2 class="section-title">CRIAR CRONOGRAMA</h2><span class="small muted">Os eventos aparecem automaticamente na aba Cronograma</span></div>
               <i class="icon-gold" data-lucide="calendar-plus"></i>
@@ -3727,8 +3674,6 @@ function openPage(pageId){
   if(pageId==="secretaryPage") {
     renderSecretaryDocuments();
     renderMasterManagement();
-    renderFaithDashboard();
-    renderImpactAndMap();
     renderSchedule();
     renderChampionships();
   }
@@ -4201,30 +4146,17 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   const section=(title,y)=>{box(M,y,CW,29,light,"#aeb7bf");text(title,M+9,y+20,13,true,navy,CW-18);return y+40;};
   const field=(x,y,label,value,width)=>{const labelW=ctx.measureText(label+":").width;text(label+":",x,y,11,true,gray);text(value||"",x+labelW+8,y,11,false,"#111",width-labelW-8);rule(x,y+10,x+width,y+10,"#777",.8);};
 
-  // Cabeçalho — reproduzindo o padrão visual do documento enviado: logo centralizada,
-  // identificação institucional centralizada e número do documento no canto superior direito.
-  const logoEl=await new Promise(resolve=>{
-    const im=new Image();
-    im.onload=()=>resolve(im);
-    im.onerror=()=>resolve(null);
-    im.src=projectLogoSource();
-  });
-  if(logoEl?.naturalWidth){
-    try{ctx.drawImage(logoEl,W/2-58,18,116,116);}catch(_){}
-  }else{
-    // Fallback interno: nunca deixa uma imagem quebrada no PDF.
-    ctx.strokeStyle=gold; ctx.lineWidth=5; ctx.beginPath(); ctx.arc(W/2,76,48,0,Math.PI*2); ctx.stroke();
-    text("S",W/2-15,92,42,true,gold,30);
-  }
-  text("PROJETO SOCIAL \"SEMENTES\"",W/2-180,154,22,true,"#111",360);
-  text("JIU-JITSU",W/2-55,181,18,true,"#111",110);
-  text("IGREJA DO EVANGELHO",W/2-115,207,16,true,"#111",230);
-  text("QUADRANGULAR – GUAICURUS",W/2-155,229,16,true,"#111",310);
+  // PDF: a logo é deliberadamente omitida SOMENTE do documento gerado.
+  // Nenhuma logo da tela de login, início, cabeçalho ou aplicativo é removida.
+  text("PROJETO SOCIAL \"SEMENTES\"",W/2-180,58,22,true,"#111",360);
+  text("JIU-JITSU",W/2-55,84,18,true,"#111",110);
+  text("IGREJA DO EVANGELHO",W/2-115,110,16,true,"#111",230);
+  text("QUADRANGULAR – GUAICURUS",W/2-155,132,16,true,"#111",310);
   text(`DOCUMENTO Nº ${codigoMatricula}`,925,45,14,true,"#111",260);
-  rule(M,250,R,250,"#555",1.4);
-  text("TERMO ÚNICO DE INSCRIÇÃO, AUTORIZAÇÃO E RESPONSABILIDADE",M,283,20,true,"#111",CW);
+  rule(M,154,R,154,"#555",1.4);
+  text("TERMO ÚNICO DE INSCRIÇÃO, AUTORIZAÇÃO E RESPONSABILIDADE",M,187,20,true,"#111",CW);
 
-  let y=310;
+  let y=214;
   y=section("1. IDENTIFICAÇÃO DO(A) ALUNO(A) – MENOR",y);
   field(M+8,y,"Nome completo",esc(e.student?.name),570);
   field(650,y,"Data de nascimento",fmtDate(e.student?.birth),260); y+=42;
@@ -5664,6 +5596,78 @@ function renderFaithDashboard(){
   html+=`</tbody></table>`; box.innerHTML=html;
 }
 
+function renderDashboardFaithMetrics(){
+  const box=$("dashboardFaithMetrics");
+  const kpi=$("dashboardFaithKpis");
+  if(!box || !kpi) return;
+
+  const entries=Array.isArray(state.engagement)?state.engagement:[];
+  const cellTypes=cells.map(c=>c.name);
+  const types=cellTypes.concat(["Pedido de Oração","Quero ser batizado"]);
+  const months=[...new Set(entries.map(x=>x.month).filter(Boolean))].sort();
+  const keys=months.length?months:[todayISO().slice(0,7)];
+
+  const countFor=(month,type)=>entries.filter(e=>
+    e.month===month &&
+    (e.type===type ||
+      (type==="Pedido de Oração" && e.type==="prayer") ||
+      (type==="Quero ser batizado" && e.type==="baptism"))
+  ).length;
+
+  const totals={};
+  types.forEach(type=>totals[type]=entries.filter(e=>
+    e.type===type ||
+    (type==="Pedido de Oração" && e.type==="prayer") ||
+    (type==="Quero ser batizado" && e.type==="baptism")
+  ).length);
+
+  const totalCells=cellTypes.reduce((sum,type)=>sum+totals[type],0);
+  const totalPrayer=totals["Pedido de Oração"]||0;
+  const totalBaptism=totals["Quero ser batizado"]||0;
+  const totalGeneral=totalCells+totalPrayer+totalBaptism;
+
+  kpi.innerHTML=`
+    <div class="card stat"><span>Entradas nas células</span><strong>${totalCells}</strong></div>
+    <div class="card stat"><span>Pedidos de oração</span><strong>${totalPrayer}</strong></div>
+    <div class="card stat"><span>Pedidos de batismo</span><strong>${totalBaptism}</strong></div>
+    <div class="card stat"><span>Total geral</span><strong>${totalGeneral}</strong></div>
+  `;
+
+  let html=`<table><thead><tr>
+    <th>Mês</th>
+    ${cellTypes.map(type=>`<th>${escapeHTML(type.replace("✨ ",""))}</th>`).join("")}
+    <th>Pedidos de oração</th>
+    <th>Pedidos de batismo</th>
+    <th>Total do mês</th>
+  </tr></thead><tbody>`;
+
+  keys.forEach(month=>{
+    let total=0;
+    const cellCounts=cellTypes.map(type=>{
+      const n=countFor(month,type); total+=n; return n;
+    });
+    const prayer=countFor(month,"Pedido de Oração");
+    const baptism=countFor(month,"Quero ser batizado");
+    total+=prayer+baptism;
+    html+=`<tr>
+      <td style="text-transform:capitalize">${escapeHTML(monthLabel(month))}</td>
+      ${cellCounts.map(n=>`<td>${n}</td>`).join("")}
+      <td>${prayer}</td>
+      <td>${baptism}</td>
+      <td><strong>${total}</strong></td>
+    </tr>`;
+  });
+
+  html+=`</tbody><tfoot><tr>
+    <th>TOTAL</th>
+    ${cellTypes.map(type=>`<th>${totals[type]||0}</th>`).join("")}
+    <th>${totalPrayer}</th>
+    <th>${totalBaptism}</th>
+    <th>${totalGeneral}</th>
+  </tr></tfoot></table>`;
+  box.innerHTML=html;
+}
+
 let territorialLeafletMap=null;
 let territorialLayerGroup=null;
 let territorialGeocodeCache={};
@@ -5951,6 +5955,8 @@ function renderProjectDashboard(){
 
   const next=$("dashboardNextEvents");
   if(next){const now=Date.now();const upcoming=activeSchedule.filter(e=>new Date(e.dateTime).getTime()>=now).sort((a,b)=>new Date(a.dateTime)-new Date(b.dateTime)).slice(0,5);next.innerHTML=upcoming.length?upcoming.map(e=>`<div class="dashboard-event"><strong>${escapeHTML(e.event||"ATIVIDADE")}${e.subject?" — "+escapeHTML(e.subject):""}</strong><span>${escapeHTML(formatDateTimeBR(e.dateTime||""))}</span><b>${escapeHTML(e.responsible||"RESPONSÁVEL NÃO INFORMADO")}</b></div>`).join(""):'<div class="notice">Nenhuma atividade futura cadastrada.</div>';}
+
+  renderDashboardFaithMetrics();
 
   const table=$("dashboardTerritoryTable");
   if(table){
@@ -6591,20 +6597,7 @@ function renderAccessSecurityManagement(){
       : (state.user?.login || state.accesses.find(a=>a.id===state.user?.id)?.login || "");
   }
 
-  const resets=Array.isArray(state.passwordResets)?state.passwordResets:[];
-  const legacyCount=state.students.filter(s=>s.accessLogin).filter(s=>{
-    const access=state.accesses.find(a=>a.studentId===s.id && a.role==="guardian");
-    return !access || access.active!==false;
-  }).length;
-  const activeCount=state.accesses.filter(a=>normalizeAccessRecord(a).active!==false).length + legacyCount;
-  if($("activeAccessCount")) $("activeAccessCount").textContent=String(activeCount);
-  if($("accessResetCount")) $("accessResetCount").textContent=String(resets.length);
 
-  if($("accessResetList")){
-    $("accessResetList").innerHTML=resets.length
-      ? resets.map(r=>`<div><strong>${escapeHTML(r.name)}</strong><div class="small muted">Login: ${escapeHTML(r.login)} • ${escapeHTML(formatDateTimeBR(r.resetAt))}</div></div>`).join("")
-      : `<div class="muted">Nenhuma senha redefinida ainda.</div>`;
-  }
 }
 
 async function deleteStudentAdmin(){
