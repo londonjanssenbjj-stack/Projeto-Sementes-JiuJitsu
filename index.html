@@ -1375,6 +1375,14 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
                 <input id="studentBirth" class="input" type="date" required>
               </div>
               <div class="field">
+                <label>Sexo</label>
+                <select id="studentSex" class="select" required>
+                  <option value="">Selecione</option>
+                  <option value="MASCULINO">Masculino</option>
+                  <option value="FEMININO">Feminino</option>
+                </select>
+              </div>
+              <div class="field">
                 <label>Escola onde Estuda</label>
                 <input id="studentSchool" class="input">
               </div>
@@ -4371,7 +4379,7 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,W,H);
 
   const M=52, R=W-M, CW=W-2*M;
-  const navy="#20364d", light="#e8edf1", gold="#b28a25", gray="#333333";
+  const navy="#20364d", light="#e8edf1", gold="#b28a25", gray="#333333", pale="#f7f9fb", border="#c9d1d9";
   const esc=v=>String(v??"").trim();
   const fmtDate=v=>{
     if(!v) return "";
@@ -4397,8 +4405,20 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   };
   const rule=(x1,y1,x2,y2,color="#222",width=1)=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();};
   const box=(x,y,w,h,fill="#fff",stroke="#aeb7bf")=>{ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.strokeRect(x,y,w,h);};
-  const section=(title,y)=>{box(M,y,CW,29,light,"#aeb7bf");text(title,M+9,y+20,13,true,navy,CW-18);return y+40;};
-  const field=(x,y,label,value,width)=>{const labelW=ctx.measureText(label+":").width;text(label+":",x,y,11,true,gray);text(value||"",x+labelW+8,y,11,false,"#111",width-labelW-8);rule(x,y+10,x+width,y+10,"#777",.8);};
+  const section=(title,y)=>{
+    box(M,y,CW,29,navy,navy);
+    ctx.fillStyle=gold;ctx.fillRect(M,y,5,29);
+    text(title,M+14,y+19,12,true,"#ffffff",CW-26);
+    return y+39;
+  };
+  const field=(x,y,label,value,width)=>{
+    box(x,y-15,width,32,pale,border);
+    text(String(label||"").toLocaleUpperCase("pt-BR"),x+7,y-3,8,true,navy,width-14);
+    let shown=String(value??"").trim()||"—";
+    ctx.font="700 10px Arial, sans-serif";
+    while(shown.length>1 && ctx.measureText(shown).width>width-14) shown=shown.slice(0,-2)+"…";
+    text(shown,x+7,y+10,10,true,gray,width-14);
+  };
 
   // V71 — Logo oficial fornecida pelo responsável: usada SOMENTE dentro do PDF
   // da matrícula. As logos da interface/login/início permanecem inalteradas.
@@ -4417,26 +4437,30 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
     }
   }catch(_){}
 
-  text("PROJETO SOCIAL \"SEMENTES\"",190,48,22,true,"#111",500);
-  text("JIU-JITSU",190,74,18,true,"#111",180);
-  text("IGREJA DO EVANGELHO",190,100,16,true,"#111",300);
-  text("QUADRANGULAR – GUAICURUS",190,122,16,true,"#111",390);
-  text(`DOCUMENTO Nº ${codigoMatricula}`,925,45,14,true,"#111",260);
-  rule(M,154,R,154,"#555",1.4);
-  text("TERMO ÚNICO DE INSCRIÇÃO, AUTORIZAÇÃO E RESPONSABILIDADE",M,187,20,true,"#111",CW);
+  box(178,20,1010,116,"#f7f9fb","#d4dbe2");
+  ctx.fillStyle=gold;ctx.fillRect(178,20,6,116);
+  text("PROJETO SOCIAL \"SEMENTES\"",198,47,22,true,navy,600);
+  text("JIU-JITSU",198,73,17,true,navy,180);
+  text("IGREJA DO EVANGELHO QUADRANGULAR – GUAICURUS",198,98,13,true,gray,620);
+  text("CORUMBÁ – MS",198,119,11,true,gray,300);
+  box(900,104,270,24,navy,navy);
+  text(`DOCUMENTO Nº ${codigoMatricula}`,912,120,11,true,"#ffffff",246);
+  rule(M,154,R,154,gold,2);
+  text("TERMO DE INSCRIÇÃO, AUTORIZAÇÃO E RESPONSABILIDADE",M,184,18,true,navy,CW);
 
   let y=214;
   y=section("1. IDENTIFICAÇÃO DO(A) ALUNO(A) – MENOR",y);
-  field(M+8,y,"Nome completo",esc(e.student?.name),570);
-  field(650,y,"Data de nascimento",fmtDate(e.student?.birth),260); y+=42;
+  field(M+8,y,"Nome completo",esc(e.student?.name),470);
+  field(548,y,"Data de nascimento",fmtDate(e.student?.birth),250);
+  field(814,y,"Sexo",esc(e.student?.sex),366); y+=39;
   field(M+8,y,"Escola",esc(e.student?.school),570);
-  field(650,y,"Bairro",esc(e.student?.neighborhood),260); y+=42;
-  field(M+8,y,"Endereço",esc(e.student?.address),902); y+=42;
+  field(650,y,"Bairro",esc(e.student?.neighborhood),530); y+=39;
+  field(M+8,y,"Endereço",esc(e.student?.address),1120); y+=39;
 
   y=section("2. IDENTIFICAÇÃO DO RESPONSÁVEL LEGAL",y);
-  field(M+8,y,"Nome completo",esc(e.guardian?.name),570);
-  field(650,y,"Contato/Whatsapp",esc(e.guardian?.phone),260); y+=42;
-  field(M+8,y,"CIN/RG",esc(e.guardian?.cinRg||e.guardian?.cin||e.guardian?.document),902); y+=42;
+  field(M+8,y,"Nome completo",esc(e.guardian?.name),650);
+  field(740,y,"Contato/WhatsApp",esc(e.guardian?.phone),440); y+=39;
+  field(M+8,y,"CIN/RG",esc(e.guardian?.cinRg||e.guardian?.cin||e.guardian?.document),1120); y+=39;
 
   y=section("3. AUTORIZAÇÃO E CIÊNCIA",y);
   y+=text("Eu, acima identificado(a), na qualidade de responsável legal, AUTORIZO o(a) menor a participar gratuitamente das atividades de Jiu-Jitsu do Projeto Social “Sementes”. Declaro estar ciente de que a modalidade envolve atividade física e contato corporal próprios do esporte, assumindo o compromisso de informar à coordenação qualquer condição de saúde, limitação, alergia, uso de medicamento ou alteração que possa interferir na participação.",M+8,y,13,false,"#111",CW-16)+12;
@@ -4492,9 +4516,10 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   rule(M+170,y+25,M+530,y+25,"#333",1);
   text("ASSINATURA DO RESPONSÁVEL LEGAL",M+240,y+45,11,true,"#111"); text(`Corumbá – MS, ${new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"})}.`,M+240,y+72,12,false,"#111");
 
-  rule(M,1680,R,1680,"#777",1);
-  text("IEQ Guaicurus • Projeto Social “Sementes” • Jiu-Jitsu • Corumbá – MS",M,1710,10,false,"#555");
-  text(`Documento nº ${codigoMatricula} • 1/1`,R-180,1710,10,false,"#555");
+  box(M,1675,CW,42,"#f2f5f7","#d4dbe2");
+  ctx.fillStyle=gold;ctx.fillRect(M,1675,CW,3);
+  text("IEQ GUAICURUS • PROJETO SOCIAL SEMENTES • JIU-JITSU • CORUMBÁ – MS",M+10,1699,9,true,navy,CW-230);
+  text(`DOCUMENTO Nº ${codigoMatricula} • 1/1`,R-210,1699,9,true,navy,200);
 
   const jpegData=canvas.toDataURL("image/jpeg",0.94);
   const b64=jpegData.split(",")[1];
@@ -4592,6 +4617,7 @@ function initEnrollment(){
       student:{
         name:$("studentName").value.trim().toLocaleUpperCase("pt-BR"),
         birth:$("studentBirth").value,
+        sex:$("studentSex").value,
         school:$("studentSchool").value.trim().toLocaleUpperCase("pt-BR"),
         neighborhood:$("studentNeighborhood").value.trim().toLocaleUpperCase("pt-BR"),
         address:$("studentAddress").value.trim().toLocaleUpperCase("pt-BR")
@@ -4823,6 +4849,7 @@ async function captureFace(){
       id:"student-"+Date.now(),
       name:pending.student.name,
       birth:pending.student.birth,
+      sex:pending.student.sex,
       school:pending.student.school,
       neighborhood:pending.student.neighborhood,
       address:pending.student.address,
@@ -4849,6 +4876,7 @@ async function captureFace(){
     Object.assign(student,{
       name:pending.student.name,
       birth:pending.student.birth,
+      sex:pending.student.sex,
       school:pending.student.school,
       neighborhood:pending.student.neighborhood,
       address:pending.student.address,
@@ -6252,8 +6280,15 @@ function renderProjectDashboard(){
   const ages=students.map(ageOf).filter(a=>Number.isFinite(a)&&a>=0); const ageGroups=[["Até 6",a=>a<=6],["7–10",a=>a>=7&&a<=10],["11–14",a=>a>=11&&a<=14],["15–17",a=>a>=15&&a<=17],["18+",a=>a>=18]]; const ageCounts=ageGroups.map(([l,fn])=>[l,ages.filter(fn).length]);
   if($("dashboardAgeChart")) $("dashboardAgeChart").innerHTML=ages.length?`<div class="exec-bars">${ageCounts.map(([l,n])=>`<div class="exec-bar-row"><span>${l}</span><div class="exec-bar-track"><i style="width:${ages.length?n/Math.max(1,...ageCounts.map(x=>x[1]))*100:0}%"></i></div><b>${n}</b></div>`).join("")}</div>`:insufficient;
 
-  const sexes={}; students.map(getSex).filter(Boolean).forEach(v=>{const key=v.toLocaleUpperCase('pt-BR');sexes[key]=(sexes[key]||0)+1;});
-  if($("dashboardSexChart")) $("dashboardSexChart").innerHTML=Object.keys(sexes).length?`<div class="exec-bars">${Object.entries(sexes).sort((a,b)=>b[1]-a[1]).map(([l,n])=>`<div class="exec-bar-row"><span>${escape(l)}</span><div class="exec-bar-track"><i style="width:${n/Math.max(1,...Object.values(sexes))*100}%"></i></div><b>${n}</b></div>`).join("")}</div>`:insufficient;
+  const sexes={"MASCULINO":0,"FEMININO":0};
+  students.forEach(student=>{
+    const raw=getSex(student).toLocaleUpperCase("pt-BR");
+    if(raw==="MASCULINO"||raw==="MASCULINO.") sexes.MASCULINO++;
+    else if(raw==="FEMININO"||raw==="FEMININO.") sexes.FEMININO++;
+  });
+  const sexMissing=students.filter(student=>!["MASCULINO","MASCULINO.","FEMININO","FEMININO."].includes(getSex(student).toLocaleUpperCase("pt-BR"))).length;
+  const sexKnown=sexes.MASCULINO+sexes.FEMININO;
+  if($("dashboardSexChart")) $("dashboardSexChart").innerHTML=sexKnown?`<div class="exec-bars">${Object.entries(sexes).filter(([,n])=>n>0).map(([l,n])=>`<div class="exec-bar-row"><span>${escape(l)}</span><div class="exec-bar-track"><i style="width:${n/Math.max(1,sexKnown)*100}%"></i></div><b>${n} (${Math.round(n/Math.max(1,sexKnown)*100)}%)</b></div>`).join("")}</div><div class="small muted" style="margin-top:10px">${sexMissing} cadastro(s) sem sexo informado.</div>`:insufficient;
 
   const beltCounts={}; students.map(getBelt).filter(Boolean).forEach(v=>{const key=v;beltCounts[key]=(beltCounts[key]||0)+1;});
   const beltChartHtml=Object.keys(beltCounts).length?`<div class="exec-bars">${Object.entries(beltCounts).sort((a,b)=>b[1]-a[1]).map(([l,n])=>`<div class="exec-bar-row"><span>${escape(l)}</span><div class="exec-bar-track"><i style="width:${n/Math.max(1,...Object.values(beltCounts))*100}%"></i></div><b>${n}</b></div>`).join("")}</div>`:insufficient;
@@ -7326,23 +7361,25 @@ async function resetOwnPassword(){
   $("ownPasswordNew").value="";$("ownPasswordConfirm").value="";renderAccessSecurityManagement();updateAccessSecurityNotice();toast("Sua senha foi redefinida com sucesso.");
 }
 async function refreshCentralEverything(){
-  if(!centralReady||!centralAuthUser){
-    toast("A base central não está conectada.");
-    return;
-  }
   const btn=$("refreshCentralAllBtn");
   try{
     if(btn){btn.disabled=true;btn.textContent="⏳ ATUALIZANDO...";}
-    await centralPullState();
-    refreshAllStudentDerivedViews();
-    renderSchedule();
-    renderChampionships();
-    renderMasterManagement();
-    renderAccessSecurityManagement();
-    updateAccessSecurityNotice();
-    toast("✅ TODAS AS ABAS E ACESSOS FORAM ATUALIZADOS.");
+    if(centralReady&&centralAuthUser){
+      await centralPullState();
+      toast("✅ DADOS E ACESSOS ATUALIZADOS A PARTIR DA BASE CENTRAL.");
+    }else{
+      // Sem backend central, atualiza novamente todas as telas a partir dos dados locais salvos neste dispositivo.
+      // Não apaga nem recria alunos, matrículas ou acessos e não simula sincronização entre dispositivos.
+      refreshAllStudentDerivedViews();
+      renderSchedule();
+      renderChampionships();
+      renderMasterManagement();
+      renderAccessSecurityManagement();
+      updateAccessSecurityNotice();
+      toast("✅ DADOS E ACESSOS LOCAIS ATUALIZADOS NESTE DISPOSITIVO.");
+    }
   }catch(error){
-    toast(centralSafeError(error,"Não foi possível atualizar a base central."));
+    toast(centralSafeError(error,"Não foi possível atualizar os dados e acessos."));
   }finally{
     if(btn){btn.disabled=false;btn.textContent="🔄 ATUALIZAR DADOS E ACESSOS";}
   }
