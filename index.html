@@ -4400,8 +4400,26 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   const text=(str,x,y,size=13,bold=false,color="#000",maxWidth=Infinity)=>{
     ctx.fillStyle=color; ctx.font=`${bold?"700":"400"} ${size}px Arial, sans-serif`;
     const lines=wrap(str,maxWidth,ctx.font);
-    lines.forEach((ln,i)=>ctx.fillText(ln,x,y+i*size*1.22));
-    return lines.length*size*1.22;
+    lines.forEach((ln,i)=>ctx.fillText(ln,x,y+i*size*1.0));
+    return lines.length*size*1.0;
+  };
+  const paragraph=(str,x,y,size=13,color="#111",maxWidth=CW)=>{
+    ctx.fillStyle=color;
+    ctx.font=`400 ${size}px Arial, sans-serif`;
+    const lines=wrap(str,maxWidth,ctx.font);
+    const lineHeight=size*1.14;
+    lines.forEach((line,i)=>{
+      const words=line.split(/\s+/).filter(Boolean);
+      if(i<lines.length-1 && words.length>1){
+        const wordsWidth=words.reduce((sum,w)=>sum+ctx.measureText(w).width,0);
+        const gap=(maxWidth-wordsWidth)/(words.length-1);
+        let xx=x;
+        words.forEach((word,j)=>{ctx.fillText(word,xx,y+i*lineHeight);xx+=ctx.measureText(word).width+(j<words.length-1?gap:0);});
+      }else{
+        ctx.fillText(line,x,y+i*lineHeight);
+      }
+    });
+    return lines.length*lineHeight;
   };
   const rule=(x1,y1,x2,y2,color="#222",width=1)=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();};
   const box=(x,y,w,h,fill="#fff",stroke="#aeb7bf")=>{ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.strokeRect(x,y,w,h);};
@@ -4409,15 +4427,16 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
     box(M,y,CW,29,navy,navy);
     ctx.fillStyle=gold;ctx.fillRect(M,y,5,29);
     text(title,M+14,y+19,12,true,"#ffffff",CW-26);
-    return y+39;
+    return y+47;
   };
   const field=(x,y,label,value,width)=>{
-    box(x,y-15,width,32,pale,border);
-    text(String(label||"").toLocaleUpperCase("pt-BR"),x+7,y-3,8,true,navy,width-14);
+    // Caixa inteiramente abaixo da barra azul, com altura para o texto maior.
+    box(x,y-17,width,38,pale,border);
+    text(String(label||"").toLocaleUpperCase("pt-BR"),x+7,y-4,8.5,true,navy,width-14);
     let shown=String(value??"").trim()||"—";
-    ctx.font="700 10px Arial, sans-serif";
+    ctx.font="700 11px Arial, sans-serif";
     while(shown.length>1 && ctx.measureText(shown).width>width-14) shown=shown.slice(0,-2)+"…";
-    text(shown,x+7,y+10,10,true,gray,width-14);
+    text(shown,x+7,y+14,11,true,gray,width-14);
   };
 
   // V71 — Logo oficial fornecida pelo responsável: usada SOMENTE dentro do PDF
@@ -4452,18 +4471,18 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   y=section("1. IDENTIFICAÇÃO DO(A) ALUNO(A) – MENOR",y);
   field(M+8,y,"Nome completo",esc(e.student?.name),470);
   field(548,y,"Data de nascimento",fmtDate(e.student?.birth),250);
-  field(814,y,"Sexo",esc(e.student?.sex),366); y+=39;
+  field(814,y,"Sexo",esc(e.student?.sex),366); y+=45;
   field(M+8,y,"Escola",esc(e.student?.school),570);
-  field(650,y,"Bairro",esc(e.student?.neighborhood),530); y+=39;
-  field(M+8,y,"Endereço",esc(e.student?.address),1120); y+=39;
+  field(650,y,"Bairro",esc(e.student?.neighborhood),530); y+=45;
+  field(M+8,y,"Endereço",esc(e.student?.address),1120); y+=45;
 
   y=section("2. IDENTIFICAÇÃO DO RESPONSÁVEL LEGAL",y);
   field(M+8,y,"Nome completo",esc(e.guardian?.name),650);
-  field(740,y,"Contato/WhatsApp",esc(e.guardian?.phone),440); y+=39;
-  field(M+8,y,"CIN/RG",esc(e.guardian?.cinRg||e.guardian?.cin||e.guardian?.document),1120); y+=39;
+  field(740,y,"Contato/WhatsApp",esc(e.guardian?.phone),440); y+=45;
+  field(M+8,y,"CIN/RG",esc(e.guardian?.cinRg||e.guardian?.cin||e.guardian?.document),1120); y+=45;
 
   y=section("3. AUTORIZAÇÃO E CIÊNCIA",y);
-  y+=text("Eu, acima identificado(a), na qualidade de responsável legal, AUTORIZO o(a) menor a participar gratuitamente das atividades de Jiu-Jitsu do Projeto Social “Sementes”. Declaro estar ciente de que a modalidade envolve atividade física e contato corporal próprios do esporte, assumindo o compromisso de informar à coordenação qualquer condição de saúde, limitação, alergia, uso de medicamento ou alteração que possa interferir na participação.",M+8,y,13,false,"#111",CW-16)+12;
+  y+=paragraph("Eu, acima identificado(a), na qualidade de responsável legal, AUTORIZO o(a) menor a participar gratuitamente das atividades de Jiu-Jitsu do Projeto Social “Sementes”. Declaro estar ciente de que a modalidade envolve atividade física e contato corporal próprios do esporte, assumindo o compromisso de informar à coordenação qualquer condição de saúde, limitação, alergia, uso de medicamento ou alteração que possa interferir na participação.",M+8,y,14,"#111",CW-16)+12;
 
   y=section("4. DECLARAÇÃO DE SAÚDE",y);
   text("Assinale uma opção em cada item:",M+8,y,12,true,gray); y+=28;
@@ -4495,26 +4514,30 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   y+=55;
 
   y=section("5. SEGURANÇA, RESPONSABILIDADE E ATENDIMENTO",y);
-  y+=text("Declaro que as informações prestadas são verdadeiras e comprometo-me a comunicar qualquer alteração de saúde. Autorizo a equipe responsável a prestar os primeiros cuidados e, em situação de urgência ou emergência, acionar serviço especializado e/ou SAMU, quando necessário. O presente termo não afasta responsabilidades legais decorrentes de dolo, culpa, negligência, imprudência ou imperícia.",M+8,y,12.5,false,"#111",CW-16)+10;
+  y+=paragraph("Declaro que as informações prestadas são verdadeiras e comprometo-me a comunicar qualquer alteração de saúde. Autorizo a equipe responsável a prestar os primeiros cuidados e, em situação de urgência ou emergência, acionar serviço especializado e/ou SAMU, quando necessário. O presente termo não afasta responsabilidades legais decorrentes de dolo, culpa, negligência, imprudência ou imperícia.",M+8,y,13.5,"#111",CW-16)+10;
 
   y=section("6. USO DE IMAGEM, VOZ E NOME",y);
   const auth=e.imageConsent!==false;
   text(`${auth?"☒":"☐"} AUTORIZO    ${!auth?"☒":"☐"} NÃO AUTORIZO`,M+8,y,12,true,"#111");
   y+=22;
-  y+=text("a captação e utilização gratuita da imagem, voz e nome do(a) menor em fotos e vídeos realizados nas atividades do Projeto, exclusivamente para divulgação institucional, registro e prestação de contas, inclusive em canais oficiais da Igreja/Projeto e redes sociais, sem finalidade comercial, observada a legislação aplicável.",M+8,y,12,false,"#111",CW-16)+12;
+  y+=paragraph("a captação e utilização gratuita da imagem, voz e nome do(a) menor em fotos e vídeos realizados nas atividades do Projeto, exclusivamente para divulgação institucional, registro e prestação de contas, inclusive em canais oficiais da Igreja/Projeto e redes sociais, sem finalidade comercial, observada a legislação aplicável.",M+8,y,13,"#111",CW-16)+12;
 
   y=section("7. DADOS PESSOAIS E COMUNICAÇÃO",y);
-  y+=text("Autorizo o tratamento dos dados fornecidos neste termo na medida necessária à inscrição, organização das atividades, contato com o responsável, segurança do(a) aluno(a) e cumprimento de obrigações legais, observados os direitos previstos na legislação aplicável.",M+8,y,12,false,"#111",CW-16)+10;
+  y+=paragraph("Autorizo o tratamento dos dados fornecidos neste termo na medida necessária à inscrição, organização das atividades, contato com o responsável, segurança do(a) aluno(a) e cumprimento de obrigações legais, observados os direitos previstos na legislação aplicável.",M+8,y,13,"#111",CW-16)+10;
 
   y=section("8. DECLARAÇÃO FINAL",y);
-  y+=text("Declaro que li, compreendi e concordo com as condições acima, autorizando a participação do(a) menor no Projeto Social “Sementes”, conforme as informações e opções assinaladas neste documento.",M+8,y,12,false,"#111",CW-16)+20;
+  y+=paragraph("Declaro que li, compreendi e concordo com as condições acima, autorizando a participação do(a) menor no Projeto Social “Sementes”, conforme as informações e opções assinaladas neste documento.",M+8,y,13,"#111",CW-16)+20;
 
   y+=18;
   // assinatura
   const sig=e.signature;
-  if(sig){try{const im=new Image();await new Promise(res=>{im.onload=()=>res();im.onerror=()=>res();im.src=sig;});if(im.naturalWidth){ctx.drawImage(im,M+180,y-42,360,70);}}catch(_){} }
-  rule(M+170,y+25,M+530,y+25,"#333",1);
-  text("ASSINATURA DO RESPONSÁVEL LEGAL",M+240,y+45,11,true,"#111"); text(`Corumbá – MS, ${new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"})}.`,M+240,y+72,12,false,"#111");
+  const signatureWidth=360, signatureX=(W-signatureWidth)/2;
+  if(sig){try{const im=new Image();await new Promise(res=>{im.onload=()=>res();im.onerror=()=>res();im.src=sig;});if(im.naturalWidth){ctx.drawImage(im,signatureX,y-42,signatureWidth,70);}}catch(_){} }
+  rule(signatureX,y+25,signatureX+signatureWidth,y+25,"#333",1);
+  ctx.textAlign="center";
+  text("ASSINATURA DO RESPONSÁVEL LEGAL",W/2,y+45,11,true,"#111",signatureWidth);
+  text(`Corumbá – MS, ${new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"})}.`,W/2,y+72,12,false,"#111",signatureWidth);
+  ctx.textAlign="left";
 
   box(M,1675,CW,42,"#f2f5f7","#d4dbe2");
   ctx.fillStyle=gold;ctx.fillRect(M,1675,CW,3);
