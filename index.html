@@ -5481,35 +5481,84 @@ async function resetGuardianPassword(id){
   const allowed=state.user?.role==="master" ||
     (["guardian","director"].includes(state.user?.role) && studentFamilyKey(s)===state.user?.familyKey);
   if(!allowed){toast("Você não tem permissão para redefinir esta senha.");return;}
+
   let access=findAccessForStudent(s);
   if(!access && ["guardian","director"].includes(state.user?.role)) access=state.accesses.find(a=>a.id===state.user.id);
+  if(!access){
+    const generated=responsibleGeneratedLogin(s.guardian,s.documentNumber);
+    access=state.accesses.find(a=>a.studentId===s.id) ||
+      state.accesses.find(a=>a.login===generated) ||
+      state.accesses.find(a=>a.familyKey && a.familyKey===studentFamilyKey(s)) || null;
+  }
+
   modal("Redefinir senha do responsável",`
     <p class="small muted">Defina uma nova senha. A senha provisória deixa de expirar assim que a redefinição for salva.</p>
     <form id="guardianPasswordForm">
-      <div class="field"><label>Login do responsável</label><input class="input" value="${escapeHTML(access?.login||s.accessLogin||s.guardian||s.name||"")}" disabled></div>
-      <div class="field"><label>Nova senha</label><input id="newGuardianPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
-      <div class="field"><label>Confirmar nova senha</label><input id="newGuardianPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
+      <div class="field"><label>Login do responsável</label><input class="input" value="${escapeHTML(access?.login||s.accessLogin||responsibleGeneratedLogin(s.guardian,s.documentNumber)||s.guardian||s.name||"")}" disabled></div>
+      <div class="field"><label>Nova senha</label><input id="newGuardianPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+      <div class="field"><label>Confirmar nova senha</label><input id="newGuardianPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
       <button class="btn btn-gold" type="submit">Salvar nova senha</button>
     </form>`);
   setTimeout(()=>$("guardianPasswordForm")?.addEventListener("submit",async e=>{
     e.preventDefault();
-    const password=String($("newGuardianPassword").value||"");
-    const confirm=String($("newGuardianPasswordConfirm").value||"");
+    const password=String($("newGuardianPassword")?.value||"");
+    const confirm=String($("newGuardianPasswordConfirm")?.value||"");
     if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");return;}
     if(password!==confirm){toast("As senhas não conferem.");return;}
+
+    const login=responsibleGeneratedLogin(s.guardian,s.documentNumber) || String(access?.login||s.accessLogin||"").trim();
+    if(!login){toast("Não foi possível gerar o login do responsável. Confira o documento do cadastro.");return;}
+
     if(centralReady&&centralAuthUser){
       try{
-        const targetAccessId=state.user?.role==="guardian"?state.user.id:access?.id;
-        if(!targetAccessId) throw new Error("Acesso do responsável não localizado na base central.");
-        await centralFunction("reset-password",{targetAccessId,newPassword:password});
-        await centralPullState();closeModal();updateAccessSecurityNotice();toast("Senha redefinida com sucesso. A senha agora não expira.");return;
-      }catch(error){toast(centralSafeError(error,"Não foi possível redefinir a senha na base central."));return;}
+        let targetAccess=access;
+        if(!targetAccess || String(targetAccess.id||"").startsWith("legacy-")){
+          targetAccess=state.accesses.find(a=>a.studentId===s.id && !String(a.id||"").startsWith("legacy-")) ||
+            state.accesses.find(a=>a.login===login && !String(a.id||"").startsWith("legacy-")) ||
+            state.accesses.find(a=>a.familyKey===studentFamilyKey(s) && !String(a.id||"").startsWith("legacy-"));
+        }
+        if(!targetAccess?.id) throw new Error("Acesso do responsável não localizado na base central. Gere/atualize o acesso na Secretaria antes de redefinir a senha.");
+        await centralFunction("reset-password",{targetAccessId:targetAccess.id,newPassword:password});
+        access=targetAccess;
+      }catch(error){
+        toast(centralSafeError(error,"Não foi possível redefinir a senha na base central."));
+        return;
+      }
     }
-    let login=(s.accessLogin||s.guardian||s.name||"").trim(); if(!login){toast("Não foi possível definir o login do responsável.");return;}
-    s.accessLogin=login;s.accessPassword=password;
-    if(!access){access={id:`access-${Date.now()}`,name:s.guardian||s.name,login,password,accessPassword:password,role:"guardian",guardianName:s.guardian||s.name,studentId:s.id,active:true,createdAt:nowISO()};state.accesses.push(access);}
-    access.password=password;access.accessPassword=password;access.active=true;access.temporaryPassword=false;access.passwordExpiresAt="";access.passwordResetAt=nowISO();
-    state.passwordResets.unshift(passwordResetLogEntry(access.name,access.login,access.role));saveState();closeModal();renderAll();renderAccessSecurityManagement();updateAccessSecurityNotice();toast("Senha redefinida com sucesso. A senha agora não expira.");
+
+    if(!access){
+      access={id:`access-${Date.now()}`,name:s.guardian||s.name,login,password,accessPassword:password,role:"guardian",guardianName:s.guardian||s.name,studentId:s.id,familyKey:studentFamilyKey(s),active:true,createdAt:nowISO()};
+      state.accesses.push(access);
+    }
+    access.login=login;
+    access.password=password;
+    access.accessPassword=password;
+    access.active=true;
+    access.temporaryPassword=false;
+    access.passwordExpiresAt="";
+    access.passwordResetAt=nowISO();
+    s.accessLogin=login;
+    s.accessPassword=password;
+
+    (state.students||[]).filter(x=>studentFamilyKey(x)===studentFamilyKey(s) || normalizePersonName(x.guardian)===normalizePersonName(s.guardian))
+      .forEach(x=>x.accessLogin=login);
+
+    if(state.user?.role==="guardian" && (state.user.id===access.id || studentFamilyKey(s)===state.user.familyKey)){
+      state.user.login=login;
+      state.user.email=login;
+      state.user.temporaryPassword=false;
+      state.user.passwordExpiresAt=null;
+      sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+    }
+
+    state.passwordResets.unshift(passwordResetLogEntry(s.guardian||s.name,login,"guardian"));
+    saveState();
+    closeModal();
+    refreshAllStudentDerivedViews();
+    renderStudents();
+    renderAccessSecurityManagement();
+    updateAccessSecurityNotice();
+    toast("Senha redefinida com sucesso. O novo acesso foi salvo.");
   }),0);
 }
 function saveStudentProfile(id){
