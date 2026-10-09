@@ -1771,7 +1771,7 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
           </article>
           <article class="card">
             <div class="card-header">
-              <div><h2 class="section-title">CLAMOR E CUIDADO PASTORAL</h2><span class="small muted">Pedido de Oração ao Pastor Joel</span></div>
+              <div><h2 class="section-title">CLAMOR E CUIDADO PASTORAL</h2><span class="small muted">Pedido de oração</span></div>
               <i class="icon-gold" data-lucide="hand-heart"></i>
             </div>
             <textarea id="prayerRequest" class="textarea" placeholder="Escreva seu pedido de oração..."></textarea>
@@ -5286,12 +5286,9 @@ async function submitVisibleGuardianPasswordReset(event){
   if(status){status.classList.remove("hidden");status.className="small muted";status.textContent="Salvando nova senha...";}
   try{
     if(centralReady&&centralAuthUser&&targetAccessId){
+      // A Edge Function confirma a redefinição. Evita buscar toda a base central
+      // logo em seguida, operação que deixava o botão girando por muito tempo.
       await centralFunction("reset-password",{targetAccessId,newPassword:password});
-      await centralPullState();
-      // A sincronização pode substituir os objetos locais; recarrega o aluno
-      // e o acesso antes de espelhar a alteração no estado local.
-      s=state.students.find(x=>x.id===select?.value) || s;
-      access=findAccessForStudent(s) || access;
     }
 
     if(access){
@@ -7896,6 +7893,20 @@ function registerPWA(){
 
 const SECURITY_POLICY={maxFailedLogins:5,lockoutMs:5*60*1000,inactivityMs:30*60*1000};
 let inactivityTimer=null;
+function enrollmentInProgress(){
+  const page=$("enrollmentPage");
+  const form=$("enrollmentForm");
+  if(!page?.classList.contains("active") || !form) return false;
+  const hasEnteredData=Array.from(form.elements||[]).some(el=>{
+    if(!el || el.disabled || !el.name && !el.id) return false;
+    if(["button","submit","reset"].includes(String(el.type||"").toLowerCase())) return false;
+    if(el.type==="checkbox" || el.type==="radio") return Boolean(el.checked && el.name!=="imageConsent");
+    return String(el.value||"").trim()!=="";
+  });
+  const bio=$("biometricSection");
+  const biometricActive=Boolean(bio && !bio.classList.contains("hidden") && bio.style.display!=="none");
+  return hasEnteredData || biometricActive || Boolean(state.enrollment);
+}
 function readSecurityState(){try{return JSON.parse(sessionStorage.getItem("sementes_security")||"{}");}catch(_){return {};}}
 function writeSecurityState(v){try{sessionStorage.setItem("sementes_security",JSON.stringify(v));}catch(_){}}
 function loginLocked(){
@@ -7914,9 +7925,18 @@ function clearFailedLogins(){writeSecurityState({failures:0,lockedUntil:0});}
 function resetInactivityTimer(){
   clearTimeout(inactivityTimer);
   if(!state.user) return;
-  inactivityTimer=setTimeout(()=>{if(state.user) logout(true);},SECURITY_POLICY.inactivityMs);
+  inactivityTimer=setTimeout(()=>{
+    if(!state.user) return;
+    // Não encerra a sessão nem descarta a matrícula enquanto há dados sendo preenchidos
+    // ou a etapa de biometria está aberta. O temporizador volta a valer fora desse fluxo.
+    if(enrollmentInProgress()){
+      resetInactivityTimer();
+      return;
+    }
+    logout(true);
+  },SECURITY_POLICY.inactivityMs);
 }
-for(const evt of ["click","pointerdown","keydown","touchstart"]){document.addEventListener(evt,resetInactivityTimer,{passive:true});}
+for(const evt of ["click","pointerdown","keydown","touchstart","input","change"]){document.addEventListener(evt,resetInactivityTimer,{passive:true});}
 setInterval(updateAccessSecurityNotice,60000);
   setInterval(()=>{if(centralReady&&centralAuthUser) centralPullState().catch(()=>{});},30000);
 window.addEventListener("storage",()=>{
