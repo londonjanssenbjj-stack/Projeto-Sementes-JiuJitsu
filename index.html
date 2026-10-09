@@ -2710,9 +2710,10 @@ function toggleResponsiblePassword(id,button){const input=$(id);if(!input)return
           secretaryDocument:(state.secretaryDocuments||[]).find(d=>d.documentNumber===student.documentNumber)||null
         });
 
-        // O login definitivo do responsável segue SEMPRE o padrão: PRIMEIRO-NOME-DOCUMENTO.
-        // Exemplo: RICARDO-0001. O número é exatamente o documento gerado na matrícula.
-        const finalLogin=generatedLogin;
+        // Usa o login efetivamente confirmado pela base central, quando retornado;
+        // caso contrário, mantém o padrão PRIMEIRO-NOME-DOCUMENTO informado na tela.
+        // Isso evita exibir um login diferente daquele que o servidor vinculou à senha.
+        const finalLogin=String(result?.login||result?.access?.login||result?.accessLogin||generatedLogin).trim();
         student.accessLogin=finalLogin;
         state.user.login=finalLogin;
         state.user.email=finalLogin;
