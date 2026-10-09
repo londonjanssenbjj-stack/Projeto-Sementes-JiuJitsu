@@ -7285,7 +7285,32 @@ async function generateAccess(){
         if(!existing) state.accesses.push(localAccess);
         saveState();
       }
-      await centralPullState();renderMasterManagement();renderAccessSecurityManagement();
+      await centralPullState();
+      // CORREÇÃO PONTUAL: get-state devolve os acessos centrais sem senha por segurança.
+      // Reassocia a senha provisória recém-gerada ao espelho local para permitir
+      // o primeiro login neste navegador sem depender de uma nova consulta central.
+      if(generatedLogin && generatedPassword){
+        state.accesses=Array.isArray(state.accesses)?state.accesses:[];
+        let savedGenerated=(state.accesses||[]).find(a=>normalizeLogin(a?.login)===normalizeLogin(generatedLogin));
+        if(!savedGenerated){
+          savedGenerated={
+            id:result?.id||`access-${Date.now()}`,
+            name:result?.displayName||`Acesso ${generatedLogin}`,
+            login:generatedLogin,role:"guardian",studentId:null,active:true,
+            createdAt:nowISO(),createdBy:state.user?.name||APP_CONFIG.masterName,central:true
+          };
+          state.accesses.push(savedGenerated);
+        }
+        savedGenerated.login=generatedLogin;
+        savedGenerated.password=generatedPassword;
+        savedGenerated.accessPassword=generatedPassword;
+        savedGenerated.active=true;
+        savedGenerated.temporaryPassword=true;
+        savedGenerated.passwordExpiresAt=result?.passwordExpiresAt || savedGenerated.passwordExpiresAt || new Date(Date.now()+accessExpiryMs()).toISOString();
+        savedGenerated.central=true;
+        saveState();
+      }
+      renderMasterManagement();renderAccessSecurityManagement();
       modal("Novo acesso gerado",`
         <div class="success-notice"><strong>✓ Login e senha gerados automaticamente na base central.</strong><br>A senha provisória é válida por 3 dias.</div>
         <div class="card" style="background:#151515;margin-top:12px">
