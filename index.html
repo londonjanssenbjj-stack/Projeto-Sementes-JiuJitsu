@@ -5187,8 +5187,8 @@ function renderGuardianPasswordPanel(){
     const s=state.students.find(x=>x.id===select.value) || students[0];
     if(!s) return;
     let access=findAccessForStudent(s);
-    let generated=s.accessLogin||access?.login||((role==="guardian"&&state.user?.login)?state.user.login:responsibleGeneratedLogin(s.guardian,s.documentNumber));
-    if(role==="guardian" && state.user?.login) generated=state.user.login;
+    // O login exibido na redefinição é sempre: primeiro nome do responsável + número do documento gerado.
+    const generated=responsibleGeneratedLogin(s.guardian,s.documentNumber);
     login.value=generated||"AINDA NÃO GERADO";
   };
   updateLogin();
@@ -5227,7 +5227,7 @@ async function submitVisibleGuardianPasswordReset(event){
   if(!access && state.user?.role==="guardian") access=state.accesses.find(a=>a.id===state.user.id);
   if(!access && state.user?.role==="director") access=state.accesses.find(a=>a.login===s.accessLogin || a.familyKey===s.familyKey);
   const targetAccessId=state.user?.role==="guardian" ? state.user.id : access?.id;
-  const loginValue=(state.user?.role==="guardian" ? state.user.login : (access?.login||s.accessLogin||responsibleGeneratedLogin(s.guardian,s.documentNumber))) || "";
+  const loginValue=responsibleGeneratedLogin(s.guardian,s.documentNumber) || "";
   if(!targetAccessId && centralReady&&centralAuthUser){toast("Acesso do responsável não localizado na base central.");return;}
 
   if(submit) submit.disabled=true;
