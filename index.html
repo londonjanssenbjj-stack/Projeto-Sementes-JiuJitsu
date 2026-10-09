@@ -2802,10 +2802,11 @@ function localFamilyForLogin(login){
 async function browserInternalEmail(login){
   const normalized=String(login||"").trim().toLowerCase();
   const masterNormalized=String(APP_CONFIG.demoMasterLogin||"LONDONJANSSENBJJ@GMAIL.COM").trim().toLowerCase();
+  const masterAliases=Array.isArray(APP_CONFIG.masterAliases)?APP_CONFIG.masterAliases:[];
 
-  // O servidor usa o e-mail real do Mestre; os demais acessos usam o
-  // mesmo e-mail interno determinístico criado pelo manage-access.
-  if(normalized===masterNormalized) return masterNormalized;
+  // Todos os apelidos locais do Mestre precisam usar a mesma identidade central.
+  // Sem isso, entrar como MIKHAEL tenta autenticar uma conta diferente no Supabase.
+  if(normalized===masterNormalized || masterAliases.some(alias=>normalizeLogin(alias)===normalized)) return masterNormalized;
 
   const data=new TextEncoder().encode(normalized);
   const digest=await crypto.subtle.digest("SHA-256",data);
@@ -7383,6 +7384,15 @@ async function generateAccess(){
       return;
     }
   }
+  // Não apresentar credenciais salvas somente neste navegador como se fossem
+  // válidas no celular. A geração para responsáveis exige confirmação do Supabase.
+  if(!centralReady || !centralAuthUser){
+    modal("Acesso central necessário",`
+      <div class="notice"><strong>Não foi possível confirmar uma sessão central do Mestre.</strong><br><br>Nenhum login ou senha foi gerado. Para que o responsável consiga entrar pelo computador e pelo celular, entre com uma conta do Mestre provisionada no Supabase e tente novamente. O acesso local não sincroniza entre aparelhos.</div>
+    `);
+    toast("Geração cancelada: o Mestre não está autenticado na base central.");
+    return;
+  }
   const prefix="SEMENTES";const seq=nextAccessNumber(prefix);const login=`${prefix}-${String(seq).padStart(4,"0")}`;const password=randomPassword(10);const createdAt=nowISO();
   const access={id:`access-${Date.now()}`,name:`Acesso ${login}`,login,password,accessPassword:password,role:"guardian",studentId:null,active:true,temporaryPassword:true,createdAt,passwordExpiresAt:new Date(Date.now()+accessExpiryMs()).toISOString(),createdBy:state.user?.name||APP_CONFIG.masterName};
   state.accesses.push(access);saveState();renderMasterManagement();renderAccessSecurityManagement();renderStudents();
@@ -7730,6 +7740,28 @@ function initEvents(){
       // V65: primeiro autentica localmente. Assim o acesso do Mestre e os
       // acessos já salvos funcionam mesmo sem internet ou Supabase.
       let authenticated=loginDemo(login,password);
+
+      // O Mestre também precisa de uma sessão central para criar credenciais que
+      // funcionem em outros aparelhos. O login local continua disponível se a
+      // autenticação central falhar, mas nesse caso a Secretaria não gera acessos locais falsos.
+      if(authenticated && isMaster() && initCentralClient() && !centralAuthUser){
+        const localMasterSession={...state.user};
+        try{
+          const centralMasterResult=await centralLogin(login,password);
+          if(!centralMasterResult?.ok || state.user?.role!=="master"){
+            centralAuthUser=null;
+            try{await centralClient.auth.signOut();}catch(_){ }
+            state.user=localMasterSession;
+            try{sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));}catch(_){ }
+          }
+        }catch(centralMasterError){
+          console.warn("Sessão central do Mestre não foi estabelecida:",centralMasterError);
+          centralAuthUser=null;
+          try{await centralClient.auth.signOut();}catch(_){ }
+          state.user=localMasterSession;
+          try{sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));}catch(_){ }
+        }
+      }
 
       // Para outros usuários, se o acesso local não existir, tenta a base central.
       if(!authenticated && initCentralClient()) {
