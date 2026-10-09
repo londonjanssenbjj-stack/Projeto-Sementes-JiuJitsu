@@ -7374,21 +7374,12 @@ async function generateAccess(){
       toast("Novo login e senha gerados na base central.");return;
     }catch(error){
       console.error("Falha ao gerar acesso central:",error);
-      // V73: se a Edge Function estiver indisponível, gera imediatamente
-      // uma credencial local para o Mestre não ficar sem retorno.
-      const prefix="SEMENTES";
-      const seq=nextAccessNumber(prefix);
-      const login=`${prefix}-${String(seq).padStart(4,"0")}`;
-      const password=randomPassword(10);
-      const createdAt=nowISO();
-      const access={id:`access-${Date.now()}`,name:`Acesso ${login}`,login,password,accessPassword:password,role:"guardian",studentId:null,active:true,temporaryPassword:true,createdAt,passwordExpiresAt:new Date(Date.now()+accessExpiryMs()).toISOString(),createdBy:state.user?.name||APP_CONFIG.masterName,central:false};
-      state.accesses=Array.isArray(state.accesses)?state.accesses:[];
-      state.accesses.push(access);
-      saveState();
-      renderMasterManagement();
-      renderAccessSecurityManagement();
-      modal("Novo acesso gerado",`<div class="success-notice"><strong>✓ Login e senha gerados.</strong><br>A conexão com a base central falhou, então este é um acesso local de contingência.</div><div class="card" style="background:#151515;margin-top:12px"><p class="body-text" style="margin:0 0 10px"><strong>LOGIN:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900">${escapeHTML(login)}</span></p><p class="body-text" style="margin:0"><strong>SENHA:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900;letter-spacing:1px">${escapeHTML(password)}</span></p></div><p class="small muted" style="margin-top:12px">Guarde estes dados. O acesso central deverá ser sincronizado quando a conexão com o banco estiver disponível.</p>`);
-      toast("Login e senha gerados em modo de contingência.");
+      // Não gerar credenciais locais como se fossem acessos válidos em outros aparelhos.
+      // Um login de responsável precisa ser criado no Supabase para funcionar também no celular.
+      modal("Não foi possível gerar o acesso",`
+        <div class="notice"><strong>O login e a senha não foram gerados.</strong><br><br>Não foi possível confirmar a criação na base central. Para que o responsável consiga entrar pelo celular e pelo computador, o acesso precisa ser criado no banco central. Verifique a conexão e tente novamente.</div>
+      `);
+      toast(centralSafeError(error,"Falha ao criar o acesso na base central."));
       return;
     }
   }
