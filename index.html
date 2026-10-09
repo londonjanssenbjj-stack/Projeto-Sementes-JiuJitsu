@@ -4920,15 +4920,9 @@ async function captureFace(){
     `;
   }
 
-  // RESPONSÁVEL TEMPORÁRIO: abrir imediatamente a tela solicitada.
-  if(state.user?.role==="guardian" && state.user?.temporaryPassword===true){
-    const done=await finalizeResponsibleAccessFlow(student);
-    if(done) return;
-    toast("Conclua a redefinição de senha para finalizar o acesso.");
-    return;
-  }
-
-  // MESTRE / PASTOR / DIRETORIA e responsáveis já definitivos:
+  // Fluxo normal: após a biometria, sincroniza o cadastro e atualiza as abas,
+  // sem abrir a etapa adicional de redefinição de senha.
+  // MESTRE / PASTOR / DIRETORIA e responsáveis:
   // conclui a sincronização e só então atualiza todas as abas.
   try{
     await syncEnrollmentCentral(student);
