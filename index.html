@@ -4598,8 +4598,10 @@ function initEnrollment(){
     e.preventDefault();
     const finalizeButton=document.querySelector("#enrollmentForm button[type=\"submit\"]");
     if(finalizeButton){ finalizeButton.disabled=true; finalizeButton.textContent="⏳ Gerando documento..."; }
-    // Ativa o áudio enquanto o toque em "Finalizar Documento" ainda é uma ação do usuário.
-    await ensureAudioReady();
+    // O áudio é apenas complementar: não pode bloquear a geração do documento.
+    // Inicia a preparação sem aguardar, para que a finalização continue mesmo
+    // se o navegador não liberar ou não concluir a inicialização do áudio.
+    try{ Promise.resolve(ensureAudioReady()).catch(err=>console.warn("Áudio indisponível; prosseguindo com o documento.",err)); }catch(err){ console.warn("Áudio indisponível; prosseguindo com o documento.",err); }
 
     if(signatureIsEmpty()){
       toast("Faça a assinatura no painel antes de finalizar.");
