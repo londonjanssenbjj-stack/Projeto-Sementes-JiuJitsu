@@ -897,7 +897,7 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
             <label for="login">Login</label>
             <div class="input-wrap">
               <i data-lucide="user-round"></i>
-              <input id="login" class="input" type="text" inputmode="text" enterkeyhint="next" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required
+              <input id="login" class="input" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required
                      placeholder="Digite seu login">
             </div>
           </div>
@@ -906,7 +906,7 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
             <label for="password">Senha</label>
             <div class="input-wrap">
               <i data-lucide="lock-keyhole"></i>
-              <input id="password" class="input" type="password" enterkeyhint="go" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha">
+              <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha">
               <button class="icon-btn password-toggle" id="togglePassword" type="button"
                       aria-label="Mostrar senha" title="Mostrar senha">
                 <i data-lucide="eye"></i>
@@ -2326,7 +2326,7 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
 </audio>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="this.onerror=null;var fallback=document.createElement('script');fallback.src='https://unpkg.com/@supabase/supabase-js@2';document.head.appendChild(fallback);"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 /* ============================================================
@@ -7305,8 +7305,45 @@ async function generateDirectorAccesses(){
   }
 }
 
+async function ensureCentralMasterSessionForAccess(){
+  if(!initCentralClient()) throw new Error("Banco central não configurado.");
+  const current=await centralClient.auth.getSession();
+  if(!current.error && current.data?.session?.user){
+    centralAuthUser=current.data.session.user;
+    const access=await centralLoadAccessRecord().catch(()=>null);
+    if(access?.role==="master") return true;
+    await centralClient.auth.signOut().catch(()=>{});
+    centralAuthUser=null;
+  }
+  // O login local do Mestre não cria automaticamente uma sessão no Supabase.
+  // Solicita a senha atual para autenticar a mesma conta central antes de gerar acessos.
+  const password=window.prompt("Para gerar acessos que funcionem no computador e no celular, confirme a senha atual do Mestre:");
+  if(password===null || !String(password)) throw new Error("Operação cancelada: a senha do Mestre não foi informada.");
+  const masterLogin=String(APP_CONFIG.demoMasterLogin||"LONDONJANSSENBJJ@GMAIL.COM").trim();
+  const resolved=await centralFunction("resolve-login",{login:masterLogin,password:String(password)});
+  if(!resolved?.internalEmail) throw new Error("O Supabase não confirmou a identidade do Mestre.");
+  const signed=await centralClient.auth.signInWithPassword({email:resolved.internalEmail,password:String(password)});
+  if(signed.error || !signed.data?.user) throw new Error(signed.error?.message||"Não foi possível abrir a sessão central do Mestre.");
+  centralAuthUser=signed.data.user;
+  const access=await centralLoadAccessRecord().catch(()=>null);
+  if(!access || access.role!=="master"){
+    await centralClient.auth.signOut().catch(()=>{});
+    centralAuthUser=null;
+    throw new Error("A conta autenticada não possui perfil de Administrador Mestre na base central.");
+  }
+  return true;
+}
+
 async function generateAccess(){
   if(!isMaster()){toast("Somente o Administrador Mestre London pode gerar novos acessos.");return;}
+  if(!centralReady || !centralAuthUser){
+    try{ await ensureCentralMasterSessionForAccess(); }
+    catch(error){
+      console.error("Falha ao autenticar o Mestre na base central:",error);
+      modal("Não foi possível autenticar o Mestre",`<div class="notice"><strong>Nenhum acesso foi gerado.</strong><br><br>${escapeHTML(centralSafeError(error,"Falha na autenticação central."))}<br><br>Confirme que a senha informada é a mesma cadastrada nos Secrets MASTER_PASSWORD do Supabase.</div>`);
+      return;
+    }
+  }
   if(centralReady&&centralAuthUser){
     try{
       const result=await centralFunction("generate-access",{});
