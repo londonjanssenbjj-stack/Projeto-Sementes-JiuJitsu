@@ -897,7 +897,7 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
             <label for="login">Login</label>
             <div class="input-wrap">
               <i data-lucide="user-round"></i>
-              <input id="login" class="input" type="text" inputmode="text" enterkeyhint="next" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required
+              <input id="login" class="input" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required
                      placeholder="Digite seu login">
             </div>
           </div>
@@ -906,7 +906,7 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
             <label for="password">Senha</label>
             <div class="input-wrap">
               <i data-lucide="lock-keyhole"></i>
-              <input id="password" class="input" type="password" enterkeyhint="go" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha">
+              <input id="password" class="input" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required placeholder="Digite sua senha">
               <button class="icon-btn password-toggle" id="togglePassword" type="button"
                       aria-label="Mostrar senha" title="Mostrar senha">
                 <i data-lucide="eye"></i>
@@ -2326,7 +2326,7 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
 </audio>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="this.onerror=null;var fallback=document.createElement('script');fallback.src='https://unpkg.com/@supabase/supabase-js@2';document.head.appendChild(fallback);"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 /* ============================================================
@@ -2802,11 +2802,10 @@ function localFamilyForLogin(login){
 async function browserInternalEmail(login){
   const normalized=String(login||"").trim().toLowerCase();
   const masterNormalized=String(APP_CONFIG.demoMasterLogin||"LONDONJANSSENBJJ@GMAIL.COM").trim().toLowerCase();
-  const masterAliases=Array.isArray(APP_CONFIG.masterAliases)?APP_CONFIG.masterAliases:[];
 
-  // Todos os apelidos locais do Mestre precisam usar a mesma identidade central.
-  // Sem isso, entrar como MIKHAEL tenta autenticar uma conta diferente no Supabase.
-  if(normalized===masterNormalized || masterAliases.some(alias=>normalizeLogin(alias)===normalized)) return masterNormalized;
+  // O servidor usa o e-mail real do Mestre; os demais acessos usam o
+  // mesmo e-mail interno determinístico criado pelo manage-access.
+  if(normalized===masterNormalized) return masterNormalized;
 
   const data=new TextEncoder().encode(normalized);
   const digest=await crypto.subtle.digest("SHA-256",data);
@@ -4401,26 +4400,8 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   const text=(str,x,y,size=13,bold=false,color="#000",maxWidth=Infinity)=>{
     ctx.fillStyle=color; ctx.font=`${bold?"700":"400"} ${size}px Arial, sans-serif`;
     const lines=wrap(str,maxWidth,ctx.font);
-    lines.forEach((ln,i)=>ctx.fillText(ln,x,y+i*size*1.0));
-    return lines.length*size*1.0;
-  };
-  const paragraph=(str,x,y,size=13,color="#111",maxWidth=CW)=>{
-    ctx.fillStyle=color;
-    ctx.font=`400 ${size}px Arial, sans-serif`;
-    const lines=wrap(str,maxWidth,ctx.font);
-    const lineHeight=size*1.14;
-    lines.forEach((line,i)=>{
-      const words=line.split(/\s+/).filter(Boolean);
-      if(i<lines.length-1 && words.length>1){
-        const wordsWidth=words.reduce((sum,w)=>sum+ctx.measureText(w).width,0);
-        const gap=(maxWidth-wordsWidth)/(words.length-1);
-        let xx=x;
-        words.forEach((word,j)=>{ctx.fillText(word,xx,y+i*lineHeight);xx+=ctx.measureText(word).width+(j<words.length-1?gap:0);});
-      }else{
-        ctx.fillText(line,x,y+i*lineHeight);
-      }
-    });
-    return lines.length*lineHeight;
+    lines.forEach((ln,i)=>ctx.fillText(ln,x,y+i*size*1.22));
+    return lines.length*size*1.22;
   };
   const rule=(x1,y1,x2,y2,color="#222",width=1)=>{ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();};
   const box=(x,y,w,h,fill="#fff",stroke="#aeb7bf")=>{ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.strokeRect(x,y,w,h);};
@@ -4428,16 +4409,15 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
     box(M,y,CW,29,navy,navy);
     ctx.fillStyle=gold;ctx.fillRect(M,y,5,29);
     text(title,M+14,y+19,12,true,"#ffffff",CW-26);
-    return y+47;
+    return y+39;
   };
   const field=(x,y,label,value,width)=>{
-    // Caixa inteiramente abaixo da barra azul, com altura para o texto maior.
-    box(x,y-17,width,38,pale,border);
-    text(String(label||"").toLocaleUpperCase("pt-BR"),x+7,y-4,8.5,true,navy,width-14);
+    box(x,y-15,width,32,pale,border);
+    text(String(label||"").toLocaleUpperCase("pt-BR"),x+7,y-3,8,true,navy,width-14);
     let shown=String(value??"").trim()||"—";
-    ctx.font="700 11px Arial, sans-serif";
+    ctx.font="700 10px Arial, sans-serif";
     while(shown.length>1 && ctx.measureText(shown).width>width-14) shown=shown.slice(0,-2)+"…";
-    text(shown,x+7,y+14,11,true,gray,width-14);
+    text(shown,x+7,y+10,10,true,gray,width-14);
   };
 
   // V71 — Logo oficial fornecida pelo responsável: usada SOMENTE dentro do PDF
@@ -4472,18 +4452,18 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   y=section("1. IDENTIFICAÇÃO DO(A) ALUNO(A) – MENOR",y);
   field(M+8,y,"Nome completo",esc(e.student?.name),470);
   field(548,y,"Data de nascimento",fmtDate(e.student?.birth),250);
-  field(814,y,"Sexo",esc(e.student?.sex),366); y+=45;
+  field(814,y,"Sexo",esc(e.student?.sex),366); y+=39;
   field(M+8,y,"Escola",esc(e.student?.school),570);
-  field(650,y,"Bairro",esc(e.student?.neighborhood),530); y+=45;
-  field(M+8,y,"Endereço",esc(e.student?.address),1120); y+=45;
+  field(650,y,"Bairro",esc(e.student?.neighborhood),530); y+=39;
+  field(M+8,y,"Endereço",esc(e.student?.address),1120); y+=39;
 
   y=section("2. IDENTIFICAÇÃO DO RESPONSÁVEL LEGAL",y);
   field(M+8,y,"Nome completo",esc(e.guardian?.name),650);
-  field(740,y,"Contato/WhatsApp",esc(e.guardian?.phone),440); y+=45;
-  field(M+8,y,"CIN/RG",esc(e.guardian?.cinRg||e.guardian?.cin||e.guardian?.document),1120); y+=45;
+  field(740,y,"Contato/WhatsApp",esc(e.guardian?.phone),440); y+=39;
+  field(M+8,y,"CIN/RG",esc(e.guardian?.cinRg||e.guardian?.cin||e.guardian?.document),1120); y+=39;
 
   y=section("3. AUTORIZAÇÃO E CIÊNCIA",y);
-  y+=paragraph("Eu, acima identificado(a), na qualidade de responsável legal, AUTORIZO o(a) menor a participar gratuitamente das atividades de Jiu-Jitsu do Projeto Social “Sementes”. Declaro estar ciente de que a modalidade envolve atividade física e contato corporal próprios do esporte, assumindo o compromisso de informar à coordenação qualquer condição de saúde, limitação, alergia, uso de medicamento ou alteração que possa interferir na participação.",M+8,y,14,"#111",CW-16)+12;
+  y+=text("Eu, acima identificado(a), na qualidade de responsável legal, AUTORIZO o(a) menor a participar gratuitamente das atividades de Jiu-Jitsu do Projeto Social “Sementes”. Declaro estar ciente de que a modalidade envolve atividade física e contato corporal próprios do esporte, assumindo o compromisso de informar à coordenação qualquer condição de saúde, limitação, alergia, uso de medicamento ou alteração que possa interferir na participação.",M+8,y,13,false,"#111",CW-16)+12;
 
   y=section("4. DECLARAÇÃO DE SAÚDE",y);
   text("Assinale uma opção em cada item:",M+8,y,12,true,gray); y+=28;
@@ -4515,30 +4495,26 @@ async function buildLegalEnrollmentPDF(e,codigoMatricula){
   y+=55;
 
   y=section("5. SEGURANÇA, RESPONSABILIDADE E ATENDIMENTO",y);
-  y+=paragraph("Declaro que as informações prestadas são verdadeiras e comprometo-me a comunicar qualquer alteração de saúde. Autorizo a equipe responsável a prestar os primeiros cuidados e, em situação de urgência ou emergência, acionar serviço especializado e/ou SAMU, quando necessário. O presente termo não afasta responsabilidades legais decorrentes de dolo, culpa, negligência, imprudência ou imperícia.",M+8,y,13.5,"#111",CW-16)+10;
+  y+=text("Declaro que as informações prestadas são verdadeiras e comprometo-me a comunicar qualquer alteração de saúde. Autorizo a equipe responsável a prestar os primeiros cuidados e, em situação de urgência ou emergência, acionar serviço especializado e/ou SAMU, quando necessário. O presente termo não afasta responsabilidades legais decorrentes de dolo, culpa, negligência, imprudência ou imperícia.",M+8,y,12.5,false,"#111",CW-16)+10;
 
   y=section("6. USO DE IMAGEM, VOZ E NOME",y);
   const auth=e.imageConsent!==false;
   text(`${auth?"☒":"☐"} AUTORIZO    ${!auth?"☒":"☐"} NÃO AUTORIZO`,M+8,y,12,true,"#111");
   y+=22;
-  y+=paragraph("a captação e utilização gratuita da imagem, voz e nome do(a) menor em fotos e vídeos realizados nas atividades do Projeto, exclusivamente para divulgação institucional, registro e prestação de contas, inclusive em canais oficiais da Igreja/Projeto e redes sociais, sem finalidade comercial, observada a legislação aplicável.",M+8,y,13,"#111",CW-16)+12;
+  y+=text("a captação e utilização gratuita da imagem, voz e nome do(a) menor em fotos e vídeos realizados nas atividades do Projeto, exclusivamente para divulgação institucional, registro e prestação de contas, inclusive em canais oficiais da Igreja/Projeto e redes sociais, sem finalidade comercial, observada a legislação aplicável.",M+8,y,12,false,"#111",CW-16)+12;
 
   y=section("7. DADOS PESSOAIS E COMUNICAÇÃO",y);
-  y+=paragraph("Autorizo o tratamento dos dados fornecidos neste termo na medida necessária à inscrição, organização das atividades, contato com o responsável, segurança do(a) aluno(a) e cumprimento de obrigações legais, observados os direitos previstos na legislação aplicável.",M+8,y,13,"#111",CW-16)+10;
+  y+=text("Autorizo o tratamento dos dados fornecidos neste termo na medida necessária à inscrição, organização das atividades, contato com o responsável, segurança do(a) aluno(a) e cumprimento de obrigações legais, observados os direitos previstos na legislação aplicável.",M+8,y,12,false,"#111",CW-16)+10;
 
   y=section("8. DECLARAÇÃO FINAL",y);
-  y+=paragraph("Declaro que li, compreendi e concordo com as condições acima, autorizando a participação do(a) menor no Projeto Social “Sementes”, conforme as informações e opções assinaladas neste documento.",M+8,y,13,"#111",CW-16)+20;
+  y+=text("Declaro que li, compreendi e concordo com as condições acima, autorizando a participação do(a) menor no Projeto Social “Sementes”, conforme as informações e opções assinaladas neste documento.",M+8,y,12,false,"#111",CW-16)+20;
 
   y+=18;
   // assinatura
   const sig=e.signature;
-  const signatureWidth=360, signatureX=(W-signatureWidth)/2;
-  if(sig){try{const im=new Image();await new Promise(res=>{im.onload=()=>res();im.onerror=()=>res();im.src=sig;});if(im.naturalWidth){ctx.drawImage(im,signatureX,y-42,signatureWidth,70);}}catch(_){} }
-  rule(signatureX,y+25,signatureX+signatureWidth,y+25,"#333",1);
-  ctx.textAlign="center";
-  text("ASSINATURA DO RESPONSÁVEL LEGAL",W/2,y+45,11,true,"#111",signatureWidth);
-  text(`Corumbá – MS, ${new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"})}.`,W/2,y+72,12,false,"#111",signatureWidth);
-  ctx.textAlign="left";
+  if(sig){try{const im=new Image();await new Promise(res=>{im.onload=()=>res();im.onerror=()=>res();im.src=sig;});if(im.naturalWidth){ctx.drawImage(im,M+180,y-42,360,70);}}catch(_){} }
+  rule(M+170,y+25,M+530,y+25,"#333",1);
+  text("ASSINATURA DO RESPONSÁVEL LEGAL",M+240,y+45,11,true,"#111"); text(`Corumbá – MS, ${new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"})}.`,M+240,y+72,12,false,"#111");
 
   box(M,1675,CW,42,"#f2f5f7","#d4dbe2");
   ctx.fillStyle=gold;ctx.fillRect(M,1675,CW,3);
@@ -4599,10 +4575,8 @@ function initEnrollment(){
     e.preventDefault();
     const finalizeButton=document.querySelector("#enrollmentForm button[type=\"submit\"]");
     if(finalizeButton){ finalizeButton.disabled=true; finalizeButton.textContent="⏳ Gerando documento..."; }
-    // O áudio é apenas complementar: não pode bloquear a geração do documento.
-    // Inicia a preparação sem aguardar, para que a finalização continue mesmo
-    // se o navegador não liberar ou não concluir a inicialização do áudio.
-    try{ Promise.resolve(ensureAudioReady()).catch(err=>console.warn("Áudio indisponível; prosseguindo com o documento.",err)); }catch(err){ console.warn("Áudio indisponível; prosseguindo com o documento.",err); }
+    // Ativa o áudio enquanto o toque em "Finalizar Documento" ainda é uma ação do usuário.
+    await ensureAudioReady();
 
     if(signatureIsEmpty()){
       toast("Faça a assinatura no painel antes de finalizar.");
@@ -5289,9 +5263,12 @@ async function submitVisibleGuardianPasswordReset(event){
   if(status){status.classList.remove("hidden");status.className="small muted";status.textContent="Salvando nova senha...";}
   try{
     if(centralReady&&centralAuthUser&&targetAccessId){
-      // A Edge Function confirma a redefinição. Evita buscar toda a base central
-      // logo em seguida, operação que deixava o botão girando por muito tempo.
       await centralFunction("reset-password",{targetAccessId,newPassword:password});
+      await centralPullState();
+      // A sincronização pode substituir os objetos locais; recarrega o aluno
+      // e o acesso antes de espelhar a alteração no estado local.
+      s=state.students.find(x=>x.id===select?.value) || s;
+      access=findAccessForStudent(s) || access;
     }
 
     if(access){
@@ -5482,84 +5459,35 @@ async function resetGuardianPassword(id){
   const allowed=state.user?.role==="master" ||
     (["guardian","director"].includes(state.user?.role) && studentFamilyKey(s)===state.user?.familyKey);
   if(!allowed){toast("Você não tem permissão para redefinir esta senha.");return;}
-
   let access=findAccessForStudent(s);
   if(!access && ["guardian","director"].includes(state.user?.role)) access=state.accesses.find(a=>a.id===state.user.id);
-  if(!access){
-    const generated=responsibleGeneratedLogin(s.guardian,s.documentNumber);
-    access=state.accesses.find(a=>a.studentId===s.id) ||
-      state.accesses.find(a=>a.login===generated) ||
-      state.accesses.find(a=>a.familyKey && a.familyKey===studentFamilyKey(s)) || null;
-  }
-
   modal("Redefinir senha do responsável",`
     <p class="small muted">Defina uma nova senha. A senha provisória deixa de expirar assim que a redefinição for salva.</p>
     <form id="guardianPasswordForm">
-      <div class="field"><label>Login do responsável</label><input class="input" value="${escapeHTML(access?.login||s.accessLogin||responsibleGeneratedLogin(s.guardian,s.documentNumber)||s.guardian||s.name||"")}" disabled></div>
-      <div class="field"><label>Nova senha</label><input id="newGuardianPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
-      <div class="field"><label>Confirmar nova senha</label><input id="newGuardianPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+      <div class="field"><label>Login do responsável</label><input class="input" value="${escapeHTML(access?.login||s.accessLogin||s.guardian||s.name||"")}" disabled></div>
+      <div class="field"><label>Nova senha</label><input id="newGuardianPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
+      <div class="field"><label>Confirmar nova senha</label><input id="newGuardianPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"></div>
       <button class="btn btn-gold" type="submit">Salvar nova senha</button>
     </form>`);
   setTimeout(()=>$("guardianPasswordForm")?.addEventListener("submit",async e=>{
     e.preventDefault();
-    const password=String($("newGuardianPassword")?.value||"");
-    const confirm=String($("newGuardianPasswordConfirm")?.value||"");
+    const password=String($("newGuardianPassword").value||"");
+    const confirm=String($("newGuardianPasswordConfirm").value||"");
     if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");return;}
     if(password!==confirm){toast("As senhas não conferem.");return;}
-
-    const login=responsibleGeneratedLogin(s.guardian,s.documentNumber) || String(access?.login||s.accessLogin||"").trim();
-    if(!login){toast("Não foi possível gerar o login do responsável. Confira o documento do cadastro.");return;}
-
     if(centralReady&&centralAuthUser){
       try{
-        let targetAccess=access;
-        if(!targetAccess || String(targetAccess.id||"").startsWith("legacy-")){
-          targetAccess=state.accesses.find(a=>a.studentId===s.id && !String(a.id||"").startsWith("legacy-")) ||
-            state.accesses.find(a=>a.login===login && !String(a.id||"").startsWith("legacy-")) ||
-            state.accesses.find(a=>a.familyKey===studentFamilyKey(s) && !String(a.id||"").startsWith("legacy-"));
-        }
-        if(!targetAccess?.id) throw new Error("Acesso do responsável não localizado na base central. Gere/atualize o acesso na Secretaria antes de redefinir a senha.");
-        await centralFunction("reset-password",{targetAccessId:targetAccess.id,newPassword:password});
-        access=targetAccess;
-      }catch(error){
-        toast(centralSafeError(error,"Não foi possível redefinir a senha na base central."));
-        return;
-      }
+        const targetAccessId=state.user?.role==="guardian"?state.user.id:access?.id;
+        if(!targetAccessId) throw new Error("Acesso do responsável não localizado na base central.");
+        await centralFunction("reset-password",{targetAccessId,newPassword:password});
+        await centralPullState();closeModal();updateAccessSecurityNotice();toast("Senha redefinida com sucesso. A senha agora não expira.");return;
+      }catch(error){toast(centralSafeError(error,"Não foi possível redefinir a senha na base central."));return;}
     }
-
-    if(!access){
-      access={id:`access-${Date.now()}`,name:s.guardian||s.name,login,password,accessPassword:password,role:"guardian",guardianName:s.guardian||s.name,studentId:s.id,familyKey:studentFamilyKey(s),active:true,createdAt:nowISO()};
-      state.accesses.push(access);
-    }
-    access.login=login;
-    access.password=password;
-    access.accessPassword=password;
-    access.active=true;
-    access.temporaryPassword=false;
-    access.passwordExpiresAt="";
-    access.passwordResetAt=nowISO();
-    s.accessLogin=login;
-    s.accessPassword=password;
-
-    (state.students||[]).filter(x=>studentFamilyKey(x)===studentFamilyKey(s) || normalizePersonName(x.guardian)===normalizePersonName(s.guardian))
-      .forEach(x=>x.accessLogin=login);
-
-    if(state.user?.role==="guardian" && (state.user.id===access.id || studentFamilyKey(s)===state.user.familyKey)){
-      state.user.login=login;
-      state.user.email=login;
-      state.user.temporaryPassword=false;
-      state.user.passwordExpiresAt=null;
-      sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-    }
-
-    state.passwordResets.unshift(passwordResetLogEntry(s.guardian||s.name,login,"guardian"));
-    saveState();
-    closeModal();
-    refreshAllStudentDerivedViews();
-    renderStudents();
-    renderAccessSecurityManagement();
-    updateAccessSecurityNotice();
-    toast("Senha redefinida com sucesso. O novo acesso foi salvo.");
+    let login=(s.accessLogin||s.guardian||s.name||"").trim(); if(!login){toast("Não foi possível definir o login do responsável.");return;}
+    s.accessLogin=login;s.accessPassword=password;
+    if(!access){access={id:`access-${Date.now()}`,name:s.guardian||s.name,login,password,accessPassword:password,role:"guardian",guardianName:s.guardian||s.name,studentId:s.id,active:true,createdAt:nowISO()};state.accesses.push(access);}
+    access.password=password;access.accessPassword=password;access.active=true;access.temporaryPassword=false;access.passwordExpiresAt="";access.passwordResetAt=nowISO();
+    state.passwordResets.unshift(passwordResetLogEntry(access.name,access.login,access.role));saveState();closeModal();renderAll();renderAccessSecurityManagement();updateAccessSecurityNotice();toast("Senha redefinida com sucesso. A senha agora não expira.");
   }),0);
 }
 function saveStudentProfile(id){
@@ -7337,32 +7265,7 @@ async function generateAccess(){
         if(!existing) state.accesses.push(localAccess);
         saveState();
       }
-      await centralPullState();
-      // CORREÇÃO PONTUAL: get-state devolve os acessos centrais sem senha por segurança.
-      // Reassocia a senha provisória recém-gerada ao espelho local para permitir
-      // o primeiro login neste navegador sem depender de uma nova consulta central.
-      if(generatedLogin && generatedPassword){
-        state.accesses=Array.isArray(state.accesses)?state.accesses:[];
-        let savedGenerated=(state.accesses||[]).find(a=>normalizeLogin(a?.login)===normalizeLogin(generatedLogin));
-        if(!savedGenerated){
-          savedGenerated={
-            id:result?.id||`access-${Date.now()}`,
-            name:result?.displayName||`Acesso ${generatedLogin}`,
-            login:generatedLogin,role:"guardian",studentId:null,active:true,
-            createdAt:nowISO(),createdBy:state.user?.name||APP_CONFIG.masterName,central:true
-          };
-          state.accesses.push(savedGenerated);
-        }
-        savedGenerated.login=generatedLogin;
-        savedGenerated.password=generatedPassword;
-        savedGenerated.accessPassword=generatedPassword;
-        savedGenerated.active=true;
-        savedGenerated.temporaryPassword=true;
-        savedGenerated.passwordExpiresAt=result?.passwordExpiresAt || savedGenerated.passwordExpiresAt || new Date(Date.now()+accessExpiryMs()).toISOString();
-        savedGenerated.central=true;
-        saveState();
-      }
-      renderMasterManagement();renderAccessSecurityManagement();
+      await centralPullState();renderMasterManagement();renderAccessSecurityManagement();
       modal("Novo acesso gerado",`
         <div class="success-notice"><strong>✓ Login e senha gerados automaticamente na base central.</strong><br>A senha provisória é válida por 3 dias.</div>
         <div class="card" style="background:#151515;margin-top:12px">
@@ -7375,23 +7278,23 @@ async function generateAccess(){
       toast("Novo login e senha gerados na base central.");return;
     }catch(error){
       console.error("Falha ao gerar acesso central:",error);
-      // Não gerar credenciais locais como se fossem acessos válidos em outros aparelhos.
-      // Um login de responsável precisa ser criado no Supabase para funcionar também no celular.
-      modal("Não foi possível gerar o acesso",`
-        <div class="notice"><strong>O login e a senha não foram gerados.</strong><br><br>Não foi possível confirmar a criação na base central. Para que o responsável consiga entrar pelo celular e pelo computador, o acesso precisa ser criado no banco central. Verifique a conexão e tente novamente.</div>
-      `);
-      toast(centralSafeError(error,"Falha ao criar o acesso na base central."));
+      // V73: se a Edge Function estiver indisponível, gera imediatamente
+      // uma credencial local para o Mestre não ficar sem retorno.
+      const prefix="SEMENTES";
+      const seq=nextAccessNumber(prefix);
+      const login=`${prefix}-${String(seq).padStart(4,"0")}`;
+      const password=randomPassword(10);
+      const createdAt=nowISO();
+      const access={id:`access-${Date.now()}`,name:`Acesso ${login}`,login,password,accessPassword:password,role:"guardian",studentId:null,active:true,temporaryPassword:true,createdAt,passwordExpiresAt:new Date(Date.now()+accessExpiryMs()).toISOString(),createdBy:state.user?.name||APP_CONFIG.masterName,central:false};
+      state.accesses=Array.isArray(state.accesses)?state.accesses:[];
+      state.accesses.push(access);
+      saveState();
+      renderMasterManagement();
+      renderAccessSecurityManagement();
+      modal("Novo acesso gerado",`<div class="success-notice"><strong>✓ Login e senha gerados.</strong><br>A conexão com a base central falhou, então este é um acesso local de contingência.</div><div class="card" style="background:#151515;margin-top:12px"><p class="body-text" style="margin:0 0 10px"><strong>LOGIN:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900">${escapeHTML(login)}</span></p><p class="body-text" style="margin:0"><strong>SENHA:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900;letter-spacing:1px">${escapeHTML(password)}</span></p></div><p class="small muted" style="margin-top:12px">Guarde estes dados. O acesso central deverá ser sincronizado quando a conexão com o banco estiver disponível.</p>`);
+      toast("Login e senha gerados em modo de contingência.");
       return;
     }
-  }
-  // Não apresentar credenciais salvas somente neste navegador como se fossem
-  // válidas no celular. A geração para responsáveis exige confirmação do Supabase.
-  if(!centralReady || !centralAuthUser){
-    modal("Acesso central necessário",`
-      <div class="notice"><strong>Não foi possível confirmar uma sessão central do Mestre.</strong><br><br>Nenhum login ou senha foi gerado. Para que o responsável consiga entrar pelo computador e pelo celular, entre com uma conta do Mestre provisionada no Supabase e tente novamente. O acesso local não sincroniza entre aparelhos.</div>
-    `);
-    toast("Geração cancelada: o Mestre não está autenticado na base central.");
-    return;
   }
   const prefix="SEMENTES";const seq=nextAccessNumber(prefix);const login=`${prefix}-${String(seq).padStart(4,"0")}`;const password=randomPassword(10);const createdAt=nowISO();
   const access={id:`access-${Date.now()}`,name:`Acesso ${login}`,login,password,accessPassword:password,role:"guardian",studentId:null,active:true,temporaryPassword:true,createdAt,passwordExpiresAt:new Date(Date.now()+accessExpiryMs()).toISOString(),createdBy:state.user?.name||APP_CONFIG.masterName};
@@ -7741,28 +7644,6 @@ function initEvents(){
       // acessos já salvos funcionam mesmo sem internet ou Supabase.
       let authenticated=loginDemo(login,password);
 
-      // O Mestre também precisa de uma sessão central para criar credenciais que
-      // funcionem em outros aparelhos. O login local continua disponível se a
-      // autenticação central falhar, mas nesse caso a Secretaria não gera acessos locais falsos.
-      if(authenticated && isMaster() && initCentralClient() && !centralAuthUser){
-        const localMasterSession={...state.user};
-        try{
-          const centralMasterResult=await centralLogin(login,password);
-          if(!centralMasterResult?.ok || state.user?.role!=="master"){
-            centralAuthUser=null;
-            try{await centralClient.auth.signOut();}catch(_){ }
-            state.user=localMasterSession;
-            try{sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));}catch(_){ }
-          }
-        }catch(centralMasterError){
-          console.warn("Sessão central do Mestre não foi estabelecida:",centralMasterError);
-          centralAuthUser=null;
-          try{await centralClient.auth.signOut();}catch(_){ }
-          state.user=localMasterSession;
-          try{sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));}catch(_){ }
-        }
-      }
-
       // Para outros usuários, se o acesso local não existir, tenta a base central.
       if(!authenticated && initCentralClient()) {
         try{
@@ -7992,20 +7873,6 @@ function registerPWA(){
 
 const SECURITY_POLICY={maxFailedLogins:5,lockoutMs:5*60*1000,inactivityMs:30*60*1000};
 let inactivityTimer=null;
-function enrollmentInProgress(){
-  const page=$("enrollmentPage");
-  const form=$("enrollmentForm");
-  if(!page?.classList.contains("active") || !form) return false;
-  const hasEnteredData=Array.from(form.elements||[]).some(el=>{
-    if(!el || el.disabled || !el.name && !el.id) return false;
-    if(["button","submit","reset"].includes(String(el.type||"").toLowerCase())) return false;
-    if(el.type==="checkbox" || el.type==="radio") return Boolean(el.checked && el.name!=="imageConsent");
-    return String(el.value||"").trim()!=="";
-  });
-  const bio=$("biometricSection");
-  const biometricActive=Boolean(bio && !bio.classList.contains("hidden") && bio.style.display!=="none");
-  return hasEnteredData || biometricActive || Boolean(state.enrollment);
-}
 function readSecurityState(){try{return JSON.parse(sessionStorage.getItem("sementes_security")||"{}");}catch(_){return {};}}
 function writeSecurityState(v){try{sessionStorage.setItem("sementes_security",JSON.stringify(v));}catch(_){}}
 function loginLocked(){
@@ -8024,18 +7891,9 @@ function clearFailedLogins(){writeSecurityState({failures:0,lockedUntil:0});}
 function resetInactivityTimer(){
   clearTimeout(inactivityTimer);
   if(!state.user) return;
-  inactivityTimer=setTimeout(()=>{
-    if(!state.user) return;
-    // Não encerra a sessão nem descarta a matrícula enquanto há dados sendo preenchidos
-    // ou a etapa de biometria está aberta. O temporizador volta a valer fora desse fluxo.
-    if(enrollmentInProgress()){
-      resetInactivityTimer();
-      return;
-    }
-    logout(true);
-  },SECURITY_POLICY.inactivityMs);
+  inactivityTimer=setTimeout(()=>{if(state.user) logout(true);},SECURITY_POLICY.inactivityMs);
 }
-for(const evt of ["click","pointerdown","keydown","touchstart","input","change"]){document.addEventListener(evt,resetInactivityTimer,{passive:true});}
+for(const evt of ["click","pointerdown","keydown","touchstart"]){document.addEventListener(evt,resetInactivityTimer,{passive:true});}
 setInterval(updateAccessSecurityNotice,60000);
   setInterval(()=>{if(centralReady&&centralAuthUser) centralPullState().catch(()=>{});},30000);
 window.addEventListener("storage",()=>{
