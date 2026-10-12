@@ -2477,11 +2477,12 @@ function centralVisibleFamilyFilter(student){
 
 async function centralLoadAccessRecord(){
   if(!centralReady || !centralAuthUser) return null;
-  const {data,error}=await centralClient.from("app_accesses")
-    .select("id,auth_user_id,login,display_name,role,family_key,active,temporary_password,temporary_expires_at,password_changed_at,created_by,created_at,updated_at")
-    .eq("auth_user_id",centralAuthUser.id).maybeSingle();
-  if(error) throw error;
-  return data||null;
+  // A tabela app_accesses não deve ser consultada diretamente pelo navegador.
+  // O backend manage-access valida a sessão e devolve apenas os acessos autorizados.
+  const result=await centralFunction("get-state",{});
+  if(!result?.ok) throw new Error(result?.error||"Não foi possível consultar o perfil de acesso.");
+  const accesses=Array.isArray(result.accesses)?result.accesses:[];
+  return accesses.find(a=>String(a.auth_user_id||"")===String(centralAuthUser.id))||null;
 }
 
 function centralMapAccess(a){
