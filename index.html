@@ -3431,7 +3431,15 @@ function getMasterPassword(){
 }
 
 function normalizeLogin(value){
-  return String(value??"").trim().toLowerCase();
+  const raw=String(value??"").trim().toLowerCase();
+  // Teste de acesso V74: logins de responsáveis cadastrados como telefone
+  // são comparados apenas pelos dígitos, mesmo se digitados com espaços,
+  // parênteses, hífen ou código +55. Logins alfanuméricos continuam iguais.
+  const digits=raw.replace(/\D+/g,"");
+  if(digits.length>=10 && /^[+\d\s().-]+$/.test(raw)){
+    return digits.startsWith("55") && digits.length===13 ? digits.slice(2) : digits;
+  }
+  return raw;
 }
 
 function nowISO(){ return new Date().toISOString(); }
@@ -7630,7 +7638,8 @@ function initEvents(){
 
   $("loginForm")?.addEventListener("submit",async e=>{
     e.preventDefault();
-    const login=$("login").value;
+    const loginRaw=$("login").value;
+    const login=normalizeLogin(loginRaw);
     const password=$("password").value;
     const errorBox=$("loginErrorMessage");
     if(errorBox){errorBox.style.display="none";errorBox.textContent="";}
