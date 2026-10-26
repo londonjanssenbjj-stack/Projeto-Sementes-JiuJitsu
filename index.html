@@ -2576,8 +2576,42 @@ function centralScheduleSync(){
 
 
 async function provisionInitialRoster(){
-  // V72: a nova base começa sem os cadastros antigos.
-  return;
+  // V73: importa a planilha inicial somente quando o banco central ainda não tem alunos.
+  // Não sobrescreve nem apaga cadastros que já existam na base central.
+  if(!centralReady || !centralAuthUser || state.user?.role !== "master") return;
+  if(Array.isArray(state.students) && state.students.length > 0) return;
+  if(!Array.isArray(INITIAL_ROSTER) || INITIAL_ROSTER.length === 0) return;
+
+  try{
+    // Confere novamente no servidor para evitar importar a lista inicial sobre dados existentes.
+    const latest = await centralFunction("get-state", {});
+    if(!latest?.ok) throw new Error(latest?.error || "Não foi possível verificar os alunos existentes.");
+    const remoteStudents = (Array.isArray(latest.records) ? latest.records : [])
+      .filter(record => record && record.record_type === "student" && record.data)
+      .map(record => record.data);
+
+    if(remoteStudents.length > 0){
+      state.students = remoteStudents;
+      refreshAllStudentDerivedViews();
+      return;
+    }
+
+    const roster = INITIAL_ROSTER.map((student, index) => ({
+      ...student,
+      id: String(student.id || `roster-${index + 1}`)
+    }));
+    const result = await centralFunction("sync-state", {collections: {student: roster}});
+    if(!result?.ok) throw new Error(result?.error || "Não foi possível importar a lista inicial de alunos.");
+
+    // Busca os registros gravados no banco, assim a tela usa a fonte central.
+    await centralPullState();
+    refreshAllStudentDerivedViews();
+    console.info(`Lista inicial de alunos sincronizada: ${roster.length} registros.`);
+    toast(`✅ Lista inicial sincronizada: ${roster.length} alunos.`);
+  }catch(error){
+    console.error("Falha ao importar a lista inicial de alunos:", error);
+    toast(centralSafeError(error, "Não foi possível carregar os alunos da base central."));
+  }
 }
 
 async function centralPullState(){
