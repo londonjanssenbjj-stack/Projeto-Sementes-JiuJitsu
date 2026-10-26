@@ -2326,7 +2326,6 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
 </audio>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 /* ============================================================
@@ -2366,7 +2365,7 @@ const APP_CONFIG = {
     Credencial DEMONSTRATIVA fornecida na especificação.
     NÃO publique senha real em produção.
     Em produção, substitua este mecanismo por Firebase Auth,
-    Supabase Auth ou outro provedor seguro.
+    provedor de autenticação ou outro provedor seguro.
   */
   demoMasterLogin: "LONDONJANSSENBJJ@GMAIL.COM",
   masterAliases: ["LONDONJANSSENBJJ@GMAIL.COM", "MIKHAEL"],
@@ -2379,17 +2378,10 @@ const APP_CONFIG = {
 };
 
 /* ============================================================
-   V41 — SINCRONIZAÇÃO CENTRAL ONLINE (SUPABASE) — CORREÇÃO APP_ACCESSES
+   MODO LOCAL TEMPORÁRIO — integração remota removida
+   Nenhum serviço remoto é configurado neste arquivo.
+   Os dados ficam somente neste navegador/dispositivo até a nova integração.
    ============================================================ */
-const CENTRAL_CONFIG = {
-  url: "https://gylrwdfxuryoetoindne.supabase.co",
-  publishableKey: "sb_publishable_o6uE79ZWFXZBVoOleajJWA_HcfRtBDb",
-  functionName: "manage-access",
-  enabled: true,
-  // Pastor Joel é autenticado pela Edge Function usando os Secrets do Supabase.
-  pastorLogin: "JOEL AMORIM"
-};
-
 let centralClient=null;
 let centralAuthUser=null;
 let centralReady=false;
@@ -2400,587 +2392,43 @@ let centralHydrated=false;
 let lastLoginMessage="";
 let responsibleFinalizationPending=false;
 let responsibleFinalizationStudentId="";
-
-function centralIsConfigured(){
-  return Boolean(
-    CENTRAL_CONFIG.enabled &&
-    CENTRAL_CONFIG.url &&
-    CENTRAL_CONFIG.publishableKey &&
-    !CENTRAL_CONFIG.url.includes("COLE_AQUI") &&
-    !CENTRAL_CONFIG.publishableKey.includes("COLE_AQUI") &&
-    window.supabase?.createClient
-  );
+function centralIsConfigured(){ return false; }
+function initCentralClient(){ centralReady=false; return false; }
+async function centralFunction(){ throw new Error("A integração remota foi removida. O novo banco ainda não foi conectado."); }
+function centralSafeError(error,fallback="Não foi possível concluir a operação."){
+  return String(error?.message||error||"").trim()||fallback;
 }
-
-function initCentralClient(){
-  if(!centralIsConfigured()) return false;
-  try{
-    if(!centralClient){
-      centralClient=window.supabase.createClient(
-        CENTRAL_CONFIG.url.trim(),
-        CENTRAL_CONFIG.publishableKey.trim(),
-        {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}}
-      );
-    }
-    centralReady=true;
-    return true;
-  }catch(error){
-    console.error("Falha ao iniciar banco central",error);
-    centralReady=false;
-    return false;
-  }
-}
-
-async function centralFunction(action,payload={}){
-  if(!initCentralClient()) throw new Error("Banco central ainda não configurado.");
-  const {data:{session}}=await centralClient.auth.getSession();
-  const headers={"Content-Type":"application/json"};
-  if(session?.access_token) headers.Authorization=`Bearer ${session.access_token}`;
-  const {data,error}=await centralClient.functions.invoke(
-    CENTRAL_CONFIG.functionName,
-    {body:{action,...payload},headers}
-  );
-  if(error){
-    let detail=String(error.message||error||"");
-    try{
-      if(error.context?.json){
-        const body=await error.context.json();
-        if(body?.error) detail=String(body.error);
-      }
-    }catch(_){}
-    throw new Error(detail||"A Edge Function recusou a operação.");
-  }
-  if(data?.error) throw new Error(data.error);
-  return data||{};
-}
-
-function centralSafeError(error,fallback="Não foi possível comunicar com a base central."){
-  const msg=String(error?.message||error||"").trim();
-  return msg||fallback;
-}
-
 function centralFamilyKey(name,phone){
   const n=normalizePersonName(name||"");
   const p=String(phone||"").replace(/\D+/g,"");
   return `${n}|${p}`.slice(0,180);
 }
-
-function centralRoleIsStaff(role=state.user?.role){
-  return ["master","pastor","director"].includes(role);
-}
-
+function centralRoleIsStaff(role=state.user?.role){ return ["master","pastor","director"].includes(role); }
 function centralVisibleFamilyFilter(student){
   if(centralRoleIsStaff()) return true;
   if(!state.user?.familyKey) return false;
   return studentFamilyKey(student)===state.user.familyKey;
 }
-
-async function centralLoadAccessRecord(){
-  if(!centralReady || !centralAuthUser) return null;
-  // A tabela app_accesses não deve ser consultada diretamente pelo navegador.
-  // O backend manage-access valida a sessão e devolve apenas os acessos autorizados.
-  const result=await centralFunction("get-state",{});
-  if(!result?.ok) throw new Error(result?.error||"Não foi possível consultar o perfil de acesso.");
-  const accesses=Array.isArray(result.accesses)?result.accesses:[];
-  return accesses.find(a=>String(a.auth_user_id||"")===String(centralAuthUser.id))||null;
-}
-
+async function centralLoadAccessRecord(){ return null; }
 function centralMapAccess(a){
-  return {
-    id:a.id,
-    name:a.display_name||a.login,
-    login:a.login,
-    password:"",
-    accessPassword:"",
-    role:a.role,
-    studentId:null,
-    guardianName:a.display_name||"",
-    familyKey:a.family_key||"",
-    active:a.active!==false,
-    temporaryPassword:Boolean(a.temporary_password),
-    passwordExpiresAt:a.temporary_expires_at||"",
-    createdAt:a.created_at||"",
-    passwordResetAt:a.password_changed_at||"",
-    createdBy:a.created_by||""
-  };
+  return {id:a.id,name:a.display_name||a.login,login:a.login,password:"",accessPassword:"",role:a.role,studentId:null,guardianName:a.display_name||"",familyKey:a.family_key||"",active:a.active!==false,temporaryPassword:Boolean(a.temporary_password),passwordExpiresAt:a.temporary_expires_at||"",createdAt:a.created_at||"",passwordResetAt:a.password_changed_at||"",createdBy:a.created_by||""};
 }
-
 function centralRecordRows(type,items,getFamily){
-  return (Array.isArray(items)?items:[]).filter(Boolean).map(item=>({
-    record_type:type,
-    record_id:String(item.id||`${type}-${Date.now()}-${Math.random()}`),
-    family_key:String(getFamily(item)||""),
-    owner_auth_user_id:centralRoleIsStaff()?null:(centralAuthUser?.id||null),
-    data:item,
-    updated_at:new Date().toISOString()
-  }));
+  return (Array.isArray(items)?items:[]).filter(Boolean).map(item=>({record_type:type,record_id:String(item.id||`${type}-${Date.now()}-${Math.random()}`),family_key:String(getFamily(item)||""),owner_auth_user_id:null,data:item,updated_at:new Date().toISOString()}));
 }
-
-function studentFamilyKey(student){
-  return student?.familyKey || centralFamilyKey(student?.guardian||"",student?.phone||"");
-}
-function attendanceFamilyKey(item){
-  const s=state.students.find(x=>x.id===item.studentId);
-  return studentFamilyKey(s)||state.user?.familyKey||"";
-}
-function documentFamilyKey(item){
-  const s=state.students.find(x=>normalizePersonName(x.name)===normalizePersonName(item.studentName));
-  return studentFamilyKey(s)||state.user?.familyKey||"";
-}
-
-async function centralReplace(type,items,getFamily){
-  if(!centralReady||!centralAuthUser) return;
-  const rows=centralRecordRows(type,items,getFamily);
-  if(rows.length){
-    const {error}=await centralClient.from("app_records").upsert(rows,{onConflict:"record_type,record_id"});
-    if(error) throw error;
-  }
-  // Espelha exclusões para que a base central permaneça igual à coleção local permitida ao usuário.
-  const q=centralClient.from("app_records").select("record_id,family_key").eq("record_type",type);
-  if(!centralRoleIsStaff()) q.eq("family_key",state.user?.familyKey||"");
-  const {data:existing,error}=await q;
-  if(error) throw error;
-  const keep=new Set(rows.map(r=>r.record_id));
-  const missing=(existing||[]).map(r=>r.record_id).filter(id=>!keep.has(id));
-  if(missing.length){
-    let d=centralClient.from("app_records").delete().eq("record_type",type).in("record_id",missing);
-    if(!centralRoleIsStaff()) d=d.eq("family_key",state.user?.familyKey||"");
-    const {error:de}=await d; if(de) throw de;
-  }
-}
-
-async function centralSyncStateNow(){
-  if(!centralReady||!centralAuthUser||centralApplyingRemote||!centralHydrated) return;
-  const collections={
-    student:Array.isArray(state.students)?state.students:[],
-    attendance:Array.isArray(state.attendance)?state.attendance:[],
-    secretary_document:Array.isArray(state.secretaryDocuments)?state.secretaryDocuments:[],
-    engagement:Array.isArray(state.engagement)?state.engagement.slice(-500):[]
-  };
-  if(centralRoleIsStaff()){
-    collections.schedule=Array.isArray(state.schedule)?state.schedule:[];
-    collections.schedule_archive=Array.isArray(state.scheduleArchive)?state.scheduleArchive:[];
-    collections.championship=Array.isArray(state.championships)?state.championships:[];
-    collections.password_reset=Array.isArray(state.passwordResets)?state.passwordResets:[];
-  }
-  const result=await centralFunction("sync-state",{collections});
-  if(!result?.ok) throw new Error(result?.error||"A sincronização central não foi confirmada.");
-  return result;
-}
-
-function centralScheduleSync(){
-  if(!centralReady||!centralAuthUser||centralApplyingRemote) return;
-  clearTimeout(centralSyncTimer);
-  centralSyncTimer=setTimeout(centralSyncStateNow,500);
-}
-
-
-async function provisionInitialRoster(){
-  if(state.user?.role!=="master" || !centralReady || !centralAuthUser) return;
-  const result=await centralFunction("provision-roster",{students:INITIAL_ROSTER});
-  if(result?.ok && result?.alreadySeeded!==true){
-    await centralPullState();
-    console.info("Projeto Sementes: carga inicial conferida",result);
-  }
-}
-
-async function centralPullState(){
-  if(!centralReady||!centralAuthUser) return;
-  try{
-    const result=await centralFunction("get-state",{});
-    if(!result?.ok) throw new Error(result?.error||"A base central não retornou os dados.");
-
-    const records=Array.isArray(result.records)?result.records:[];
-    const get=type=>records.filter(r=>r.record_type===type).map(r=>r.data).filter(Boolean);
-
-    centralApplyingRemote=true;
-    // A base central já foi limpa pela ação reset-project. Não mascarar registros
-    // que sejam importados depois (inclusive a planilha inicial de alunos).
-    state.students=get("student");
-    state.attendance=get("attendance");
-    state.secretaryDocuments=get("secretary_document");
-
-    if(centralRoleIsStaff()){
-      state.schedule=get("schedule");
-      state.scheduleArchive=get("schedule_archive");
-      state.championships=get("championship");
-      state.engagement=get("engagement");
-      state.passwordResets=get("password_reset");
-    }else{
-      state.engagement=get("engagement");
-    }
-
-    // V73: depois da limpeza inicial, acessos novos precisam continuar
-  // visíveis no app. A própria base central já foi zerada, portanto não
-  // devemos apagar o resultado retornado pelo get-state.
-  state.accesses=(Array.isArray(result.accesses)?result.accesses:[]).map(centralMapAccess);
-
-    if(state.user?.role==="guardian" && state.user.familyKey){
-      state.students=state.students.filter(s=>studentFamilyKey(s)===state.user.familyKey);
-      state.attendance=state.attendance.filter(a=>attendanceFamilyKey(a)===state.user.familyKey);
-      state.secretaryDocuments=state.secretaryDocuments.filter(d=>documentFamilyKey(d)===state.user.familyKey);
-    }
-
-    const ownAccess=state.accesses.find(a=>a.id===state.user?.id);
-    if(ownAccess && state.user){
-      state.user.familyKey=ownAccess.familyKey||state.user.familyKey||"";
-      state.user.login=ownAccess.login||state.user.login;
-      state.user.temporaryPassword=ownAccess.temporaryPassword;
-      state.user.passwordExpiresAt=ownAccess.passwordExpiresAt||null;
-      sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-    }
-
-    centralApplyingRemote=false;
-    centralHydrated=true;
-    refreshAllStudentDerivedViews();
-    updateAccessSecurityNotice();
-  }catch(error){
-    centralApplyingRemote=false;
-    console.error("Falha ao carregar dados centrais",error);
-    throw error;
-  }
-}
-async function centralMigrateLocalState(){
-  // V43: corte definitivo da migração legada.
-  return;
-}
-
-async function centralUpdateFamilyAfterRegistration(student){
-  if(!centralReady||!centralAuthUser||!["guardian","director"].includes(state.user?.role)||!student) return;
-  // Diretor-responsável e responsável usam a mesma family_key para os filhos.
-  const key=state.user.familyKey || centralFamilyKey(student.guardian,student.phone);
-  student.familyKey=key;
-  state.user.familyKey=key;
-  state.user.guardianName=student.guardian||state.user.guardianName||"";
-  sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-  try{await centralFunction("bind-family",{familyKey:key,guardianName:state.user.guardianName||""});}catch(error){console.error(error);}
-}
-
-function responsibleGeneratedLogin(name,documentNumber){
-  const first=String(name||"").trim().split(/\s+/)[0]||"RESPONSAVEL";
-  const cleanFirst=first.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]/g,"").toUpperCase()||"RESPONSAVEL";
-  const doc=String(documentNumber||"").trim().toUpperCase().replace(/[^A-Z0-9]+/g,"-").replace(/^-+|-+$/g,"");
-  if(!doc) return `${cleanFirst}-DOCUMENTO`;
-  return `${cleanFirst}-${doc}`.slice(0,120);
-}
-
-function toggleResponsiblePassword(id,button){const input=$(id);if(!input)return;input.type=input.type==="password"?"text":"password";if(button)button.textContent=input.type==="password"?"👁":"🙈";} async function finalizeResponsibleAccessFlow(student){
-  if(!student || state.user?.role!=="guardian" || state.user?.temporaryPassword!==true) return true;
-  if(!centralReady || !centralAuthUser){
-    toast("A base central não está disponível. Não é possível concluir a redefinição agora.");
-    return false;
-  }
-
-  const generatedLogin=responsibleGeneratedLogin(
-    student.guardian||state.user.guardianName,
-    student.documentNumber||state.enrollment?.documentNumber
-  );
-  responsibleFinalizationPending=true;
-  responsibleFinalizationStudentId=student.id;
-
-  const modalClose=$("modalClose");
-  if(modalClose) modalClose.style.display="none";
-
-  modal("REDEFINIÇÃO DE SENHA",`
-    <div class="success-notice" style="margin-bottom:12px">
-      <strong>✅ BIOMETRIA CADASTRADA COM SUCESSO</strong><br>
-      O cadastro do aluno está pronto. Agora crie somente a sua senha definitiva.
-    </div>
-    <div class="card" style="background:#151515;margin-bottom:12px">
-      <p class="small muted" style="margin:0 0 5px">LOGIN GERADO AUTOMATICAMENTE</p>
-      <div style="font-size:19px;color:var(--gold2);font-weight:900;word-break:break-word">${escapeHTML(generatedLogin)}</div>
-      <p class="small muted" style="margin:10px 0 0">PRIMEIRO NOME DO RESPONSÁVEL + NÚMERO DO DOCUMENTO GERADO.</p>
-    </div>
-    <form id="responsibleFinalizationForm">
-      <div class="field"><label>NOVA SENHA</label>
-        <div style="display:flex;gap:8px"><input id="responsibleFinalPassword" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"><button class="btn" type="button" style="min-width:52px" onclick="toggleResponsiblePassword('responsibleFinalPassword',this)">👁</button></div>
-      </div>
-      <div class="field"><label>CONFIRMAR NOVA SENHA</label>
-        <div style="display:flex;gap:8px"><input id="responsibleFinalPasswordConfirm" class="input" type="password" minlength="6" required autocomplete="new-password" autocapitalize="characters" autocorrect="off" spellcheck="false"><button class="btn" type="button" style="min-width:52px" onclick="toggleResponsiblePassword('responsibleFinalPasswordConfirm',this)">👁</button></div>
-      </div>
-      <button class="btn btn-gold btn-full" type="submit">🔐 REDEFINIR SENHA E CONCLUIR ACESSO</button>
-    </form>
-    <div id="responsibleFinalizationStatus" class="small muted" style="margin-top:10px;text-align:center"></div>
-  `);
-
-  return new Promise(resolve=>{
-    const form=$("responsibleFinalizationForm");
-    if(!form){responsibleFinalizationPending=false;responsibleFinalizationStudentId="";if(modalClose)modalClose.style.display="";resolve(false);return;}
-
-    form.addEventListener("submit",async e=>{
-      e.preventDefault();
-      const password=String($("responsibleFinalPassword").value||"");
-      const confirmPassword=String($("responsibleFinalPasswordConfirm").value||"");
-      if(password.length<6){toast("A senha deve ter pelo menos 6 caracteres.");return;}
-      if(password!==confirmPassword){toast("As senhas não conferem.");return;}
-
-      const status=$("responsibleFinalizationStatus");
-      if(status) status.textContent="SALVANDO SENHA E SINCRONIZANDO...";
-      const submit=form.querySelector("button[type='submit']");
-      if(submit) submit.disabled=true;
-
-      try{
-        const familyKey=student.familyKey||state.user.familyKey||centralFamilyKey(student.guardian,student.phone); student.familyKey=familyKey; state.user.familyKey=familyKey; sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user)); await centralFunction("bind-family",{familyKey,guardianName:student.guardian||state.user.guardianName||""}); const result=await centralFunction("finalize-responsible-access",{
-          targetAccessId:state.user.id,
-          firstName:student.guardian||state.user.guardianName||"RESPONSAVEL",
-          documentNumber:student.documentNumber||state.enrollment?.documentNumber||"",
-          desiredLogin:generatedLogin,
-          newPassword:password,
-          studentData:student,
-          secretaryDocument:(state.secretaryDocuments||[]).find(d=>d.documentNumber===student.documentNumber)||null
-        });
-
-        // Usa o login efetivamente confirmado pela base central, quando retornado;
-        // caso contrário, mantém o padrão PRIMEIRO-NOME-DOCUMENTO informado na tela.
-        // Isso evita exibir um login diferente daquele que o servidor vinculou à senha.
-        const finalLogin=String(result?.login||result?.access?.login||result?.accessLogin||generatedLogin).trim();
-        student.accessLogin=finalLogin;
-        state.user.login=finalLogin;
-        state.user.email=finalLogin;
-        state.user.temporaryPassword=false;
-        state.user.passwordExpiresAt=null;
-        state.user.familyKey=result.familyKey||state.user.familyKey||student.familyKey||"";
-        sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-
-        await centralSyncStateNow();
-        await centralPullState();
-        refreshAllStudentDerivedViews();
-
-        responsibleFinalizationPending=false;
-        responsibleFinalizationStudentId="";
-        if(modalClose) modalClose.style.display="";
-        closeModal();
-        updateAccessSecurityNotice();
-        refreshAllStudentDerivedViews();
-
-        modal("REDEFINIÇÃO CONCLUÍDA",`
-          <div class="success-notice">
-            <strong>✅ REDEFINIÇÃO DE SENHA REALIZADA COM SUCESSO</strong><br><br>
-            <strong>ANOTE SEU LOGIN E SENHA</strong><br><br>
-            <strong>LOGIN:</strong> ${escapeHTML(finalLogin)}<br><strong>SENHA:</strong> ${escapeHTML(password)}<br>
-            <span class="small">A senha não expira mais.</span>
-          </div>
-        `);
-        setTimeout(()=>{closeModal();resetEnrollmentFormAfterCompletion();},2200);
-        resolve(true);
-      }catch(error){
-        responsibleFinalizationPending=true;
-        if(submit) submit.disabled=false;
-        if(status) status.textContent="";
-        toast(centralSafeError(error,"Não foi possível concluir a redefinição na base central."));
-      }
-    });
-  });
-}
-async function centralResolveCurrentIdentity(){
-  if(!centralReady) return false;
-  const {data:{session},error}=await centralClient.auth.getSession();
-  if(error||!session?.user) return false;
-  centralAuthUser=session.user;
-  let access=await centralLoadAccessRecord();
-  if(!access) return false;
-  let familyKey=access.family_key||"";
-  if(access.role==="guardian" && !familyKey){
-    const legacyStudent=(state.students||[]).find(s=>normalizeLogin(s.accessLogin)===normalizeLogin(access.login));
-    if(legacyStudent){
-      const legacyFamily=centralFamilyKey(legacyStudent.guardian||"",legacyStudent.phone||"");
-      if(legacyFamily){
-        try{ await centralFunction("bind-family",{familyKey:legacyFamily,guardianName:legacyStudent.guardian||access.display_name||""}); }catch(bindError){ console.warn(bindError); }
-        access=await centralLoadAccessRecord() || access;
-        familyKey=access.family_key||legacyFamily;
-      }
-    }
-  }
-  state.user={
-    id:access.id,authUserId:centralAuthUser.id,name:access.display_name||access.login,
-    email:access.login,login:access.login,role:access.role,studentId:null,
-    guardianName:access.display_name||"",familyKey,
-    temporaryPassword:Boolean(access.temporary_password),passwordExpiresAt:access.temporary_expires_at||null
-  };
-  sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-  await centralMigrateLocalState();
-  await centralPullState();
-  await performFreshStartCentral();
-  centralSubscribeRealtime();
-  updateAccessSecurityNotice();
-  return true;
-}
-
-function localFamilyForLogin(login){
-  const s=(state.students||[]).find(st=>normalizeLogin(st.accessLogin)===normalizeLogin(login));
-  return s ? centralFamilyKey(s.guardian||"",s.phone||"") : "";
-}
-
-async function browserInternalEmail(login){
-  const normalized=String(login||"").trim().toLowerCase();
-  const masterNormalized=String(APP_CONFIG.demoMasterLogin||"LONDONJANSSENBJJ@GMAIL.COM").trim().toLowerCase();
-
-  // O servidor usa o e-mail real do Mestre; os demais acessos usam o
-  // mesmo e-mail interno determinístico criado pelo manage-access.
-  if(normalized===masterNormalized) return masterNormalized;
-
-  const data=new TextEncoder().encode(normalized);
-  const digest=await crypto.subtle.digest("SHA-256",data);
-  const hash=Array.from(new Uint8Array(digest))
-    .map(b=>b.toString(16).padStart(2,"0")).join("");
-  const safe=(normalized.replace(/[^a-z0-9]+/g,"").slice(0,42) || "user");
-  return `${safe}.${hash.slice(0,18)}@auth.projetosementes.app`;
-}
-
-async function centralLogin(login,password){
-  if(!initCentralClient()) return {ok:false,skipped:true};
-  lastLoginMessage="";
-
-  const cleanLogin=normalizeLogin(String(login??"").trim());
-  const rawPassword=String(password??"");
-
-  if(normalizeLogin(cleanLogin)==="projeto sementes"){
-    lastLoginMessage="O acesso compartilhado antigo foi encerrado. Solicite um login individual.";
-    return {ok:false,error:new Error(lastLoginMessage)};
-  }
-
-  try{
-    // V63: autenticação primária diretamente no Supabase Auth.
-    // O login não depende da disponibilidade da Edge Function.
-    const directEmail=await browserInternalEmail(cleanLogin);
-    const signed=await centralClient.auth.signInWithPassword({
-      email:directEmail,
-      password:rawPassword
-    });
-
-    if(!signed.error && signed.data?.user){
-      centralAuthUser=signed.data.user;
-
-      let access=null;
-      try{
-        access=await centralLoadAccessRecord();
-      }catch(accessError){
-        console.warn("Falha ao ler app_accesses diretamente; tentando get-state.",accessError);
-      }
-
-      // Fallback para o estado central quando o RLS não permitir a leitura
-      // direta da linha de acesso.
-      if(!access){
-        try{
-          const resolved=await centralFunction("get-state",{});
-          access=(Array.isArray(resolved.accesses)?resolved.accesses:[]).find(a=>
-            String(a.auth_user_id||"")===String(centralAuthUser.id) ||
-            normalizeLogin(a.login)===normalizeLogin(cleanLogin)
-          ) || null;
-        }catch(stateError){
-          console.warn("Fallback get-state indisponível após login direto.",stateError);
-        }
-      }
-
-      if(!access){
-        throw new Error("Usuário autenticado, mas o perfil de acesso não foi localizado na base.");
-      }
-
-      state.user={
-        id:access.id,
-        authUserId:centralAuthUser.id,
-        name:access.display_name||access.login||cleanLogin,
-        email:access.login||cleanLogin,
-        login:access.login||cleanLogin,
-        role:access.role||centralAuthUser.user_metadata?.role||centralAuthUser.app_metadata?.role||"guardian",
-        studentId:null,
-        guardianName:access.display_name||"",
-        familyKey:access.family_key||"",
-        temporaryPassword:Boolean(access.temporary_password),
-        passwordExpiresAt:access.temporary_expires_at||null
-      };
-
-      sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-      clearFailedLogins();
-      await centralPullState();
-      await performFreshStartCentral();
-      await provisionInitialRoster();
-      centralSubscribeRealtime();
-      updateAccessSecurityNotice();
-      return {ok:true};
-    }
-
-    // Fallback apenas para contas que ainda precisem ser provisionadas
-    // através do manage-access.
-    const localAccess=(state.accesses||[]).find(a=>
-      normalizeLogin(a?.login)===normalizeLogin(cleanLogin)&&
-      String(a?.password||a?.accessPassword||"")===rawPassword&&
-      a.active!==false
-    );
-
-    const resolved=await centralFunction("resolve-login",{
-      login:cleanLogin,
-      password:rawPassword,
-      legacyAccess:localAccess?{
-        name:localAccess.name||localAccess.guardianName||cleanLogin,
-        login:localAccess.login,
-        role:localAccess.role||"guardian",
-        studentId:localAccess.studentId||null,
-        familyKey:localAccess.familyKey||"",
-        active:localAccess.active!==false,
-        temporaryPassword:localAccess.temporaryPassword!==false,
-        passwordExpiresAt:localAccess.passwordExpiresAt||""
-      }:null
-    });
-
-    const signedFallback=await centralClient.auth.signInWithPassword({
-      email:resolved.internalEmail,
-      password:rawPassword
-    });
-    if(signedFallback.error) throw signedFallback.error;
-
-    centralAuthUser=signedFallback.data.user;
-    const access=await centralLoadAccessRecord();
-    if(!access) throw new Error("Perfil de acesso não localizado na base central.");
-
-    state.user={
-      id:access.id,
-      authUserId:centralAuthUser.id,
-      name:access.display_name||access.login,
-      email:access.login,
-      login:access.login,
-      role:access.role,
-      studentId:null,
-      guardianName:access.display_name||"",
-      familyKey:access.family_key||resolved.familyKey||"",
-      temporaryPassword:Boolean(access.temporary_password),
-      passwordExpiresAt:access.temporary_expires_at||null
-    };
-
-    sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
-    clearFailedLogins();
-    await centralPullState();
-    await performFreshStartCentral();
-    await provisionInitialRoster();
-    centralSubscribeRealtime();
-    updateAccessSecurityNotice();
-    return {ok:true};
-
-  }catch(error){
-    const msg=centralSafeError(error,"Login não autorizado. Verifique o acesso e tente novamente.");
-    console.error("Falha no login central:",error);
-    lastLoginMessage=msg.toLowerCase().includes("expir")
-      ? "Acesso expirado. Procure o Administrador."
-      : msg;
-    return {ok:false,error};
-  }
-}
-function centralSubscribeRealtime(){
-  if(!centralReady||!centralAuthUser) return;
-  try{
-    centralClient.getChannels().forEach(ch=>centralClient.removeChannel(ch));
-    centralClient.channel("sementes-central-sync")
-      .on("postgres_changes",{event:"*",schema:"public",table:"app_records"},()=>{
-        clearTimeout(centralRefreshTimer);
-        centralRefreshTimer=setTimeout(centralPullState,600);
-      })
-      .on("postgres_changes",{event:"*",schema:"public",table:"app_accesses"},()=>{
-        clearTimeout(centralRefreshTimer);
-        centralRefreshTimer=setTimeout(centralPullState,600);
-      })
-      .subscribe();
-  }catch(error){console.error("Realtime indisponível",error);}
-}
+function studentFamilyKey(student){ return student?.familyKey || centralFamilyKey(student?.guardian||"",student?.phone||""); }
+function attendanceFamilyKey(item){ const s=(state.students||[]).find(x=>x.id===item.studentId); return studentFamilyKey(s)||state.user?.familyKey||""; }
+function documentFamilyKey(item){ const s=(state.students||[]).find(x=>normalizePersonName(x.name)===normalizePersonName(item.studentName)); return studentFamilyKey(s)||state.user?.familyKey||""; }
+async function centralReplace(){ return; }
+async function centralSyncStateNow(){ return {ok:false,localOnly:true}; }
+function centralScheduleSync(){ return; }
+async function provisionInitialRoster(){ return; }
+async function centralPullState(){ return; }
+async function centralMigrateLocalState(){ return; }
+async function centralUpdateFamilyAfterRegistration(){ return; }
+async function centralResolveCurrentIdentity(){ return false; }
+async function centralLogin(){ return {ok:false,skipped:true}; }
+function centralSubscribeRealtime(){ return; }
 const STORAGE_KEYS = {
   session: "sementes_session",
   students: "sementes_students",
@@ -3029,66 +2477,9 @@ function performFreshStartCutover(){
 }
 
 async function performFreshStartCentral(){
-  if(!centralReady || !centralAuthUser || state.user?.role!=="master") return;
-  try{
-    const markerKey="sementes_fresh_start_central_version";
-    if(localStorage.getItem(markerKey)===FRESH_START_CENTRAL_VERSION) return;
-
-    // Se a carga inicial já existe no servidor, não repetir a limpeza global
-    // ao abrir o app em outro computador/celular ou após limpar o navegador.
-    const remoteState=await centralFunction("get-state",{});
-    const remoteRecords=Array.isArray(remoteState?.records)?remoteState.records:[];
-    if(remoteRecords.some(r=>r.record_type==="system_seed" && r.record_id==="roster-v1")){
-      localStorage.setItem(markerKey,FRESH_START_CENTRAL_VERSION);
-      return;
-    }
-
-    // Guarda somente o que o usuário pediu para permanecer.
-    const keepSchedule=Array.isArray(state.schedule)?JSON.parse(JSON.stringify(state.schedule)):[];
-    const keepArchive=Array.isArray(state.scheduleArchive)?JSON.parse(JSON.stringify(state.scheduleArchive)):[];
-    const keepEngagement=Array.isArray(state.engagement)?JSON.parse(JSON.stringify(state.engagement)):[];
-
-    await centralFunction("reset-project",{});
-
-    // Recoloca exclusivamente Cronograma/Atividades na base central.
-    const collections={
-      student:[],
-      attendance:[],
-      secretary_document:[],
-      engagement:keepEngagement,
-      schedule:keepSchedule,
-      schedule_archive:keepArchive,
-      championship:[],
-      password_reset:[]
-    };
-    await centralFunction("sync-state",{collections});
-
-    state.students=[];
-    state.attendance=[];
-    state.enrollment=null;
-    state.secretaryDocuments=[];
-    state.documentSequence=0;
-    state.accesses=[];
-    state.passwordResets=[];
-    state.championships=[];
-    state.game={oil:5,coins:0,streak:0,xp:0,unlockedEra:1,currentEra:0,currentNode:0,cards:["Adão"],lastDay:""};
-    state.schedule=keepSchedule;
-    state.scheduleArchive=keepArchive;
-    state.engagement=keepEngagement;
-
-    [STORAGE_KEYS.students,STORAGE_KEYS.attendance,STORAGE_KEYS.enrollment,
-     STORAGE_KEYS.secretaryDocuments,STORAGE_KEYS.documentSequence,STORAGE_KEYS.accesses,
-     STORAGE_KEYS.passwordResets,STORAGE_KEYS.championships,STORAGE_KEYS.game,
-     STORAGE_KEYS.lastRegisteredStudent,STORAGE_KEYS.lastRegisteredGuardian].filter(Boolean)
-      .forEach(k=>{try{localStorage.removeItem(k);}catch(_){}});
-    localStorage.setItem(markerKey,FRESH_START_CENTRAL_VERSION);
-    saveState();
-    toast("Nova base criada: cadastros zerados; Cronograma e Atividades preservados.");
-  }catch(error){
-    console.error("V72: falha ao zerar base central",error);
-    toast(centralSafeError(error,"Não foi possível concluir a limpeza da base central."));
-  }
+  // Desativado para preservar os dados locais durante a preparação da nova integração.
 }
+
 
 
 /* -----------------------------
@@ -3633,7 +3024,7 @@ function loginDemo(login,password){
   const rawPassword=String(password??"");
 
   // V65: o Administrador Mestre é sempre validado localmente primeiro.
-  // Isso garante acesso mesmo quando internet, Supabase, sessão antiga ou
+  // Isso garante acesso mesmo quando internet, provedor remoto, sessão antiga ou
   // RLS estiverem indisponíveis. O bloqueio por tentativas não pode impedir
   // uma credencial mestre correta.
   const masterAliases=Array.isArray(APP_CONFIG.masterAliases)
@@ -3781,8 +3172,6 @@ function loginDemo(login,password){
 }
 
 async function restoreSession(){
-  // V65: sessão local tem prioridade. Uma sessão antiga do Supabase não pode
-  // impedir o usuário de entrar com a credencial local correta.
   try{
     const raw=sessionStorage.getItem(STORAGE_KEYS.session)||localStorage.getItem(STORAGE_KEYS.session);
     const session=JSON.parse(raw||"null");
@@ -3791,15 +3180,10 @@ async function restoreSession(){
       showApp();
       return;
     }
-  }catch(error){console.warn("Sessão local inválida; seguindo para sessão central.",error);}
-
-  if(initCentralClient()){
-    try{
-      if(await centralResolveCurrentIdentity()){showApp();return;}
-    }catch(error){console.warn("Sessão central não restaurada.",error);}
-  }
+  }catch(error){console.warn("Sessão local inválida.",error);}
   showLogin();
 }
+
 
 function showLogin(){
   // Sempre parar o louvor e limpar a sessão visual ao voltar para o login.
@@ -7172,8 +6556,6 @@ async function deleteStudentAdmin(){
   if(!student) return;
 
   if(!confirm(`Excluir definitivamente o cadastro de ${student.name}?`)) return;
-
-  if(centralReady&&centralAuthUser){try{await centralClient.from("app_records").delete().eq("record_type","student").eq("record_id",id); const {data:docs}=await centralClient.from("app_records").select("record_id,data").eq("record_type","secretary_document"); const docIds=(docs||[]).filter(r=>String(r.data?.studentName||"")===String(student.name||"")||String(r.data?.documentNumber||"")===String(student.documentNumber||"")).map(r=>r.record_id); if(docIds.length) await centralClient.from("app_records").delete().eq("record_type","secretary_document").in("record_id",docIds); const {data:atts}=await centralClient.from("app_records").select("record_id,data").eq("record_type","attendance"); const attIds=(atts||[]).filter(r=>String(r.data?.studentId||"")===String(id)).map(r=>r.record_id); if(attIds.length) await centralClient.from("app_records").delete().eq("record_type","attendance").in("record_id",attIds);}catch(error){toast(centralSafeError(error,"Não foi possível excluir o cadastro da base central."));return;} }
   state.students=state.students.filter(s=>s.id!==id);
   state.accesses=state.accesses.filter(a=>a.studentId!==id);
   state.schedule=preservedSchedule;
@@ -7275,7 +6657,6 @@ async function resetProjectAll(){
       STORAGE_KEYS.lastRegisteredStudent,STORAGE_KEYS.lastRegisteredGuardian
     ].filter(Boolean).forEach(k=>{try{localStorage.removeItem(k);}catch(_){}});
 
-    try{await centralClient.auth.signOut();}catch(_){}
     centralAuthUser=null;
     centralReady=false;
     centralApplyingRemote=false;
@@ -7724,7 +7105,7 @@ function initEvents(){
     }
     try{
       // V65: primeiro autentica localmente. Assim o acesso do Mestre e os
-      // acessos já salvos funcionam mesmo sem internet ou Supabase.
+      // acessos já salvos funcionam mesmo sem internet ou provedor remoto.
       let authenticated=loginDemo(login,password);
 
       // Para outros usuários, se o acesso local não existir, tenta a base central.
@@ -8088,7 +7469,7 @@ NOTAS DE IMPLEMENTAÇÃO PARA PRODUÇÃO
    - diretoria;
    - pedidos de oração;
    - Game Gospel;
-   para Firestore/Supabase ou backend próprio com regras de segurança.
+   para Firestore/provedor remoto ou backend próprio com regras de segurança.
 
 4. DADOS DE SAÚDE E BIOMETRIA
    A especificação trata informações de menores e biometria.
