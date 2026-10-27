@@ -5,7 +5,7 @@
 V71 — Pós-biometria sincroniza e atualiza todas as abas; logo oficial somente no PDF
 V68 — Login e Senha preservam maiúsculas e minúsculas --> 
   <!-- V49 — logo oficial inserida na página inicial conforme referência visual -->
-  <!-- V38 — fluxo matrícula + biometria + Alunos + família + atualização automática -->
+  <!-- V75 — fluxo matrícula + biometria + sincronização central de alunos e família -->
   <!-- V33 — credenciais do Mestre atualizadas e geração de acesso 100% automática -->
   <!-- V32 — acesso inicial único, expiração de 3 dias, redefinição e controle de acessos -->
   <!-- V34 — corrige conflito da credencial Mestre London e limpa override antigo -->
@@ -1342,8 +1342,8 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
 
           <div class="notice" style="margin-bottom:18px">
             <strong>📢 ORIENTAÇÃO — ACESSO PROVISÓRIO:</strong><br>
-            Este acesso é provisório e expira em <strong>3 dias</strong>. Depois de concluir a matrícula e a biometria,
-            o aplicativo abrirá <strong>automaticamente a Redefinição de senha</strong>. O login será gerado pelo aplicativo.
+            Este acesso inicial é provisório. Conclua a ficha de saúde, a assinatura e a biometria para criar seu acesso definitivo.
+            O prazo de validade aparece no aviso de segurança do aplicativo.
           </div>
 
           <div class="card" style="margin:0 0 18px;background:#151515;border:1px solid var(--gold)">
@@ -2330,7 +2330,7 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
 
 <script>
 /* ============================================================
-   PROJETO SEMENTES — V65 — ACESSO DEFINITIVO E MODO OFFLINE SEGURO
+   PROJETO SEMENTES — V76 — CADASTRO EXISTENTE E FINALIZAÇÃO CENTRAL
    ============================================================
    Este arquivo é uma implementação front-end em HTML/CSS/JS.
    Para produção com dados de menores, use autenticação, banco,
@@ -2379,7 +2379,7 @@ const APP_CONFIG = {
 };
 
 /* ============================================================
-   V41 — SINCRONIZAÇÃO CENTRAL ONLINE (SUPABASE) — CORREÇÃO APP_ACCESSES
+   V76 — FINALIZAÇÃO DOS CADASTROS EXISTENTES COM BASE CENTRAL
    ============================================================ */
 const CENTRAL_CONFIG = {
   url: "https://rlzrozpdwvqdwpmbcggr.supabase.co",
@@ -2576,41 +2576,20 @@ function centralScheduleSync(){
 
 
 async function provisionInitialRoster(){
-  // V73: importa a planilha inicial somente quando o banco central ainda não tem alunos.
-  // Não sobrescreve nem apaga cadastros que já existam na base central.
   if(!centralReady || !centralAuthUser || state.user?.role !== "master") return;
-  if(Array.isArray(state.students) && state.students.length > 0) return;
-  if(!Array.isArray(INITIAL_ROSTER) || INITIAL_ROSTER.length === 0) return;
-
   try{
-    // Confere novamente no servidor para evitar importar a lista inicial sobre dados existentes.
-    const latest = await centralFunction("get-state", {});
-    if(!latest?.ok) throw new Error(latest?.error || "Não foi possível verificar os alunos existentes.");
-    const remoteStudents = (Array.isArray(latest.records) ? latest.records : [])
-      .filter(record => record && record.record_type === "student" && record.data)
-      .map(record => record.data);
-
-    if(remoteStudents.length > 0){
-      state.students = remoteStudents;
+    const result=await centralFunction("bootstrap-initial-roster",{});
+    if(!result?.ok) throw new Error(result?.error||"Não foi possível preparar os cadastros existentes.");
+    if(result.seeded){
+      await centralPullState();
       refreshAllStudentDerivedViews();
-      return;
+      toast(`✅ Base central preparada: ${result.studentsImported} alunos importados e ${result.familyAccessesReady} acessos familiares verificados.`);
+    }else if(result.reason==="already-prepared"){
+      // A lista já foi preparada; os registros existentes são preservados.
     }
-
-    const roster = INITIAL_ROSTER.map((student, index) => ({
-      ...student,
-      id: String(student.id || `roster-${index + 1}`)
-    }));
-    const result = await centralFunction("sync-state", {collections: {student: roster}});
-    if(!result?.ok) throw new Error(result?.error || "Não foi possível importar a lista inicial de alunos.");
-
-    // Busca os registros gravados no banco, assim a tela usa a fonte central.
-    await centralPullState();
-    refreshAllStudentDerivedViews();
-    console.info(`Lista inicial de alunos sincronizada: ${roster.length} registros.`);
-    toast(`✅ Lista inicial sincronizada: ${roster.length} alunos.`);
   }catch(error){
-    console.error("Falha ao importar a lista inicial de alunos:", error);
-    toast(centralSafeError(error, "Não foi possível carregar os alunos da base central."));
+    console.error("Falha na preparação da base inicial:",error);
+    toast(centralSafeError(error,"Não foi possível preparar a lista inicial. Consulte o Supabase."));
   }
 }
 
@@ -2831,6 +2810,7 @@ async function centralResolveCurrentIdentity(){
   await centralMigrateLocalState();
   await centralPullState();
   await performFreshStartCentral();
+  if(state.user?.role==="master") await provisionInitialRoster();
   centralSubscribeRealtime();
   updateAccessSecurityNotice();
   return true;
@@ -2925,7 +2905,7 @@ async function centralLogin(login,password){
       clearFailedLogins();
       await centralPullState();
       await performFreshStartCentral();
-      await provisionInitialRoster();
+      if(state.user?.role==="master") await provisionInitialRoster();
       centralSubscribeRealtime();
       updateAccessSecurityNotice();
       return {ok:true};
@@ -2982,7 +2962,7 @@ async function centralLogin(login,password){
     clearFailedLogins();
     await centralPullState();
     await performFreshStartCentral();
-    await provisionInitialRoster();
+    if(state.user?.role==="master") await provisionInitialRoster();
     centralSubscribeRealtime();
     updateAccessSecurityNotice();
     return {ok:true};
@@ -3099,8 +3079,7 @@ let state = {
    ----------------------------- */
 const defaultStudents = [];
 
-// Cadastro inicial importado da planilha enviada; alterações posteriores são preservadas.
-const INITIAL_ROSTER = [{"id":"roster-1","name":"Alvaro Barbosa","guardian":"Débora Maciel da Silva","phone":"67998411953","familyKey":"TEL:67998411953","accessLogin":"67998411953","guardianLogin":"67998411953","belt":"Amarela","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-27","enrollmentDate":"2026-08-27","birthDate":"2010-08-30","address":"RUA BERNADINO ALVES DE COUTO Nº26","neighborhood":"GUANA 2","school":"NATHERCIA POMPEO DOS SANTOS","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-2","name":"Elton Araujo","guardian":"Antonio Edirley Graça Araujo","phone":"67998045242","familyKey":"TEL:67998045242","accessLogin":"67998045242","guardianLogin":"67998045242","belt":"Amarela","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2016-04-05","address":"RUA DOM PEDRO 2º  Nº155","neighborhood":"","school":"ADVENTISTA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-3","name":"Aysla Barbosa","guardian":"Aline Florentim da Silva","phone":"67999324855","familyKey":"TEL:67999324855","accessLogin":"67999324855","guardianLogin":"67999324855","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-25","enrollmentDate":"2026-08-25","birthDate":"2009-12-28","address":"ALAMEDA ESPANHA Nº 01","neighborhood":"GUARANI","school":"IFMS","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-4","name":"Gustavo Camargo","guardian":"Divina Magalhães Romero","phone":"67998019136","familyKey":"TEL:67998019136","accessLogin":"67998019136","guardianLogin":"67998019136","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2011-10-26","address":"RUA FIRMO DE MATOS CASA 24","neighborhood":"CRAVO 1","school":"ALMIRANTE TAMANDARÉ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-5","name":"Ester Louise","guardian":"Simone Aparecida da Silva Barros de Oliveira","phone":"67999195844","familyKey":"TEL:67999195844","accessLogin":"67999195844","guardianLogin":"67999195844","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2012-04-19","address":"RUA DELFINO SCATTA Nº2418 BL54 APTO 102","neighborhood":"NOVA CORUMBA","school":"ESCOLA TENIR","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-6","name":"Nathan Carvalho","guardian":"Odiselma Vital de Carvalho","phone":"67992979532","familyKey":"TEL:67992979532","accessLogin":"67992979532","guardianLogin":"67992979532","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-03","enrollmentDate":"2026-09-03","birthDate":"2013-03-04","address":"RUA LADARIO Nº1147 APTO 103","neighborhood":"CENTRO","school":"ADVENTISTA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-7","name":"Erica Rodrigues","guardian":"Elice dos Santos Alves","phone":"67996430191","familyKey":"TEL:67996430191","accessLogin":"67996430191","guardianLogin":"67996430191","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2013-05-13","address":"ALAMEDA 1 QUADRA 3 NUMERO 12","neighborhood":"GUANA 1","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-8","name":"Riquelme da Silva","guardian":"Sebastião Damasio da S. Filho","phone":"67999298528","familyKey":"TEL:67999298528","accessLogin":"67999298528","guardianLogin":"67999298528","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-25","enrollmentDate":"2026-08-25","birthDate":"2013-08-28","address":"RUA CEARA Nº205","neighborhood":"NOVA CORUMBA","school":"ALMIRANTE TAMANDARÉ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-9","name":"Guilherme Arruda","guardian":"Jesiel Arruda","phone":"67981845984","familyKey":"TEL:67981845984","accessLogin":"67981845984","guardianLogin":"67981845984","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-25","enrollmentDate":"2026-08-25","birthDate":"2014-03-14","address":"ALAMEDA RIACHUELO Nº16","neighborhood":"GUARANI","school":"SESI","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-10","name":"Hanna Nunes","guardian":"Leticia Fatima F. da Silva","phone":"67998731372","familyKey":"TEL:67998731372","accessLogin":"67998731372","guardianLogin":"67998731372","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2014-05-01","address":"QUADRA 3 CASA 13","neighborhood":"GUANA 1","school":"DOM BOSCO","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-11","name":"Isadora Souza","guardian":"Aline Florentim da Silva","phone":"67999324855","familyKey":"TEL:67999324855","accessLogin":"67999324855","guardianLogin":"67999324855","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-03","enrollmentDate":"2026-09-03","birthDate":"2014-05-22","address":"ALAMEDA ESPANHA Nº 01","neighborhood":"GUARANI","school":"CASSIO LEITE DE BARROS","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-12","name":"Kevellen José","guardian":"Flavia Regina S. de Souza","phone":"67999177623","familyKey":"TEL:67999177623","accessLogin":"67999177623","guardianLogin":"67999177623","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-25","enrollmentDate":"2026-08-25","birthDate":"2014-09-12","address":"RUA MAJOR GAMAS Nº3","neighborhood":"","school":"ALMIRANTE TAMANDARÉ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-13","name":"Gabrielly Nunes","guardian":"Ana Claudia R. Vieira Nunes","phone":"67991787867","familyKey":"TEL:67991787867","accessLogin":"67991787867","guardianLogin":"67991787867","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-18","enrollmentDate":"2026-08-18","birthDate":"2014-09-29","address":"ALAMEDA 1 QUADRA 3 CASA 23","neighborhood":"GUANA 1","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-14","name":"Bianca da Silva","guardian":"Sebastião Damasio da S. Filho","phone":"67999298528","familyKey":"TEL:67999298528","accessLogin":"67999298528","guardianLogin":"67999298528","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-25","enrollmentDate":"2026-08-25","birthDate":"2014-11-08","address":"RUA CEARA Nº205","neighborhood":"NOVA CORUMBA","school":"ALMIRANTE TAMANDARÉ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-15","name":"Francyelle Silva","guardian":"Francisco Gonçalves da Silva","phone":"67998635405","familyKey":"TEL:67998635405","accessLogin":"67998635405","guardianLogin":"67998635405","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-25","enrollmentDate":"2026-08-25","birthDate":"2015-01-15","address":"RUA 21 DE SETEMBRO","neighborhood":"GUATOS","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-16","name":"Alícia Flores","guardian":"Caroline Romero de Camargo","phone":"67996442024","familyKey":"TEL:67996442024","accessLogin":"67996442024","guardianLogin":"67996442024","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2015-07-27","address":"RUA 21 DE SETEMBRO COM A CEARA CASA 201","neighborhood":"NOVA CORUMBA","school":"ALMIRANTE TAMANDARÉ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-17","name":"Ana Ojeda","guardian":"Valéria Fernanda de M. Braga","phone":"67996124746","familyKey":"TEL:67996124746","accessLogin":"67996124746","guardianLogin":"67996124746","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-25","enrollmentDate":"2026-08-25","birthDate":"2015-10-27","address":"RUA 21 DE SETEMBRO COM A CEARA E PERNAMBUCO Nº207","neighborhood":"NOVA CORUMBA","school":"ANGELA MARIA PEREZ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-18","name":"Alexander Lara","guardian":"Lais de Fatima P. Farias","phone":"67999148093","familyKey":"TEL:67999148093","accessLogin":"67999148093","guardianLogin":"67999148093","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-25","enrollmentDate":"2026-08-25","birthDate":"2016-02-13","address":"RUA DELFINO SCAFFE ENTRE CIRIACO E JOSE FRAGELIO CASA 10","neighborhood":"GUAICURUS","school":"CASSIO LEITE DE BARROS","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-19","name":"Victor Silva","guardian":"Gisele Nathalia Mendes Cabral Martinez","phone":"67992719747","familyKey":"TEL:67992719747","accessLogin":"67992719747","guardianLogin":"67992719747","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-01","enrollmentDate":"2026-09-01","birthDate":"2016-02-21","address":"","neighborhood":"","school":"CASSIO LEITE DE BARROS","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-20","name":"Victor Miranda","guardian":"Elisa Pessoa Moquisay","phone":"67996002861","familyKey":"TEL:67996002861","accessLogin":"67996002861","guardianLogin":"67996002861","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-25","enrollmentDate":"2026-08-25","birthDate":"2016-05-04","address":"ALAMEDA 7 Nº 12 GUANA 1","neighborhood":"GUANA 1","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-21","name":"Maria Lara","guardian":"Samantha da Cruz Lara","phone":"67996212259","familyKey":"TEL:67996212259","accessLogin":"67996212259","guardianLogin":"67996212259","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-27","enrollmentDate":"2026-08-27","birthDate":"2016-05-07","address":"ALAMEDA LAURA MARTINS PINHEIRO","neighborhood":"GUANA 1","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-22","name":"Emília Chaparro","guardian":"Silvia N. S. e Silva","phone":"67984071498","familyKey":"TEL:67984071498","accessLogin":"67984071498","guardianLogin":"67984071498","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2016-07-26","address":"CIRIACO DE TOLEDO Nº166","neighborhood":"NOVA CORUMBA","school":"ADVENTISTA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-23","name":"Gabriel Guarachi","guardian":"Cinthia Gutierrez Guarachi","phone":"67981497309","familyKey":"TEL:67981497309","accessLogin":"67981497309","guardianLogin":"67981497309","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-25","enrollmentDate":"2026-08-25","birthDate":"2016-09-01","address":"RUA 21 DE SETEMBRO QUADRA 56 LOTE 35","neighborhood":"GUATOS","school":"ERCY CARDOSO","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-24","name":"Thauanny Pereira","guardian":"Thalis Antonio Pereira Vaz","phone":"67996605975","familyKey":"TEL:67996605975","accessLogin":"67996605975","guardianLogin":"67996605975","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-03","enrollmentDate":"2026-09-03","birthDate":"2017-01-16","address":"RUA LUIZ FEITOSA RODRIGUES QUADRA 4 LOTE 13","neighborhood":"GUATOS","school":"ALMIRANTE TAMANDARÉ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-25","name":"Daniel Flores","guardian":"Fabiola Santos de Souza","phone":"67996602974","familyKey":"TEL:67996602974","accessLogin":"67996602974","guardianLogin":"67996602974","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2017-04-12","address":"ALAMEDA TUCANO QUADRA 56 CASA 16","neighborhood":"GUATOS","school":"CASSIO LEITE DE BARROS","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-26","name":"Arthur Barbosa","guardian":"Débora Maciel da Silva","phone":"67998411953","familyKey":"TEL:67998411953","accessLogin":"67998411953","guardianLogin":"67998411953","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-27","enrollmentDate":"2026-08-27","birthDate":"2017-07-09","address":"RUA BERNADINO ALVES DE COUTO Nº26","neighborhood":"GUANA 2","school":"CASSIO LEITE DE BARROS","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-27","name":"João Rodrigues","guardian":"Elice dos Santos Alves","phone":"67996430191","familyKey":"TEL:67996430191","accessLogin":"67996430191","guardianLogin":"67996430191","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2017-10-13","address":"ALAMEDA 1 QUADRA 3 NUMERO 12","neighborhood":"GUANA 1","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-28","name":"Isaque Azevedo","guardian":"Junior R. de Azevedo","phone":"67999970630","familyKey":"TEL:67999970630","accessLogin":"67999970630","guardianLogin":"67999970630","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2018-01-21","address":"RUA BERNADINO ALVES DE COUTO Nº44","neighborhood":"GUANA 2","school":"ADVENTISTA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-29","name":"Chrystofer Ojeda","guardian":"Valéria Fernanda de M. Braga","phone":"67996124746","familyKey":"TEL:67996124746","accessLogin":"67996124746","guardianLogin":"67996124746","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-25","enrollmentDate":"2026-08-25","birthDate":"2018-02-06","address":"RUA 21 DE SETEMBRO COM A CEARA E PERNAMBUCO Nº207","neighborhood":"NOVA CORUMBA","school":"ANGELA MARIA PEREZ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-30","name":"Luan Sabala","guardian":"Ana Maria Arruda Sabala","phone":"67996220822","familyKey":"TEL:67996220822","accessLogin":"67996220822","guardianLogin":"67996220822","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-03","enrollmentDate":"2026-09-03","birthDate":"2018-02-08","address":"RUA RACHID BARDAIL","neighborhood":"NOVA CORUMBA","school":"ANGELA MARIA PEREZ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-31","name":"Abner Aguilar","guardian":"Suelene Rodrigues da Costa","phone":"67999851327","familyKey":"TEL:67999851327","accessLogin":"67999851327","guardianLogin":"67999851327","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2018-07-26","address":"RUA CIRIACO DE TOLEDO QUADRA 4 CASA 18","neighborhood":"GUANA 1","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-32","name":"João Soares","guardian":"Elenice dos Santos Alves","phone":"67999710644","familyKey":"TEL:67999710644","accessLogin":"67999710644","guardianLogin":"67999710644","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-18","enrollmentDate":"2026-08-18","birthDate":"2018-10-01","address":"ALAMEDA CAMBARA CASA 33","neighborhood":"GUAICURUS","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-33","name":"Derick da Silva","guardian":"Andressa Picolomini de Jesus","phone":"67998045242","familyKey":"TEL:67998045242","accessLogin":"67998045242","guardianLogin":"67998045242","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-25","enrollmentDate":"2026-08-25","birthDate":"2019-03-01","address":"RUA FERNANDES CALABRIA BLOCO 3 APTO 12","neighborhood":"FLAMBOYANT 2","school":"","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-34","name":"Mikhael Carvalho","guardian":"Odiselma Vital de Carvalho","phone":"67992979532","familyKey":"TEL:67992979532","accessLogin":"67992979532","guardianLogin":"67992979532","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-03","enrollmentDate":"2026-09-03","birthDate":"2019-08-04","address":"RUA LADARIO Nº1147 APTO 103","neighborhood":"CENTRO","school":"ADVENTISTA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-35","name":"Vitor Nunes","guardian":"Leticia Fatima F. da Silva","phone":"67998731372","familyKey":"TEL:67998731372","accessLogin":"67998731372","guardianLogin":"67998731372","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2019-12-05","address":"QUADRA 3 CASA 13","neighborhood":"GUANA 1","school":"ERCY CARDOSO E CEMEI TELMA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-36","name":"Luan Oliveira","guardian":"Eliane de Jesus Souza","phone":"67992311896","familyKey":"TEL:67992311896","accessLogin":"67992311896","guardianLogin":"67992311896","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2019-12-14","address":"RUA JOSE MACIEL DE BARROS QUADRA 3 ALAMEDA 1 Nº17","neighborhood":"GUANA 1","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-37","name":"Cecília Rodrigues","guardian":"Elice dos Santos Alves","phone":"67996430191","familyKey":"TEL:67996430191","accessLogin":"67996430191","guardianLogin":"67996430191","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-13","enrollmentDate":"2026-08-13","birthDate":"2020-04-19","address":"ALAMEDA 1 QUADRA 3 NUMERO 12","neighborhood":"GUANA 1","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-38","name":"Thales Soares","guardian":"Elenice dos Santos Alves","phone":"67999710644","familyKey":"TEL:67999710644","accessLogin":"67999710644","guardianLogin":"67999710644","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-18","enrollmentDate":"2026-08-18","birthDate":"2020-04-30","address":"ALAMEDA CAMBARA CASA 33","neighborhood":"GUAICURUS","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-39","name":"Anthony Mendes","guardian":"Geisiele dos Santos Alves","phone":"67999652753","familyKey":"TEL:67999652753","accessLogin":"67999652753","guardianLogin":"67999652753","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-27","enrollmentDate":"2026-08-27","birthDate":"2020-08-01","address":"ALAMEDA CAMBARA 33","neighborhood":"GUAICURUS","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-40","name":"Eloa Miranda","guardian":"Elisa Pessoa Moquisay","phone":"67996002861","familyKey":"TEL:67996002861","accessLogin":"67996002861","guardianLogin":"67996002861","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-27","enrollmentDate":"2026-08-27","birthDate":"2020-10-20","address":"ALAMEDA 7 Nº 12","neighborhood":"GUANA 1","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-41","name":"Sophia Santana","guardian":"Miriam dos Santos Alves","phone":"67996580909","familyKey":"TEL:67996580909","accessLogin":"67996580909","guardianLogin":"67996580909","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-08-25","enrollmentDate":"2026-08-25","birthDate":"2020-11-09","address":"ALAMEDA HELIO DO COUTO Nº28","neighborhood":"NOVA CORUMBA","school":"ERCY CARDOSO","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-42","name":"Debora Jesus","guardian":"Lenyze kelly Braga Aguilar","phone":"67999602208","familyKey":"TEL:67999602208","accessLogin":"67999602208","guardianLogin":"67999602208","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-08","enrollmentDate":"2026-09-08","birthDate":"2026-09-08","address":"","neighborhood":"","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-43","name":"Anthonny de Souza","guardian":"Vavio P. de Souza Filho","phone":"64996504994","familyKey":"TEL:64996504994","accessLogin":"64996504994","guardianLogin":"64996504994","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-08","enrollmentDate":"2026-09-08","birthDate":"2015-12-21","address":"RUA PERNAMBUCO 205","neighborhood":"GUARANI","school":"ALMIRANTE TAMANDARÉ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-44","name":"Anna Carvalho","guardian":"Gleisiane Rodrigues Ducel","phone":"67998590795","familyKey":"TEL:67998590795","accessLogin":"67998590795","guardianLogin":"67998590795","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-15","enrollmentDate":"2026-09-15","birthDate":"2013-10-04","address":"ALAMEDA PORTO ESPERANÇA Nº10","neighborhood":"GUATÓS","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-45","name":"Caue Rodrigues","guardian":"Rodrigo Cassiano Rodrigues","phone":"67996222493","familyKey":"TEL:67996222493","accessLogin":"67996222493","guardianLogin":"67996222493","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-15","enrollmentDate":"2026-09-15","birthDate":"2017-06-26","address":"EDU ROCHA 218","neighborhood":"GUAICURUS","school":"LUIS FEITOSA RODRIGUES","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-46","name":"Cristiani Silva","guardian":"Sebastião Damasio da S. Filho","phone":"67999298528","familyKey":"TEL:67999298528","accessLogin":"67999298528","guardianLogin":"67999298528","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-15","enrollmentDate":"2026-09-15","birthDate":"2018-07-04","address":"RUA CEARA Nº205","neighborhood":"NOVA CORUMBA","school":"ALMIRANTE TAMANDARÉ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-47","name":"Pietro Siva","guardian":"Flavio da Silva Ferreira","phone":"67998914086","familyKey":"TEL:67998914086","accessLogin":"67998914086","guardianLogin":"67998914086","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-10-06","enrollmentDate":"2026-10-06","birthDate":"2015-02-08","address":"MARECHAL DEODORO 3121","neighborhood":"POPULAR NOVA","school":"SESI","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-48","name":"Ana Flores","guardian":"Caroline Romero de Camargo","phone":"67996442024","familyKey":"TEL:67996442024","accessLogin":"67996442024","guardianLogin":"67996442024","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-10-08","enrollmentDate":"2026-10-08","birthDate":"2013-10-07","address":"RUA 21 DE SETEMBRO CASA 01","neighborhood":"","school":"ALMIRANTE TAMANDARÉ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-49","name":"Alana Flores","guardian":"Caroline Romero de Camargo","phone":"67996442024","familyKey":"TEL:67996442024","accessLogin":"67996442024","guardianLogin":"67996442024","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-10-08","enrollmentDate":"2026-10-08","birthDate":"2020-12-16","address":"","neighborhood":"","school":"ALMIRANTE TAMANDARÉ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-50","name":"Maria Ojeda","guardian":"Valéria Fernanda de M. Braga","phone":"67996124746","familyKey":"TEL:67996124746","accessLogin":"67996124746","guardianLogin":"67996124746","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-10-08","enrollmentDate":"2026-10-08","birthDate":"2014-01-06","address":"21 DE SETEMBRO 207","neighborhood":"NOVA CORUMBA","school":"NATHERCIA POMPEO DOS SANTOS","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-51","name":"Maria Camargo","guardian":"Selene de Oliveira Ortiz","phone":"67997167455","familyKey":"TEL:67997167455","accessLogin":"67997167455","guardianLogin":"67997167455","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-10-08","enrollmentDate":"2026-10-08","birthDate":"2021-03-26","address":"RUA CEARA Nº223","neighborhood":"NOVA CORUMBA","school":"","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-52","name":"Vavio Arruda","guardian":"Fabiana F. Souza","phone":"67998010074","familyKey":"TEL:67998010074","accessLogin":"67998010074","guardianLogin":"67998010074","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-08","enrollmentDate":"2026-09-08","birthDate":"2018-02-20","address":"RUA PERNAMBUCO 205","neighborhood":"GUARANI","school":"ALMIRANTE TAMANDARÉ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-53","name":"Luiz Arruda","guardian":"Fabiana F. Souza","phone":"67998010074","familyKey":"TEL:67998010074","accessLogin":"67998010074","guardianLogin":"67998010074","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-08","enrollmentDate":"2026-09-08","birthDate":"2015-08-01","address":"RUA PERNAMBUCO 205","neighborhood":"GUARANI","school":"ALMIRANTE TAMANDARÉ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-54","name":"José Leigues","guardian":"Eliane Cristina Eugenio","phone":"67998518300","familyKey":"TEL:67998518300","accessLogin":"67998518300","guardianLogin":"67998518300","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-09-24","enrollmentDate":"2026-09-24","birthDate":"2026-11-04","address":"RUA 21 DE SETEMBRO QUADRA B Nº36","neighborhood":"NOVA CORUMBA","school":"ALMIRANTE TAMANDARÉ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-55","name":"Heitor Ferreira","guardian":"Mike henrique Silva Ferreira","phone":"67981163430","familyKey":"TEL:67981163430","accessLogin":"67981163430","guardianLogin":"67981163430","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-10-06","enrollmentDate":"2026-10-06","birthDate":"2020-06-13","address":"RUA CEARA Nº10 QUADRA 01","neighborhood":"NOVA CORUMBA","school":"ANGELA MARIA PEREZ","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-56","name":"Samuel Saff","guardian":"Jociane Geme Neves Saff","phone":"67998417780","familyKey":"TEL:67998417780","accessLogin":"67998417780","guardianLogin":"67998417780","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-10-08","enrollmentDate":"2026-10-08","birthDate":"2017-05-26","address":"ALAMEDA 2 QUADRA C CASA 26 CONJUNTO PIUVA","neighborhood":"NOVA CORUMBA","school":"CASSIO LEITE DE BARROS","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-57","name":"Valentina Salustiano","guardian":"Andrea Melo","phone":"67996328690","familyKey":"TEL:67996328690","accessLogin":"67996328690","guardianLogin":"67996328690","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-10-08","enrollmentDate":"2026-10-08","birthDate":"2018-03-01","address":"21 DE SETEMBRO Nº1","neighborhood":"GUATOS","school":"CLIO PROENÇA","documentNumber":"","guardianRelation":"","face":"","health":null},{"id":"roster-58","name":"Teste","guardian":"Teste Isa","phone":"67999309640","familyKey":"TEL:67999309640","accessLogin":"67999309640","guardianLogin":"67999309640","belt":"Branca","degrees":0,"status":"pending","pendingReason":"PENDÊNCIA DE DOCUMENTO","registrationSource":"Planilha inicial","startDate":"2026-10-15","enrollmentDate":"2026-10-15","birthDate":"2000-01-01","address":"RUA LADARIO Nº1147 APTO 103","neighborhood":"CENTRO","school":"ADVENTISTA","documentNumber":"","guardianRelation":"","face":"","health":null}];
+// Os dados pessoais da lista inicial agora ficam somente na Edge Function do Supabase.
 
 
 const directors = [
@@ -3760,7 +3739,24 @@ async function restoreSession(){
     const session=JSON.parse(raw||"null");
     if(session && validateSessionAccess(session)){
       state.user=session;
-      showApp();
+
+      // V74: sessão salva não pode pular a reconexão ao Supabase.
+      // Revalida a identidade central e carrega os dados compartilhados ao reabrir o app.
+      if(initCentralClient()){
+        try{
+          const centralIdentityResolved=await centralResolveCurrentIdentity();
+          if(centralIdentityResolved){
+            showApp();
+            return;
+          }
+        }catch(centralRestoreError){
+          console.warn("Não foi possível reconectar a sessão salva ao banco central.",centralRestoreError);
+        }
+      }
+      sessionStorage.removeItem(STORAGE_KEYS.session);
+      state.user=null;
+      showLogin();
+      setTimeout(()=>toast("A sessão não foi reconectada à base central. Entre novamente com o login e a senha centrais."),300);
       return;
     }
   }catch(error){console.warn("Sessão local inválida.",error);}
@@ -4610,9 +4606,12 @@ function initEnrollment(){
 
     const signature=$("signaturePad").toDataURL("image/png");
 
-    const enrollmentReturnPage=state.enrollment?.returnToPage || "enrollmentPage";
+    const previousEnrollment=state.enrollment||{};
+    const enrollmentReturnPage=previousEnrollment.returnToPage || "enrollmentPage";
     state.enrollment={
       id:"enrollment-"+Date.now(),
+      studentId:previousEnrollment.studentId||null,
+      existingStudent:previousEnrollment.existingStudent===true,
       returnToPage:enrollmentReturnPage,
       date:todayISO(),
       city:APP_CONFIG.city,
@@ -4823,9 +4822,26 @@ async function startCamera(){
 }
 
 async function syncEnrollmentCentral(student){
-  if(!centralReady||!centralAuthUser||!student) return false; const documentRecord=(state.secretaryDocuments||[]).find(d=>String(d.documentNumber||"")===String(student.documentNumber||""))||null;
-  try{const familyKey=student.familyKey||state.user?.familyKey||((state.user?.role==="guardian"||state.user?.role==="director")?centralFamilyKey(student.guardian,student.phone):""); if((state.user?.role==="guardian"||state.user?.role==="director")&&familyKey){state.user.familyKey=familyKey;sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));await centralFunction("bind-family",{familyKey,guardianName:student.guardian||state.user.guardianName||""});} const result=await centralFunction("sync-state",{collections:{student:[student],secretary_document:documentRecord?[documentRecord]:[]}}); return result?.ok===true;
-  }catch(error){console.error("Sincronização do cadastro:",error);return false;}
+  if(!centralReady||!centralAuthUser||!student) return false;
+  const documentRecord=(state.secretaryDocuments||[]).find(d=>String(d.documentNumber||"")===String(student.documentNumber||""))||null;
+  try{
+    const isFamilyUser=["guardian","director"].includes(state.user?.role);
+    const familyKey=student.familyKey||state.user?.familyKey||(isFamilyUser?centralFamilyKey(student.guardian,student.phone):"");
+    if(isFamilyUser){
+      if(!familyKey) throw new Error("Não foi possível identificar a família do responsável.");
+      student.familyKey=familyKey;
+      if(documentRecord) documentRecord.familyKey=familyKey;
+      state.user.familyKey=familyKey;
+      sessionStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+      await centralFunction("bind-family",{familyKey,guardianName:student.guardian||state.user.guardianName||""});
+    }
+    const result=await centralFunction("sync-state",{collections:{student:[student],secretary_document:documentRecord?[documentRecord]:[]}});
+    return result?.ok===true;
+  }catch(error){
+    console.error("Sincronização do cadastro:",error);
+    toast(centralSafeError(error,"Não foi possível sincronizar o cadastro com a base central."));
+    return false;
+  }
 }
 
 async function captureFace(){
@@ -4851,6 +4867,7 @@ async function captureFace(){
       id:"student-"+Date.now(),
       name:pending.student.name,
       birth:pending.student.birth,
+      birthDate:pending.student.birth,
       sex:pending.student.sex,
       school:pending.student.school,
       neighborhood:pending.student.neighborhood,
@@ -4869,6 +4886,9 @@ async function captureFace(){
       startDate:pending.date,
       face:data,
       health:pending.health,
+      signature:pending.signature||"",
+      biometricStatus:"complete",
+      registrationCompletedAt:nowISO(),
       imageConsent:true,
       registrationSource:"Matrícula"
     };
@@ -4878,6 +4898,7 @@ async function captureFace(){
     Object.assign(student,{
       name:pending.student.name,
       birth:pending.student.birth,
+      birthDate:pending.student.birth,
       sex:pending.student.sex,
       school:pending.student.school,
       neighborhood:pending.student.neighborhood,
@@ -4892,6 +4913,9 @@ async function captureFace(){
       enrollmentDate:pending.date,
       health:pending.health,
       face:data,
+      signature:pending.signature||"",
+      biometricStatus:"complete",
+      registrationCompletedAt:nowISO(),
       status:"complete",
       imageConsent:true
     });
@@ -4955,26 +4979,77 @@ async function captureFace(){
   // sem abrir a etapa adicional de redefinição de senha.
   // MESTRE / PASTOR / DIRETORIA e responsáveis:
   // conclui a sincronização e só então atualiza todas as abas.
+  let centralEnrollmentSaved=false;
   try{
-    await syncEnrollmentCentral(student);
+    centralEnrollmentSaved=await syncEnrollmentCentral(student);
+    if(centralEnrollmentSaved) await centralPullState();
   }catch(error){
     console.warn("Sincronização central após biometria não concluída:",error);
   }
 
-  // Recarrega todas as visões dependentes do novo aluno antes de limpar a Matrícula.
+  // Recarrega as visões locais após o envio; não declara sincronização se o servidor não confirmou.
   refreshAllStudentDerivedViews();
   saveState();
 
-  toast("✅ BIOMETRIA CADASTRADA COM SUCESSO. Todas as abas foram atualizadas.");
+  if(centralEnrollmentSaved){
+    toast("✅ Cadastro e biometria salvos na base central. Administrador e Diretoria poderão consultar o aluno.");
+  }else{
+    toast("⚠️ Cadastro concluído neste aparelho, mas a base central não confirmou o envio. Avise o Administrador antes de considerar a matrícula finalizada.");
+  }
   setTimeout(()=>{
     resetEnrollmentFormAfterCompletion();
     // Garante que a Matrícula volte ao topo, limpa e pronta para o próximo cadastro.
     window.scrollTo({top:0,behavior:"smooth"});
   },700);
 }
+
+function startExistingStudentFinalization(id){
+  const student=(state.students||[]).find(s=>String(s.id)===String(id));
+  if(!student){toast("Aluno não localizado na base central.");return;}
+  if(!["guardian","director"].includes(state.user?.role) || studentFamilyKey(student)!==state.user?.familyKey){
+    toast("Este aluno não está vinculado à sua família.");return;
+  }
+  if(student.status==="complete"){
+    toast("Este cadastro já foi finalizado.");return;
+  }
+
+  prepareEnrollmentFormForNewChild();
+  state.enrollment={id:"enrollment-"+Date.now(),studentId:student.id,existingStudent:true,returnToPage:"studentsPage"};
+  const setValue=(elementId,value)=>{const el=$(elementId);if(el) el.value=value==null?"":String(value);};
+  setValue("studentName",student.name||"");
+  setValue("studentBirth",student.birthDate||student.birth||"");
+  setValue("studentSex",student.sex||"");
+  setValue("studentSchool",student.school||"");
+  setValue("studentNeighborhood",student.neighborhood||student.bairro||"");
+  setValue("studentAddress",student.address||"");
+  setValue("guardianName",student.guardian||state.user?.guardianName||"");
+  setValue("guardianRelation",student.guardianRelation||"");
+  setValue("guardianPhone",student.phone||state.user?.login||"");
+  setValue("guardianCINRG",student.guardianCINRG||student.guardianCIN||student.guardianDocument||"");
+
+  // A planilha atual não contém sexo nem parentesco. Não inventamos esses dados:
+  // esses dois campos ficam opcionais só nesta finalização de cadastro pré-existente.
+  if($("studentSex")) $("studentSex").required=false;
+  if($("guardianRelation")) $("guardianRelation").required=false;
+  const health=student.health||{};
+  ["heart","respiratory","injury","medication","allergy","fainting"].forEach(key=>{
+    const value=String(health[key]||"").toUpperCase();
+    document.querySelectorAll(`input[name="${key}"]`).forEach(input=>{input.checked=input.value===value;});
+  });
+  setValue("healthDetails",health.details||"");
+  // A autorização de imagem/voz e a assinatura são sempre confirmadas novamente pelo responsável.
+  if($("imageConsent")) $("imageConsent").checked=false;
+  clearSignature();
+  openPage("enrollmentPage");
+  setTimeout(()=>$("studentName")?.focus({preventScroll:true}),120);
+  toast(`Cadastro de ${student.name} carregado. Confira os dados e complete saúde, assinatura e biometria.`);
+}
+
 function prepareEnrollmentFormForNewChild(){
   const form=$("enrollmentForm");
   if(form) form.reset();
+  if($("studentSex")) $("studentSex").required=true;
+  if($("guardianRelation")) $("guardianRelation").required=true;
   const finalizeButton=document.querySelector('#enrollmentForm button[type="submit"]');
   if(finalizeButton){
     finalizeButton.disabled=false;
@@ -5139,6 +5214,9 @@ function getLastRegisteredGuardian(){
 function visibleStudentsForCurrentUser(){
   const list=[...state.students];
   if(["master","pastor","director"].includes(state.user?.role)) return list;
+  if(state.user?.role==="guardian" && state.user.familyKey){
+    return list.filter(s=>studentFamilyKey(s)===state.user.familyKey);
+  }
   const guardianName=normalizePersonName(state.user?.guardianName||"");
   const linkedId=state.user?.studentId || getLastRegisteredStudentId();
   if(guardianName){
@@ -5358,6 +5436,7 @@ function studentRowHTML(s){
       </div>
       <div class="action-row">
         <button class="btn" onclick="openStudent('${s.id}')">Ver perfil</button>
+        ${(["guardian","director"].includes(state.user?.role) && studentFamilyKey(s)===state.user?.familyKey && s.status!=="complete") ? `<button class="btn btn-gold" onclick="startExistingStudentFinalization('${s.id}')">Concluir cadastro</button>` : ""}
       </div>
     </div>
   `;
@@ -7281,71 +7360,29 @@ async function generateDirectorAccesses(){
 
 async function generateAccess(){
   if(!isMaster()){toast("Somente o Administrador Mestre London pode gerar novos acessos.");return;}
-  if(centralReady&&centralAuthUser){
-    try{
-      const result=await centralFunction("generate-access",{});
-      // V69: mantém também um espelho local da credencial recém-gerada.
-      // Assim o acesso funciona imediatamente neste dispositivo e, quando
-      // a conta central já estiver provisionada, também funciona em outros.
-      const generatedLogin=String(result?.login||"").trim();
-      const generatedPassword=String(result?.password||"");
-      if(generatedLogin && generatedPassword){
-        const existing=(state.accesses||[]).find(a=>normalizeLogin(a?.login)===normalizeLogin(generatedLogin));
-        const localAccess=existing||{
-          id:result?.id||`access-${Date.now()}`,
-          name:result?.displayName||`Acesso ${generatedLogin}`,
-          login:generatedLogin,
-          role:"guardian",
-          studentId:null,
-          active:true,
-          createdAt:nowISO(),
-          createdBy:state.user?.name||APP_CONFIG.masterName
-        };
-        localAccess.login=generatedLogin;
-        localAccess.password=generatedPassword;
-        localAccess.accessPassword=generatedPassword;
-        localAccess.active=true;
-        localAccess.temporaryPassword=true;
-        localAccess.passwordExpiresAt=result?.passwordExpiresAt || new Date(Date.now()+accessExpiryMs()).toISOString();
-        localAccess.central=true;
-        if(!existing) state.accesses.push(localAccess);
-        saveState();
-      }
-      await centralPullState();renderMasterManagement();renderAccessSecurityManagement();
-      modal("Novo acesso gerado",`
-        <div class="success-notice"><strong>✓ Login e senha gerados automaticamente na base central.</strong><br>A senha provisória é válida por 3 dias.</div>
-        <div class="card" style="background:#151515;margin-top:12px">
-          <p class="body-text" style="margin:0 0 10px"><strong>LOGIN:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900">${escapeHTML(result.login||"")}</span></p>
-          <p class="body-text" style="margin:0"><strong>SENHA:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900;letter-spacing:1px">${escapeHTML(result.password||"")}</span></p>
-        </div>
-        <div class="action-row" style="margin-top:12px"><button class="btn" type="button" onclick="copyText('${encodeURIComponent(result.login||"")}')">📋 Copiar login</button><button class="btn" type="button" onclick="copyText('${encodeURIComponent(result.password||"")}')">📋 Copiar senha</button></div>
-        <p class="small muted" style="margin-top:12px">Entregue os dados à pessoa. Ela deverá fazer a matrícula e redefinir a senha dentro dos 3 dias.</p>
-        <div class="notice" style="margin-top:10px">🔐 Este acesso foi salvo na base central e também protegido com uma cópia local de contingência. Use exatamente o LOGIN e a SENHA exibidos acima.</div>`);
-      toast("Novo login e senha gerados na base central.");return;
-    }catch(error){
-      console.error("Falha ao gerar acesso central:",error);
-      // V73: se a Edge Function estiver indisponível, gera imediatamente
-      // uma credencial local para o Mestre não ficar sem retorno.
-      const prefix="SEMENTES";
-      const seq=nextAccessNumber(prefix);
-      const login=`${prefix}-${String(seq).padStart(4,"0")}`;
-      const password=randomPassword(10);
-      const createdAt=nowISO();
-      const access={id:`access-${Date.now()}`,name:`Acesso ${login}`,login,password,accessPassword:password,role:"guardian",studentId:null,active:true,temporaryPassword:true,createdAt,passwordExpiresAt:new Date(Date.now()+accessExpiryMs()).toISOString(),createdBy:state.user?.name||APP_CONFIG.masterName,central:false};
-      state.accesses=Array.isArray(state.accesses)?state.accesses:[];
-      state.accesses.push(access);
-      saveState();
-      renderMasterManagement();
-      renderAccessSecurityManagement();
-      modal("Novo acesso gerado",`<div class="success-notice"><strong>✓ Login e senha gerados.</strong><br>A conexão com a base central falhou, então este é um acesso local de contingência.</div><div class="card" style="background:#151515;margin-top:12px"><p class="body-text" style="margin:0 0 10px"><strong>LOGIN:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900">${escapeHTML(login)}</span></p><p class="body-text" style="margin:0"><strong>SENHA:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900;letter-spacing:1px">${escapeHTML(password)}</span></p></div><p class="small muted" style="margin-top:12px">Guarde estes dados. O acesso central deverá ser sincronizado quando a conexão com o banco estiver disponível.</p>`);
-      toast("Login e senha gerados em modo de contingência.");
-      return;
-    }
+  if(!(centralReady&&centralAuthUser&&state.user?.role==="master")){
+    toast("O Administrador precisa estar conectado à base central para gerar acessos de responsáveis.");
+    return;
   }
-  const prefix="SEMENTES";const seq=nextAccessNumber(prefix);const login=`${prefix}-${String(seq).padStart(4,"0")}`;const password=randomPassword(10);const createdAt=nowISO();
-  const access={id:`access-${Date.now()}`,name:`Acesso ${login}`,login,password,accessPassword:password,role:"guardian",studentId:null,active:true,temporaryPassword:true,createdAt,passwordExpiresAt:new Date(Date.now()+accessExpiryMs()).toISOString(),createdBy:state.user?.name||APP_CONFIG.masterName};
-  state.accesses.push(access);saveState();renderMasterManagement();renderAccessSecurityManagement();renderStudents();
-  modal("Novo acesso gerado",`<div class="success-notice"><strong>✓ Login e senha gerados automaticamente.</strong><br>A senha provisória é válida por 3 dias.</div><div class="card" style="background:#151515;margin-top:12px"><p class="body-text" style="margin:0 0 10px"><strong>LOGIN:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900">${escapeHTML(login)}</span></p><p class="body-text" style="margin:0"><strong>SENHA:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900;letter-spacing:1px">${escapeHTML(password)}</span></p></div><p class="small muted" style="margin-top:12px">A base central ainda não está configurada; este acesso local não sincroniza entre aparelhos.</p>`);
+  try{
+    const result=await centralFunction("generate-access",{});
+    if(!result?.login||!result?.password) throw new Error("A base central não retornou o login e a senha do responsável.");
+    await centralPullState();
+    renderMasterManagement();
+    renderAccessSecurityManagement();
+    modal("Novo acesso gerado",`
+      <div class="success-notice"><strong>✓ Login e senha criados na base central.</strong><br>A senha provisória é válida por 3 dias.</div>
+      <div class="card" style="background:#151515;margin-top:12px">
+        <p class="body-text" style="margin:0 0 10px"><strong>LOGIN:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900">${escapeHTML(result.login)}</span></p>
+        <p class="body-text" style="margin:0"><strong>SENHA:</strong><br><span style="font-size:18px;color:var(--gold2);font-weight:900;letter-spacing:1px">${escapeHTML(result.password)}</span></p>
+      </div>
+      <div class="action-row" style="margin-top:12px"><button class="btn" type="button" onclick="copyText('${encodeURIComponent(result.login)}')">📋 Copiar login</button><button class="btn" type="button" onclick="copyText('${encodeURIComponent(result.password)}')">📋 Copiar senha</button></div>
+      <p class="small muted" style="margin-top:12px">Entregue os dados ao responsável para que entre pelo aplicativo e cadastre cada filho. A matrícula será compartilhada com o Administrador e a Diretoria.</p>`);
+    toast("Acesso central do responsável criado com sucesso.");
+  }catch(error){
+    console.error("Falha ao gerar acesso central:",error);
+    toast(centralSafeError(error,"Não foi possível gerar o acesso. Nenhuma credencial local foi criada; tente novamente quando a conexão central estiver disponível."));
+  }
 }
 function copyText(encoded){
   const value=decodeURIComponent(encoded||"");
@@ -7675,8 +7712,7 @@ function initEvents(){
 
   $("loginForm")?.addEventListener("submit",async e=>{
     e.preventDefault();
-    const loginRaw=$("login").value;
-    const login=normalizeLogin(loginRaw);
+    const login=normalizeLogin($("login").value);
     const password=$("password").value;
     const errorBox=$("loginErrorMessage");
     if(errorBox){errorBox.style.display="none";errorBox.textContent="";}
@@ -7687,33 +7723,34 @@ function initEvents(){
       return;
     }
     try{
-      // V65: primeiro autentica localmente. Assim o acesso do Mestre e os
-      // acessos já salvos funcionam mesmo sem internet ou provedor remoto.
-      let authenticated=loginDemo(login,password);
-
-      // Para outros usuários, se o acesso local não existir, tenta a base central.
-      if(!authenticated && initCentralClient()) {
+      let authenticated=false;
+      const centralConfigured=initCentralClient();
+      if(centralConfigured){
+        // Com o banco central configurado, nenhum login local de contingência pode abrir uma sessão sem sincronização.
         try{
           const result=await centralLogin(login,password);
           authenticated=Boolean(result?.ok);
         }catch(error){
           console.error("Falha na autenticação central:",error);
-          lastLoginMessage=centralSafeError(error,"Não foi possível autenticar este responsável. Verifique o login e a senha.");
-          authenticated=false;
+          lastLoginMessage=centralSafeError(error,"Não foi possível conectar à base central.");
         }
-      }
-
-      if(!authenticated){
-        const msg=lastLoginMessage||"Login ou senha inválidos.";
+        if(!authenticated){
+          const msg=lastLoginMessage||"Login ou senha inválidos na base central. Verifique os dados e tente novamente.";
+          toast(msg);
+          if(errorBox){errorBox.textContent=msg;errorBox.style.display="block";}
+          return;
+        }
+      }else{
+        const msg="A base central não foi carregada. Verifique a conexão e tente novamente; o acesso local foi bloqueado para proteger a sincronização dos cadastros.";
         toast(msg);
         if(errorBox){errorBox.textContent=msg;errorBox.style.display="block";}
         return;
       }
       showApp();
-      toast("Bem-vindo ao Projeto Sementes.");
+      toast("Bem-vindo ao Projeto Sementes. Acesso conectado à base central.");
     }catch(error){
       console.error("Erro no login:",error);
-      const msg=centralSafeError(error,"Não foi possível concluir o login. Verifique o login e a senha.");
+      const msg=centralSafeError(error,"Não foi possível concluir o login. Verifique o acesso e tente novamente.");
       toast(msg);
       if(errorBox){errorBox.textContent=msg;errorBox.style.display="block";}
     }
