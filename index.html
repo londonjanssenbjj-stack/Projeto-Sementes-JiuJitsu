@@ -1101,12 +1101,252 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
   .seeds-program-heading p{font-size:12px}
 }
 
+
+/* V79 — Portal institucional público, separado da área privada */
+#publicSite{display:none;background:#f7f5ef;color:#171717;min-height:100vh;font-family:Inter,Arial,sans-serif}
+#publicSite *{box-sizing:border-box}
+#publicSite a{color:inherit;text-decoration:none}
+#publicSite .pub-wrap{width:min(1240px,92%);margin:0 auto}
+#publicSite .pub-header{position:sticky;top:0;z-index:1000;background:rgba(12,22,40,.97);backdrop-filter:blur(12px);color:#fff;border-bottom:1px solid rgba(212,175,55,.35)}
+#publicSite .pub-header-inner{min-height:82px;display:flex;align-items:center;justify-content:space-between;gap:22px}
+#publicSite .pub-brand{display:flex;align-items:center;gap:12px;min-width:210px}
+#publicSite .pub-brand img{width:52px;height:58px;object-fit:contain}
+#publicSite .pub-brand span{display:grid;gap:1px}
+#publicSite .pub-brand strong{font-size:10px;letter-spacing:3px;color:#e5c65c}
+#publicSite .pub-brand b{font-size:23px;letter-spacing:.4px}
+#publicSite .pub-brand small{font-size:8px;letter-spacing:.6px;color:#d2d8e1}
+#publicSite .pub-nav{display:flex;align-items:center;gap:22px;font-size:12px;font-weight:700}
+#publicSite .pub-nav a{opacity:.92}
+#publicSite .pub-nav a:hover{color:#f4d76e}
+#publicSite .pub-actions{display:flex;align-items:center;gap:9px}
+#publicSite .pub-btn{border:1px solid transparent;border-radius:4px;padding:12px 16px;font-weight:800;font-size:11px;letter-spacing:.3px;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:transform .18s,background .18s}
+#publicSite .pub-btn:hover{transform:translateY(-1px)}
+#publicSite .pub-btn-gold{background:#d8b342;color:#101828}
+#publicSite .pub-btn-outline{border-color:rgba(255,255,255,.6);color:#fff;background:transparent}
+#publicSite .pub-hero{min-height:540px;background:linear-gradient(90deg,rgba(7,14,26,.96) 0%,rgba(7,14,26,.83) 43%,rgba(7,14,26,.18) 100%),var(--pub-hero-image,linear-gradient(135deg,#172b49,#10141c));background-position:center;background-size:cover;color:#fff;display:flex;align-items:center}
+#publicSite .pub-hero-copy{max-width:650px;padding:78px 0}
+#publicSite .pub-eyebrow{color:#f4d76e;font-size:11px;font-weight:800;letter-spacing:2px;margin:0 0 20px}
+#publicSite .pub-hero h1{font-size:clamp(42px,5.4vw,70px);line-height:.99;letter-spacing:-2.5px;margin:0 0 22px;font-weight:900}
+#publicSite .pub-hero h1 em{font-style:normal;color:#f4d76e}
+#publicSite .pub-hero p:not(.pub-eyebrow){font-size:17px;line-height:1.65;color:#e5e9f0;max-width:570px;margin:0 0 28px}
+#publicSite .pub-hero-actions{display:flex;flex-wrap:wrap;gap:12px}
+#publicSite .pub-trustline{display:flex;flex-wrap:wrap;gap:22px;margin-top:34px;color:#e0e4eb;font-size:10px;font-weight:800;letter-spacing:1px}
+#publicSite .pub-trustline span:before{content:"✦";color:#f4d76e;margin-right:8px}
+#publicSite .pub-impact{background:#e9e4d8;padding:27px 0}
+#publicSite .pub-impact-grid{display:grid;grid-template-columns:1.25fr repeat(3,1fr);align-items:center;gap:22px}
+#publicSite .pub-impact-intro{font-size:24px;line-height:1.1;font-weight:900}
+#publicSite .pub-impact-intro em{color:#98731b;font-style:normal}
+#publicSite .pub-impact-desc{font-size:12px;line-height:1.55;color:#3b3b3b}
+#publicSite .pub-stat{border-left:1px solid #c8c0ae;padding:5px 0 5px 22px}
+#publicSite .pub-stat strong{display:block;font-size:28px;line-height:1.1;color:#15233a}
+#publicSite .pub-stat small{font-size:10px;font-weight:800;letter-spacing:.8px;line-height:1.4}
+#publicSite .pub-section{padding:76px 0}
+#publicSite .pub-section-dark{background:#111b2c;color:#fff}
+#publicSite .pub-section-head{display:grid;grid-template-columns:1fr 1fr;align-items:end;gap:32px;margin-bottom:30px}
+#publicSite .pub-kicker{font-size:10px;letter-spacing:2px;font-weight:900;color:#a47e21;margin:0 0 12px}
+#publicSite .pub-section h2{font-size:clamp(30px,3.8vw,45px);line-height:1.06;letter-spacing:-1.3px;margin:0;font-weight:900}
+#publicSite .pub-section h2 em{font-style:normal;color:#cba53d}
+#publicSite .pub-section-head>p{font-size:14px;line-height:1.7;color:#5a5a5a;margin:0}
+#publicSite .pub-section-dark .pub-section-head>p{color:#d1d6df}
+#publicSite .pub-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+#publicSite .pub-card{background:#fff;border:1px solid #e8e4da;box-shadow:0 10px 30px rgba(15,25,40,.07);overflow:hidden}
+#publicSite .pub-card-img{height:180px;background:linear-gradient(135deg,#263e5d,#b88c2d);position:relative;overflow:hidden}
+#publicSite .pub-card-img:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(4,11,22,.52),transparent 65%)}
+#publicSite .pub-card-body{padding:22px}
+#publicSite .pub-card h3{font-size:19px;line-height:1.2;margin:0 0 10px;color:#15233a}
+#publicSite .pub-card p{font-size:13px;line-height:1.65;color:#555;margin:0 0 16px}
+#publicSite .pub-card a{font-size:11px;font-weight:900;letter-spacing:.5px;color:#96701b}
+#publicSite .pub-story-grid{display:grid;grid-template-columns:1fr 1fr;gap:46px;align-items:center}
+#publicSite .pub-photo-panel{min-height:360px;border-radius:4px;background:linear-gradient(145deg,#172a45,#bd9a42);display:flex;align-items:end;padding:26px;color:white;position:relative;overflow:hidden}
+#publicSite .pub-photo-panel:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.55),transparent 80%)}
+#publicSite .pub-photo-panel span{position:relative;z-index:1;font-size:23px;line-height:1.15;font-weight:900;max-width:300px}
+#publicSite .pub-story-copy p{font-size:14px;line-height:1.8;color:#d5dbe4}
+#publicSite .pub-story-copy .pub-btn{margin-top:12px}
+#publicSite .pub-cta-band{background:#d9b342;color:#101828;padding:42px 0}
+#publicSite .pub-cta-inner{display:flex;align-items:center;justify-content:space-between;gap:28px}
+#publicSite .pub-cta-inner h2{font-size:clamp(26px,3vw,38px);line-height:1.08;margin:0 0 8px}
+#publicSite .pub-cta-inner p{font-size:13px;line-height:1.5;margin:0}
+#publicSite .pub-cta-inner .pub-btn{background:#111b2c;color:#fff}
+#publicSite .pub-footer{background:#09111f;color:#d7dce5;padding:42px 0 24px}
+#publicSite .pub-footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:28px}
+#publicSite .pub-footer h3{color:#f4d76e;font-size:12px;letter-spacing:1px}
+#publicSite .pub-footer p,#publicSite .pub-footer a{font-size:12px;line-height:1.7;color:#d7dce5}
+#publicSite .pub-footer-bottom{border-top:1px solid #273247;margin-top:26px;padding-top:18px;font-size:10px;color:#9da7b8}
+#publicSite .pub-mobile-menu{display:none}
+#publicSite .pub-form-note{font-size:11px;color:#666;line-height:1.5}
+@media(max-width:1050px){
+ #publicSite .pub-nav{gap:12px;font-size:11px}
+ #publicSite .pub-brand{min-width:175px}
+ #publicSite .pub-brand b{font-size:20px}
+ #publicSite .pub-actions .pub-btn-outline{display:none}
+}
+@media(max-width:820px){
+ #publicSite .pub-header-inner{flex-wrap:wrap;padding:12px 0;gap:12px}
+ #publicSite .pub-nav{order:3;flex:1 0 100%;overflow-x:auto;padding:5px 0 3px}
+ #publicSite .pub-nav a{white-space:nowrap}
+ #publicSite .pub-impact-grid{grid-template-columns:1fr 1fr}
+ #publicSite .pub-impact-intro{grid-column:1/-1}
+ #publicSite .pub-stat{padding-left:12px}
+ #publicSite .pub-section-head{grid-template-columns:1fr;gap:14px}
+ #publicSite .pub-story-grid{grid-template-columns:1fr;gap:26px}
+ #publicSite .pub-photo-panel{min-height:270px}
+ #publicSite .pub-footer-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:560px){
+ #publicSite .pub-wrap{width:90%}
+ #publicSite .pub-header-inner{align-items:center}
+ #publicSite .pub-brand img{width:42px;height:48px}
+ #publicSite .pub-brand b{font-size:18px}
+ #publicSite .pub-brand small{font-size:7px}
+ #publicSite .pub-actions .pub-btn{padding:10px 11px;font-size:10px}
+ #publicSite .pub-hero{min-height:520px;background-position:62% center}
+ #publicSite .pub-hero-copy{padding:60px 0}
+ #publicSite .pub-hero h1{font-size:clamp(40px,11vw,53px);letter-spacing:-1.7px}
+ #publicSite .pub-hero p:not(.pub-eyebrow){font-size:15px}
+ #publicSite .pub-impact-grid{gap:16px}
+ #publicSite .pub-stat strong{font-size:23px}
+ #publicSite .pub-section{padding:54px 0}
+ #publicSite .pub-cards{grid-template-columns:1fr}
+ #publicSite .pub-card-img{height:190px}
+ #publicSite .pub-cta-inner{align-items:flex-start;flex-direction:column}
+ #publicSite .pub-footer-grid{grid-template-columns:1fr}
+}
+
 </style>
   <link rel="icon" type="image/png" href="favicon-64.png">
 </head>
 
 <body>
 <div class="app">
+
+  <!-- V79 — SITE INSTITUCIONAL PÚBLICO. Não exige login para navegar. -->
+  <section id="publicSite" aria-label="Site institucional público do Projeto Sementes">
+    <header class="pub-header">
+      <div class="pub-wrap pub-header-inner">
+        <a class="pub-brand" href="#publicHome" aria-label="Projeto Sementes início">
+          <img src="projeto-sementes-logo-home.png" alt="Logotipo do Projeto Sementes" onerror="this.style.display='none'">
+          <span><strong>PROJETO</strong><b>SEMENTES</b><small>JIU-JÍTSU • CIDADANIA • DESENVOLVIMENTO INTEGRAL</small></span>
+        </a>
+        <nav class="pub-nav" aria-label="Menu institucional">
+          <a href="#publicHome">Início</a>
+          <a href="#publicAbout">O Projeto</a>
+          <a href="#publicPrograms">Nossa Atuação</a>
+          <a href="#publicImpact">Nosso Impacto</a>
+          <a href="#publicTransparency">Transparência</a>
+          <a href="#publicNews">Notícias</a>
+          <a href="#publicFamily">Área da Família</a>
+        </nav>
+        <div class="pub-actions">
+          <button class="pub-btn pub-btn-outline" type="button" onclick="openFamilyAccess()">Área do Responsável</button>
+          <a class="pub-btn pub-btn-gold" href="#publicPartner">Seja um Parceiro</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="publicHome">
+      <section class="pub-hero">
+        <div class="pub-wrap">
+          <div class="pub-hero-copy">
+            <p class="pub-eyebrow">PROJETO SOCIAL • CORUMBÁ / MATO GROSSO DO SUL</p>
+            <h1>Transformando vidas através do <em>esporte, da educação e dos valores.</em></h1>
+            <p>O Projeto Sementes utiliza o Jiu-Jitsu, a cidadania, a educação socioemocional e as ações sociais para contribuir com o desenvolvimento integral de crianças e adolescentes.</p>
+            <div class="pub-hero-actions">
+              <a class="pub-btn pub-btn-gold" href="#publicAbout">Conheça o Projeto <span>→</span></a>
+              <button class="pub-btn pub-btn-outline" type="button" onclick="openFamilyAccess()">Área do Responsável</button>
+            </div>
+            <div class="pub-trustline"><span>ESPORTE</span><span>EDUCAÇÃO</span><span>CIDADANIA</span><span>COMUNIDADE</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="pub-impact" id="publicImpact">
+        <div class="pub-wrap pub-impact-grid">
+          <div class="pub-impact-intro">O impacto começa<br><em>no tatame.</em></div>
+          <div class="pub-impact-desc">Acompanhamos nossas atividades e buscamos ampliar oportunidades para crianças e adolescentes de Corumbá.</div>
+          <div class="pub-stat"><strong>Em atualização</strong><small>CRIANÇAS E ADOLESCENTES</small></div>
+          <div class="pub-stat"><strong>Em atualização</strong><small>BAIRROS ALCANÇADOS</small></div>
+          <div class="pub-stat"><strong>Em atualização</strong><small>AÇÕES SOCIOEDUCATIVAS</small></div>
+        </div>
+      </section>
+
+      <section class="pub-section" id="publicAbout">
+        <div class="pub-wrap pub-story-grid">
+          <div class="pub-photo-panel" role="img" aria-label="Imagem institucional ilustrativa do esporte como ferramenta de transformação">
+            <span>Plantando valores.<br>Transformando futuros.</span>
+          </div>
+          <div class="pub-story-copy">
+            <p class="pub-kicker">QUEM SOMOS</p>
+            <h2>Mais oportunidades para crescer dentro e fora do <em>tatame.</em></h2>
+            <p>O Projeto Sementes — Jiu-Jitsu, Cidadania e Desenvolvimento Integral — promove atividades esportivas e socioeducativas com foco na disciplina, no respeito, na convivência e no desenvolvimento de crianças e adolescentes.</p>
+            <p>Nosso trabalho reúne esporte, cidadania, valores e participação comunitária. As informações institucionais e os resultados serão publicados conforme os registros oficiais disponíveis.</p>
+            <a class="pub-btn pub-btn-gold" href="#publicPrograms">Conheça nossas atividades</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="pub-section pub-section-dark" id="publicPrograms">
+        <div class="pub-wrap">
+          <div class="pub-section-head">
+            <div><p class="pub-kicker">NOSSA ATUAÇÃO</p><h2>Muito além do <em>Jiu-Jitsu.</em></h2></div>
+            <p>Esporte, educação e comunidade atuam juntos para incentivar valores e apoiar o desenvolvimento integral de crianças e adolescentes.</p>
+          </div>
+          <div class="pub-cards">
+            <article class="pub-card"><div class="pub-card-img" style="background:linear-gradient(135deg,#142a48,#98721e)"></div><div class="pub-card-body"><h3>Jiu-Jitsu e Disciplina</h3><p>Treinamento esportivo com foco em respeito, autocontrole, perseverança e convivência.</p><a href="#publicPartner">CONHEÇA A INICIATIVA →</a></div></article>
+            <article class="pub-card"><div class="pub-card-img" style="background:linear-gradient(135deg,#52677c,#d2b35c)"></div><div class="pub-card-body"><h3>Cidadania e Educação</h3><p>Atividades e palestras socioeducativas que incentivam escolhas conscientes e participação cidadã.</p><a href="#publicPartner">CONHEÇA A INICIATIVA →</a></div></article>
+            <article class="pub-card"><div class="pub-card-img" style="background:linear-gradient(135deg,#253e36,#b58d35)"></div><div class="pub-card-body"><h3>Família e Comunidade</h3><p>Ações comunitárias e valores que fortalecem a convivência e os vínculos sociais.</p><a href="#publicPartner">CONHEÇA A INICIATIVA →</a></div></article>
+          </div>
+        </div>
+      </section>
+
+
+      <section class="pub-section" id="publicFamily" style="background:#eee9dd">
+        <div class="pub-wrap">
+          <div class="pub-section-head">
+            <div><p class="pub-kicker">ÁREA DA FAMÍLIA</p><h2>O próximo passo começa <em>aqui.</em></h2></div>
+            <p>Escolha a opção adequada à sua família. O acesso aos dados dos alunos é protegido por login e vinculado ao responsável autorizado.</p>
+          </div>
+          <div class="pub-cards">
+            <article class="pub-card"><div class="pub-card-body"><h3>Já tenho login e senha</h3><p>Acesse sua conta para consultar os filhos vinculados e acompanhar os cadastros.</p><button class="pub-btn pub-btn-gold" type="button" onclick="openFamilyAccess()">Entrar na minha conta</button></div></article>
+            <article class="pub-card"><div class="pub-card-body"><h3>Meu filho já está cadastrado</h3><p>Entre com seu acesso existente para completar os dados pendentes sem criar uma matrícula duplicada.</p><button class="pub-btn pub-btn-gold" type="button" onclick="openExistingRegistrationInfo()">Completar cadastro</button></div></article>
+            <article class="pub-card"><div class="pub-card-body"><h3>Quero cadastrar um novo aluno</h3><p>Crie seu acesso e inicie o cadastro do aluno. A Secretaria poderá conferir as informações posteriormente.</p><button class="pub-btn pub-btn-gold" type="button" onclick="openNewRegistrationInfo()">Cadastrar novo aluno</button></div></article>
+          </div>
+          <p class="pub-form-note" style="margin-top:14px">Por segurança, não envie documentos pessoais de crianças por formulários públicos sem autenticação.</p>
+        </div>
+      </section>
+
+      <section class="pub-section" id="publicTransparency">
+        <div class="pub-wrap pub-section-head">
+          <div><p class="pub-kicker">RESPONSABILIDADE E TRANSPARÊNCIA</p><h2>Compromisso com cada <em>semente.</em></h2></div>
+          <p>Relatórios, documentos institucionais e indicadores serão disponibilizados nesta área conforme forem validados e autorizados para publicação. Não serão exibidos dados pessoais de crianças e adolescentes.</p>
+        </div>
+      </section>
+
+      <section class="pub-section" id="publicNews" style="padding-top:0">
+        <div class="pub-wrap pub-section-head">
+          <div><p class="pub-kicker">ACOMPANHE O PROJETO</p><h2>Notícias e <em>atividades.</em></h2></div>
+          <p>Este espaço poderá receber notícias, palestras, campeonatos e ações comunitárias confirmadas pela equipe do Projeto Sementes.</p>
+        </div>
+      </section>
+
+      <section class="pub-cta-band" id="publicPartner">
+        <div class="pub-wrap pub-cta-inner">
+          <div><h2>Ajude a plantar novas oportunidades.</h2><p>Empresas, instituições e pessoas físicas podem conhecer o projeto e conversar sobre possibilidades de apoio.</p></div>
+          <button class="pub-btn" type="button" onclick="openFamilyAccess()">Entrar em contato / Acessar o sistema</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="pub-footer">
+      <div class="pub-wrap">
+        <div class="pub-footer-grid">
+          <div><div class="pub-brand"><img src="projeto-sementes-logo-home.png" alt="" onerror="this.style.display='none'"><span><strong>PROJETO</strong><b>SEMENTES</b><small>JIU-JÍTSU • CIDADANIA • DESENVOLVIMENTO INTEGRAL</small></span></div><p>Uma iniciativa que utiliza o esporte e a educação para contribuir com o desenvolvimento integral de crianças e adolescentes em Corumbá-MS.</p></div>
+          <div><h3>NAVEGAÇÃO</h3><p><a href="#publicAbout">O Projeto</a><br><a href="#publicPrograms">Nossa Atuação</a><br><a href="#publicImpact">Nosso Impacto</a><br><a href="#publicTransparency">Transparência</a></p></div>
+          <div><h3>ÁREA DA FAMÍLIA</h3><p><a href="#" onclick="openFamilyAccess();return false">Entrar na minha conta</a><br><a href="#" onclick="openNewRegistrationInfo();return false">Cadastrar novo aluno</a><br><a href="#" onclick="openExistingRegistrationInfo();return false">Completar cadastro existente</a></p></div>
+        </div>
+        <div class="pub-footer-bottom">© <span id="publicYear"></span> Projeto Sementes. Conteúdo institucional sujeito à validação e atualização.</div>
+      </div>
+    </footer>
+  </section>
 
   <!-- =========================================================
        LOGIN
@@ -1149,6 +1389,10 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
             </div>
           </div>
 
+          <label class="remember-access-row" style="display:flex;align-items:center;gap:9px;font-size:12px;color:#cfd3da;margin:2px 0 12px">
+            <input id="rememberAccess" type="checkbox" style="width:16px;height:16px;accent-color:#d4af37">
+            <span>Lembrar meu acesso neste dispositivo</span>
+          </label>
           <button class="btn btn-gold btn-full" type="submit">
             <i data-lucide="log-in"></i> Entrar
           </button>
@@ -4040,13 +4284,121 @@ async function restoreSession(){
       return;
     }
   }catch(error){console.warn("Sessão local inválida.",error);}
-  showLogin();
+  showPublicSite();
 }
 
 
-function showLogin(){
-  // Sempre parar o louvor e limpar a sessão visual ao voltar para o login.
+
+function showPublicSite(){
   stopBackgroundMusic();
+  const pub=$("publicSite"), login=$("loginScreen"), main=$("mainScreen");
+  if(pub) pub.style.display="block";
+  if(login) login.style.display="none";
+  if(main) main.style.display="none";
+  const notice=$("accessSecurityNotice");
+  if(notice) notice.className="access-security-notice hidden";
+  const year=$("publicYear");
+  if(year) year.textContent=String(new Date().getFullYear());
+  window.scrollTo({top:0,behavior:"instant"});
+}
+function openFamilyAccess(){
+  const pub=$("publicSite");
+  if(pub) pub.style.display="none";
+  showLogin();
+  window.scrollTo({top:0,behavior:"instant"});
+  setTimeout(()=>$("login")?.focus(),80);
+}
+function openNewRegistrationInfo(){
+  modal("Cadastro de novo aluno",`
+    <p class="body-text">Preencha os dados iniciais do responsável e do aluno. Use um número de WhatsApp que você controla como login. O cadastro será criado na base central e o aluno ficará com status pendente de conferência.</p>
+    <form id="publicFamilyRegistrationForm">
+      <div class="field"><label>Nome completo do responsável *</label><input id="newGuardianName" class="input" required maxlength="120" autocomplete="name"></div>
+      <div class="field"><label>WhatsApp do responsável — será o login *</label><input id="newGuardianPhone" class="input" required type="tel" inputmode="tel" maxlength="24" autocomplete="tel" placeholder="Ex.: 67998513404"></div>
+      <div class="field"><label>Nome completo do aluno *</label><input id="newStudentName" class="input" required maxlength="120"></div>
+      <div class="field"><label>Data de nascimento *</label><input id="newStudentBirth" class="input" type="date" required max="${todayISO()}"></div>
+      <div class="field"><label>Senha (mínimo 8 caracteres) *</label><input id="newFamilyPassword" class="input" type="password" required minlength="8" maxlength="128" autocomplete="new-password"></div>
+      <div class="field"><label>Confirme a senha *</label><input id="newFamilyPasswordConfirm" class="input" type="password" required minlength="8" maxlength="128" autocomplete="new-password"></div>
+      <label class="choice" style="display:flex;align-items:flex-start;gap:9px;margin:12px 0"><input id="newFamilyPrivacyConsent" type="checkbox" required><span>Confirmo que sou responsável legal e autorizo o uso destes dados para iniciar o cadastro do aluno, conforme a política de privacidade.</span></label>
+      <p class="form-hint">Não envie dados de saúde ou documentos nesta etapa inicial. Depois de entrar, complete a ficha privada conforme as orientações do projeto.</p>
+      <div id="publicFamilyRegistrationError" class="error-message" style="display:none"></div>
+      <button class="btn btn-gold btn-full" id="publicFamilyRegistrationSubmit" type="submit">Criar acesso e iniciar cadastro</button>
+    </form>
+    <p class="body-text small" style="margin-top:12px">Já tem acesso? <a href="#" onclick="closeModal();openFamilyAccess();return false">Entrar na minha conta</a></p>
+  `);
+  setTimeout(()=>{
+    const form=$("publicFamilyRegistrationForm");
+    if(!form) return;
+    form.addEventListener("submit",async e=>{
+      e.preventDefault();
+      const errorBox=$("publicFamilyRegistrationError");
+      const submit=$("publicFamilyRegistrationSubmit");
+      const guardianName=$("newGuardianName").value.trim();
+      const phone=String($("newGuardianPhone").value||"").replace(/\D/g,"");
+      const studentName=$("newStudentName").value.trim();
+      const birthDate=$("newStudentBirth").value;
+      const password=$("newFamilyPassword").value;
+      const confirmation=$("newFamilyPasswordConfirm").value;
+      if(phone.length<10 || phone.length>13){
+        errorBox.textContent="Informe um WhatsApp válido com DDD.";
+        errorBox.style.display="block";return;
+      }
+      if(password!==confirmation){
+        errorBox.textContent="As senhas não conferem.";
+        errorBox.style.display="block";return;
+      }
+      if(password.length<8){
+        errorBox.textContent="A senha deve ter pelo menos 8 caracteres.";
+        errorBox.style.display="block";return;
+      }
+      if(!initCentralClient()){
+        errorBox.textContent="Não foi possível conectar ao serviço de cadastro. Tente novamente mais tarde.";
+        errorBox.style.display="block";return;
+      }
+      submit.disabled=true;submit.textContent="Criando cadastro...";
+      errorBox.style.display="none";
+      try{
+        const result=await centralFunction("register-family",{
+          guardianName, phone, studentName, birthDate, password
+        });
+        if(!result?.ok) throw new Error(result?.error||"Não foi possível concluir o cadastro.");
+        closeModal();
+        modal("Cadastro iniciado",`
+          <div class="notice">Seu acesso foi criado. Guarde estas informações.</div>
+          <p class="body-text"><strong>Login:</strong> ${escapeHTML(result.login||phone)}</p>
+          <p class="body-text">O aluno foi registrado como pendente de conferência. Entre na Área do Responsável para continuar o cadastro e completar os dados necessários.</p>
+          <button class="btn btn-gold btn-full" type="button" onclick="closeModal();openFamilyAccess();$('login').value=${JSON.stringify(result.login||phone)}">Entrar na minha conta</button>
+        `);
+      }catch(error){
+        console.error("Cadastro público:",error);
+        errorBox.textContent=centralSafeError(error,"Não foi possível criar o cadastro. Se você já possui acesso ou o aluno já está cadastrado, entre na sua conta ou procure a Secretaria.");
+        errorBox.style.display="block";
+      }finally{
+        submit.disabled=false;submit.textContent="Criar acesso e iniciar cadastro";
+      }
+    });
+  },60);
+}
+function openExistingRegistrationInfo(){
+  modal("Completar cadastro existente",`
+    <p class="body-text">Se você já possui login e senha, entre na Área do Responsável. Após a autenticação, o sistema deverá mostrar os filhos vinculados à sua conta e permitir completar os campos pendentes.</p>
+    <p class="body-text">Se não consegue entrar, procure a Secretaria para regularizar seu acesso com segurança.</p>
+    <button class="btn btn-gold btn-full" type="button" onclick="closeModal();openFamilyAccess()">Entrar na minha conta</button>
+  `);
+}
+function applyRememberAccess(){
+  try{
+    const remember=Boolean($("rememberAccess")?.checked);
+    if(state?.user){
+      if(remember) localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+      else localStorage.removeItem(STORAGE_KEYS.session);
+    }
+  }catch(error){console.warn("Não foi possível atualizar a preferência de sessão.",error);}
+}
+
+function showLogin(){
+  // Portal público separado da área privada.
+  stopBackgroundMusic();
+  if($("publicSite")) $("publicSite").style.display="none";
   $("loginScreen").style.display="flex";
   $("mainScreen").style.display="none";
   const notice=$("accessSecurityNotice");
@@ -4107,6 +4459,7 @@ function selectUniversalStudent(){
 }
 
 function showApp(){
+  if($("publicSite")) $("publicSite").style.display="none";
   $("loginScreen").style.display="none";
   $("mainScreen").style.display="block";
   $("userChip").textContent=state.user.role==="master"
@@ -4136,7 +4489,7 @@ function logout(silent=false){
   centralAuthUser=null;
   centralHydrated=false;
   clearTimeout(inactivityTimer);
-  showLogin();
+  showPublicSite();
   if(!silent) toast("Sessão encerrada.");
 }
 
@@ -8031,6 +8384,11 @@ function initEvents(){
         toast(msg);
         if(errorBox){errorBox.textContent=msg;errorBox.style.display="block";}
         return;
+      }
+      if($("rememberAccess")?.checked && state.user){
+        localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(state.user));
+      }else{
+        localStorage.removeItem(STORAGE_KEYS.session);
       }
       showApp();
       toast("Bem-vindo ao Projeto Sementes. Acesso conectado à base central.");
