@@ -983,6 +983,30 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
            HOME
            ===================================================== -->
       <section id="homePage" class="page active">
+        <section class="seeds-hero" aria-label="Apresentação do Projeto Sementes">
+          <div class="seeds-hero-copy">
+            <p class="seeds-eyebrow">IEQ GUAICURUS • CORUMBÁ/MS</p>
+            <h1>Transformando vidas através do <em>jiu-jítsu.</em></h1>
+            <p class="seeds-hero-lead">Formamos crianças e adolescentes com disciplina, cidadania, educação e valores cristãos para a vida.</p>
+            <div class="seeds-hero-actions">
+              <button class="btn btn-gold" type="button" onclick="document.getElementById('projectStoryCard')?.scrollIntoView({behavior:'smooth',block:'start'})">Conheça nosso projeto <span aria-hidden="true">→</span></button>
+              <button class="btn seeds-outline-btn" type="button" onclick="document.querySelector('[data-page=&quot;dashboardPage&quot;]')?.click()">Ver nosso impacto</button>
+            </div>
+            <div class="seeds-pill-row" aria-label="Áreas de atuação">
+              <span>🥋 Esporte</span><span>✦ Educação</span><span>♧ Cidadania</span><span>✝ Fé</span><span>♡ Comunidade</span>
+            </div>
+          </div>
+          <div class="seeds-hero-emblem">
+            <div class="seeds-emblem-ring"><img src="projeto-sementes-logo-home.png" alt="Brasão oficial do Projeto Sementes" onerror="this.style.display='none'"></div>
+            <p>Plantando valores.<br><strong>Transformando futuros.</strong></p>
+          </div>
+        </section>
+        <div class="seeds-impact-strip">
+          <div class="seeds-impact-intro"><strong>O impacto começa<br><em>no tatame.</em></strong><span>Esporte, educação e fé caminhando juntos.</span></div>
+          <div class="seeds-impact-item"><span class="seeds-impact-icon">♙</span><div><strong>Jiu-Jítsu</strong><small>Disciplina e respeito</small></div></div>
+          <div class="seeds-impact-item"><span class="seeds-impact-icon">✎</span><div><strong>Educação</strong><small>Palestras socioeducativas</small></div></div>
+          <div class="seeds-impact-item"><span class="seeds-impact-icon">♡</span><div><strong>Comunidade</strong><small>Famílias e cidadania</small></div></div>
+        </div>
         <div class="home-logo-wrap">
           <img
             id="homeLogo"
@@ -1002,7 +1026,7 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
 
         <div class="bento">
 
-          <article class="card wide gold-border">
+          <article id="projectStoryCard" class="card wide gold-border">
             <div class="card-header">
               <div>
                 <h2 class="section-title">A HISTÓRIA DO PROJETO SEMENTES</h2>
@@ -7658,7 +7682,64 @@ function generateReport(){
       box-shadow:none!important;
       filter:drop-shadow(0 7px 16px rgba(0,0,0,.22))!important;
     }
-</style>
+
+    /* V76 — Página inicial institucional inspirada em referências de esporte e impacto social.
+       Alterações exclusivamente visuais; lógica de login, abas, dados e integrações preservadas. */
+    #homePage .home-logo-wrap{display:none!important}
+    #homePage > .page-title,#homePage > .page-sub{display:none}
+    #homePage{padding-top:0}
+    .seeds-hero{
+      position:relative;isolation:isolate;overflow:hidden;display:grid;
+      grid-template-columns:minmax(0,1.25fr) minmax(230px,.75fr);gap:24px;
+      align-items:center;min-height:350px;padding:clamp(24px,4vw,52px);
+      margin:0 0 16px;border:1px solid rgba(212,175,55,.34);border-radius:22px;
+      background:
+        radial-gradient(ellipse at 82% 20%,rgba(212,175,55,.24),transparent 34%),
+        radial-gradient(ellipse at 95% 95%,rgba(212,175,55,.13),transparent 35%),
+        linear-gradient(115deg,#080808 0%,#111 55%,#201a0d 100%);
+      box-shadow:0 18px 50px rgba(0,0,0,.3);
+    }
+    .seeds-hero:after{content:"";position:absolute;z-index:-1;right:-90px;bottom:-160px;width:390px;height:390px;border:1px solid rgba(244,215,110,.14);border-radius:50%;box-shadow:0 0 0 26px rgba(244,215,110,.025),0 0 0 54px rgba(244,215,110,.02)}
+    .seeds-hero-copy{max-width:700px}
+    .seeds-eyebrow{margin:0 0 15px;color:var(--gold2);font-size:11px;font-weight:900;letter-spacing:2px}
+    .seeds-hero h1{max-width:720px;margin:0;color:#fff;font-size:clamp(35px,5.2vw,64px);line-height:.99;letter-spacing:-1.8px;font-weight:900}
+    .seeds-hero h1 em{font-style:normal;color:var(--gold2)}
+    .seeds-hero-lead{max-width:560px;color:#d1d1d1;font-size:clamp(14px,1.5vw,18px);line-height:1.6;margin:18px 0 22px}
+    .seeds-hero-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .seeds-hero-actions .btn{min-height:45px}
+    .seeds-outline-btn{background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.5);color:#fff}
+    .seeds-pill-row{display:flex;flex-wrap:wrap;gap:17px;margin-top:26px;color:#e6e0ce;font-size:11px;font-weight:800}
+    .seeds-pill-row span{white-space:nowrap}
+    .seeds-hero-emblem{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-width:0}
+    .seeds-emblem-ring{width:min(245px,100%);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;padding:10px;border:2px solid #d4af37;background:radial-gradient(circle,#282317,#090909 68%);box-shadow:0 0 0 8px rgba(212,175,55,.08),0 18px 44px rgba(0,0,0,.4)}
+    .seeds-emblem-ring img{display:block;width:100%;height:100%;object-fit:contain}
+    .seeds-hero-emblem p{margin:17px 0 0;color:#d2c7a6;font-size:13px;line-height:1.55}
+    .seeds-hero-emblem p strong{color:var(--gold2);font-size:16px}
+    .seeds-impact-strip{display:grid;grid-template-columns:1.35fr repeat(3,1fr);gap:0;align-items:center;margin:0 0 26px;padding:20px 24px;border-radius:17px;background:#f4f1e8;color:#161616;box-shadow:0 10px 30px rgba(0,0,0,.16)}
+    .seeds-impact-intro{padding-right:18px}
+    .seeds-impact-intro strong{display:block;font-size:clamp(19px,2.2vw,27px);line-height:1.12}
+    .seeds-impact-intro em{font-style:normal;color:#a57a12}
+    .seeds-impact-intro span{display:block;margin-top:7px;font-size:11px;color:#59554a;line-height:1.5}
+    .seeds-impact-item{display:flex;align-items:center;gap:10px;padding:7px 12px;border-left:1px solid #d4cdbb;min-width:0}
+    .seeds-impact-icon{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(145deg,#f4d76e,#bd8e20);color:#17130a;font-size:23px;font-weight:900}
+    .seeds-impact-item strong{display:block;font-size:12px}
+    .seeds-impact-item small{display:block;color:#686254;font-size:10px;line-height:1.4;margin-top:4px}
+    #homePage .bento{gap:14px}
+    #homePage .card{transition:transform .2s ease,border-color .2s ease}
+    #homePage .card:hover{border-color:rgba(244,215,110,.62);transform:translateY(-2px)}
+    #projectStoryCard{scroll-margin-top:145px}
+    @media(max-width:760px){
+      .seeds-hero{grid-template-columns:1fr;min-height:0;padding:27px 22px;gap:24px}
+      .seeds-hero h1{font-size:clamp(36px,10vw,52px)}
+      .seeds-hero-emblem{display:none}
+      .seeds-pill-row{gap:10px 14px;margin-top:22px}
+      .seeds-impact-strip{grid-template-columns:1fr;gap:12px;padding:19px}
+      .seeds-impact-intro{padding:0 0 12px;border-bottom:1px solid #d4cdbb}
+      .seeds-impact-item{border-left:0;padding:3px 0}
+    }
+    @media(prefers-reduced-motion:reduce){#homePage .card{transition:none}#homePage .card:hover{transform:none}}
+
+  </style>
       </head>
       <body>
         <h1>Projeto Sementes — ${escapeHTML(type)}</h1>
