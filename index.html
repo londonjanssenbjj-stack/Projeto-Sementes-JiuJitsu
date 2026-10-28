@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Auditoria estática 2026-10-27: preservação de dados locais, horários unificados e diagnóstico PWA. -->
 <html lang="pt-BR">
 <head>
   <!-- V72 — NOVA BASE: zera cadastros e preserva somente Cronograma/Atividades; restaura geração de login do responsável
@@ -1337,8 +1338,8 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
         <div class="pub-wrap">
           <div class="pub-section-heading"><p class="pub-eyebrow">INFORMAÇÕES PARA AS FAMÍLIAS</p><h2>Treinos aos sábados</h2><p>Turmas organizadas por faixa etária para oferecer atenção e acompanhamento adequados.</p></div>
           <p class="pub-class-location"><strong>Local:</strong> IEQ Guaicurus — Rua Edu Rocha, 218, Bairro Guaicurus, Corumbá–MS.</p><div class="pub-program-grid">
-            <article class="pub-program-card"><div class="pub-program-icon">🥋</div><h3>Crianças de 6 a 10 anos</h3><p class="pub-class-time">Sábado • 9h às 10h</p><p>Jiu-Jitsu, disciplina, respeito e desenvolvimento de habilidades para a vida.</p></article>
-            <article class="pub-program-card"><div class="pub-program-icon">🥋</div><h3>Crianças e adolescentes de 11 a 17 anos</h3><p class="pub-class-time">Sábado • 10h às 11h</p><p>Treinamento esportivo e formação cidadã em ambiente acompanhado.</p></article>
+            <article class="pub-program-card"><div class="pub-program-icon">🥋</div><h3>Crianças de 6 a 10 anos</h3><p class="pub-class-time">Sábado • 9h30 às 10h30</p><p>Jiu-Jitsu, disciplina, respeito e desenvolvimento de habilidades para a vida.</p></article>
+            <article class="pub-program-card"><div class="pub-program-icon">🥋</div><h3>Crianças e adolescentes de 11 a 17 anos</h3><p class="pub-class-time">Sábado • 10h30 às 11h30</p><p>Treinamento esportivo e formação cidadã em ambiente acompanhado.</p></article>
             <article class="pub-program-card pub-address-card"><div class="pub-program-icon">📍</div><h3>Local das aulas</h3><p><strong>IEQ Guaicurus</strong></p><p>Rua Edu Rocha, 218 — Bairro Guaicurus, Corumbá – MS.</p></article>
           </div>
         </div>
@@ -2034,13 +2035,13 @@ V68 — Login e Senha preservam maiúsculas e minúsculas -->
            ===================================================== -->
       <section id="tatamePage" class="page">
         <h1 class="page-title">Tatame</h1>
-        <p class="page-sub">Painel operacional de chamada • Terça e quinta • 19h às 20h30. <strong>Sincronizado com Alunos.</strong></p>
+        <p class="page-sub">Painel operacional de chamada • Sábados • 9h30 às 11h30. <strong>Sincronizado com Alunos.</strong></p>
 
         <div class="card">
           <div class="stats" style="margin-bottom:16px">
             <div class="stat"><span>Data</span><strong id="tatameDate">--/--/----</strong></div>
-            <div class="stat"><span>Treino</span><strong>19h</strong></div>
-            <div class="stat"><span>Duração</span><strong>90</strong><span>minutos</span></div>
+            <div class="stat"><span>Treino</span><strong>9h30</strong></div>
+            <div class="stat"><span>Duração</span><strong>120</strong><span>minutos (duas turmas)</span></div>
             <div class="stat"><span>Presentes</span><strong id="presentCount">0</strong></div>
           </div>
 
@@ -2755,7 +2756,7 @@ const APP_CONFIG = {
   masterDisplayName: "Administrador Mestre London",
   masterEmail: "LONDONJANSSENBJJ@GMAIL.COM",
   masterWhatsapp: "5567998513404",
-  classTime: "Sábados: 9h às 10h (6–10 anos) e 10h às 11h (11–17 anos)",
+  classTime: "Sábados: 9h30 às 10h30 (6–10 anos) e 10h30 às 11h30 (11–17 anos)",
 
   /*
     Credencial DEMONSTRATIVA fornecida na especificação.
@@ -3412,25 +3413,15 @@ const FRESH_START_VERSION = "V72-NOVA-BASE-EXCETO-CRONOGRAMA-ATIVIDADES";
 const FRESH_START_CENTRAL_VERSION = "V72-CENTRAL-ZERADA-EXCETO-CRONOGRAMA-ATIVIDADES";
 
 function performFreshStartCutover(){
+  // Auditoria: não apagar dados locais automaticamente por divergência de versão.
+  // A limpeza de dados deve ser uma ação administrativa explícita, após backup.
   try{
     const markerKey = "sementes_fresh_start_version";
-    // V73: a limpeza inicial acontece UMA ÚNICA VEZ.
-    // Depois disso, novos logins/acessos gerados não podem ser apagados
-    // a cada abertura do aplicativo. Cronograma e Atividades permanecem.
-    if(localStorage.getItem(markerKey)===FRESH_START_VERSION) return;
-    const localKeys = [
-      STORAGE_KEYS.students, STORAGE_KEYS.attendance, STORAGE_KEYS.enrollment,
-      STORAGE_KEYS.secretaryDocuments, STORAGE_KEYS.documentSequence,
-      STORAGE_KEYS.accesses, STORAGE_KEYS.passwordResets,
-      STORAGE_KEYS.championships, STORAGE_KEYS.game, STORAGE_KEYS.tasks,
-      STORAGE_KEYS.lastRegisteredStudent, STORAGE_KEYS.lastRegisteredGuardian,
-      STORAGE_KEYS.masterPasswordOverride, STORAGE_KEYS.masterCredentialVersion,
-      STORAGE_KEYS.universalAccessStartedAt
-    ].filter(Boolean);
-    localKeys.forEach(k=>{try{localStorage.removeItem(k);}catch(_){} });
-    localStorage.setItem(markerKey,FRESH_START_VERSION);
+    if(localStorage.getItem(markerKey)!==FRESH_START_VERSION){
+      localStorage.setItem(markerKey,FRESH_START_VERSION);
+    }
   }catch(error){
-    console.warn("V73: não foi possível concluir a limpeza inicial local.",error);
+    console.warn("Projeto Sementes: não foi possível atualizar o marcador de versão local.",error);
   }
 }
 
@@ -4823,12 +4814,7 @@ async function ensureJsPdfLoaded(){
   return false;
 }
 
-function pdfEscapeText(value){
-  return String(value||"")
-    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-    .replace(/[^\x20-\x7E]/g,"")
-    .replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
-}
+
 
 function pdfJpegBytes(dataUrl){
   const b64=String(dataUrl||"").split(",")[1]||"";
@@ -8475,7 +8461,7 @@ document.addEventListener("click", async (event) => {
    ----------------------------- */
 function registerPWA(){
   if("serviceWorker" in navigator && location.protocol==="https:"){
-    navigator.serviceWorker.register("service-worker.js").catch(()=>{});
+    navigator.serviceWorker.register("service-worker.js").catch(error=>{ console.warn("Projeto Sementes: Service Worker indisponível; o site continuará sem recursos offline.",error); });
   }
 }
 
